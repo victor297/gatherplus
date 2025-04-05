@@ -18,12 +18,10 @@ export default function ReviewScreen() {
       return {};
     }
   });
-  console.log(formData,"hhhhhhh")
 
   const handleSubmit = async () => {
     try {
       const res = await createvent(formData).unwrap();
-      console.log(res,"res")
 
       router.push('/success'); // Navigate on success
     } catch (error) {

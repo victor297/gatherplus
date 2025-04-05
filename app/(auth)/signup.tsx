@@ -37,7 +37,6 @@ export default function SignupScreen() {
       const res = await usersignup({ name, email, password }).unwrap();
       router.push(`/verify?email=${email}`);
     } catch (err:any) {
-      console.log(err)
       setError(err?.data?.body || 'Signup failed. Please try again.');
     }
   };
@@ -45,7 +44,6 @@ export default function SignupScreen() {
     try {
       const result = await promptAsync();
       if (result?.type === 'success') {
-        console.log('Google sign-in successful');
       } else {
         setError('Google sign-in cancelled.');
       }

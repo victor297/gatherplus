@@ -1,13 +1,21 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, Ticket, Mail, Lock, Bookmark } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, Ticket, Mail, Lock, Bookmark, LogOutIcon } from 'lucide-react-native';
 import { useGetProfileQuery } from '@/redux/api/usersApiSlice';
+import { useDispatch } from 'react-redux';
+import { logout } from '@/redux/features/auth/authSlice';
 
 export default function ProfileScreen() {
   const router:any = useRouter();
+    const dispatch = useDispatch()
+  
   const { data: userProfile, isLoading: isFetchingProfile, error: profileError } = useGetProfileQuery(null);
-
+ 
+  const handlelogout = async () => {
+  await  dispatch(logout())
+    // router.push("/(auth)/login")
+  }
   const menuItems = [
     {
       icon: <Ticket size={24} color="#6B7280" />,
@@ -49,7 +57,7 @@ export default function ProfileScreen() {
       {/* Error Handling */}
       {profileError && (
         <View className="px-4 py-4 bg-red-500 rounded-lg mx-4">
-          <Text className="text-white text-center">Error fetching profile data. Please try again.</Text>
+          <Text className="text-white text-center">{profileError?.data?.body||`Error fetching profile data. Please try again.`}</Text>
         </View>
       )}
 
@@ -99,6 +107,15 @@ export default function ProfileScreen() {
           </View>
         </>
       )}
+    <TouchableOpacity className="bg-primary rounded-lg py-2 w-40 mt-5 self-center"   onPress={handlelogout}
+    >
+   
+              <View className='flex-row items-center gap-2 justify-center'>
+                              <Text className="text-white  text-center text-lg font-bold">LogOut </Text>
+                              <LogOutIcon color="white" />
+           </View>
+          </TouchableOpacity>
+  
     </View>
   );
 }

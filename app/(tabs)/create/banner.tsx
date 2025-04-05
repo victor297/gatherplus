@@ -8,7 +8,6 @@ import ProgressSteps from '@/app/components/create/ProgressSteps';
 export default function BannerScreen() {
   const router = useRouter();
   const params:any = useLocalSearchParams();
-  console.log('Params:', params);
   const [courseData,setCourseData] = useState(() => {
     try {
       return params.courseData ? JSON.parse(params.courseData) : null;
@@ -17,7 +16,6 @@ export default function BannerScreen() {
       return null;
     }
   });
-  console.log(courseData)
 
   // ✅ Parse formData & sessions correctly
   const [formData, setFormData] = useState(() => {

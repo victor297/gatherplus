@@ -1,23 +1,24 @@
-import { Tabs, useFocusEffect, useRouter } from 'expo-router';
+import { Tabs, useFocusEffect, usePathname, useRouter } from 'expo-router';
 import { Home, Plus, User } from 'lucide-react-native';
 import { Image, View } from 'react-native';
 import { useSelector } from 'react-redux';
 
 export default function TabLayout() {
-    const { userInfo } = useSelector((state:any) => state.auth);
-    const router= useRouter()
-  
+  const { userInfo } = useSelector((state: any) => state.auth);
+  const router = useRouter()
+  const pathname = usePathname();
+
   useFocusEffect(() => {
-if (!userInfo) {
- router.push("/(auth)/login") 
-}
-  }, );
+    if (!userInfo) {
+      router.push("/(auth)/login")
+    }
+  },);
   return (
     <Tabs
-    initialRouteName="home" 
+      initialRouteName="home"
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
+        tabBarStyle: pathname !== "/home/home1" ? { display: 'none' } : {
           backgroundColor: '#020E1E',
           borderTopColor: '#1A2432',
           height: 68,
@@ -31,24 +32,26 @@ if (!userInfo) {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+          
         }}
+        
       />
       <Tabs.Screen
         name="create"
         options={{
           title: '',
           tabBarIcon: ({ focused }) => (
-            <View style={{ 
+            <View style={{
               padding: 16,
               borderRadius: 50,
               marginTop: -32,
-              marginBottom:2
+              marginBottom: 2
             }}>
-                 <Image
-                                      source={require('../../assets/images/add.png')}
-                                      
-                                                    className="h-20 w-20"
-                                                  />
+              <Image
+                source={require('../../assets/images/add.png')}
+
+                className="h-20 w-20"
+              />
               {/* <AddIcon/> */}
             </View>
           ),

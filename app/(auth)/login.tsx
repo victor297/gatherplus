@@ -24,7 +24,6 @@ export default function Login() {
     iosClientId: 'YOUR_IOS_CLIENT_ID',
   });
     useFocusEffect(() => {
-      console.log(userInfo)
   if (userInfo) {
    router.push("/(tabs)/home/home1") 
   }
@@ -43,7 +42,6 @@ export default function Login() {
     setError(null);
     try {
       const res:any = await login({ username, password }).unwrap();
-      console.log(res);
   
       if (res.code === 200 && res.body) {
         dispatch(setCredentials(res)); // Ensure correct payload structure
@@ -63,7 +61,6 @@ export default function Login() {
     try {
       const result = await promptAsync();
       if (result?.type === 'success') {
-        console.log('Google sign-in successful');
       } else {
         setError('Google sign-in cancelled.');
       }

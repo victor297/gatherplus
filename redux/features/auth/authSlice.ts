@@ -7,6 +7,7 @@ interface UserInfo {
   accessToken: string;
   refreshToken: string;
   exp: number; // Expiry timestamp in seconds
+  sub: number;
 }
 
 interface AuthState {
@@ -18,7 +19,7 @@ const initialState: AuthState = {
 };
 
 // Function to decode JWT token
-const decodeToken = (token: string): { username: string; exp: number } | null => {
+const decodeToken = (token: string): { username: string; exp: number; sub:number; } | null => {
   try {
     const base64Url = token.split(".")[1]; // Extract payload part
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -26,6 +27,7 @@ const decodeToken = (token: string): { username: string; exp: number } | null =>
     return {
       username: jsonPayload.username, // Use "username" instead of "sub"
       exp: jsonPayload.exp, // Expiry timestamp
+      sub: jsonPayload.sub, 
     };
   } catch (error) {
     console.error("Error decoding token:", error);
@@ -55,7 +57,8 @@ const authSlice = createSlice({
         role,
         accessToken: access_token,
         refreshToken: refresh_token,
-        exp: decodedToken.exp, // Store expiry timestamp
+        exp: decodedToken.exp,
+        sub: decodedToken.sub
       };
 
       state.userInfo = userData;

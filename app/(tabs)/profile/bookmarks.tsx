@@ -1,25 +1,15 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Calendar, TimerReset } from 'lucide-react-native';
+import { useGetBookmarksQuery } from '@/redux/api/eventsApiSlice';
+import { formatDate } from '@/utils/formatDate';
 
-const bookmarkedEvents = [
-  {
-    id: 1,
-    title: 'Jazz Night Live',
-    venue: 'Downtown Jazz Club',
-    image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3',
-  },
-  {
-    id: 2,
-    title: 'Jazz Night Live',
-    venue: 'Downtown Jazz Club',
-    image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7',
-  }
-];
+
 
 export default function BookmarksScreen() {
   const router = useRouter();
+    const { data: bookmarks, isLoading, error } = useGetBookmarksQuery({});
 
   return (
     <View className="flex-1 bg-background">
@@ -29,40 +19,50 @@ export default function BookmarksScreen() {
         </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Bookmarks</Text>
       </View>
-
-      <ScrollView className="flex-1 px-4">
-        {bookmarkedEvents.map((event) => (
+      <ScrollView className=" mt-2 px-4 ">
+            {isLoading ?  <View className="text-white  bg-background flex justify-center items-center py-4"><ActivityIndicator /></View>
+                               : error  ? 
+        <View className="flex-1 bg-background justify-center items-center">
+          <Text className="text-red-500">Failed to load data. Please try again.</Text>
+        </View> : bookmarks?.body?.map((event) => (
           <TouchableOpacity
-            key={event.id}
-            className="bg-[#1A2432] rounded-lg overflow-hidden mb-4"
-            onPress={() => router.push(`/event/${event.id}`)}
+            key={event.id} onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
+            className="bg-[#1A2432] rounded-lg mb-4"
           >
             <Image
-              source={{ uri: event.image }}
+              source={{ uri: event?.event?.images?.[0] }}
               className="w-full h-48"
               resizeMode="cover"
             />
             <View className="p-4">
-              <Text className="text-white text-xl font-semibold">{event.title}</Text>
-              <Text className="text-gray-400 mb-4">{event.venue}</Text>
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row">
-                  {[1, 2, 3].map((avatar) => (
-                    <Image
-                      key={avatar}
-                      source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde' }}
-                      className="w-8 h-8 rounded-full border-2 border-[#1A2432] -ml-2 first:ml-0"
-                    />
-                  ))}
+             <View className='flex-row justify-between'>
+             <Text className="text-white text-lg font-bold mb-2">
+                {event?.event?.title}
+              </Text>
+              <View className="flex-row  items-center">
+                  <Text className="text-amber-400 mr-2">★</Text>
+                  <Text className="text-gray-400 font-semibold">{event?.event?.likes} interested</Text>
                 </View>
-                <TouchableOpacity className="bg-primary px-6 py-2 rounded-full">
-                  <Text className="text-background font-semibold">Join now</Text>
-                </TouchableOpacity>
+             </View>
+              <View className="flex-row items-center justify-between">
+                <View className="flex-col">
+                <View className=" flex flex-row gap-2 items-center"><Calendar className='text-gray-400' size={20}/><Text className='text-gray-400 text-sm'>{formatDate(event?.event?.start_date).toString()}</Text></View>
+                  <View className=" flex flex-row gap-2 mt-1 items-center"><TimerReset className='text-gray-400' size={24}/><Text className='text-gray-400 text-sm'>{event?.event?.time}</Text></View>
+                </View>
+
+                <View className="mt-2">
+                <Text className="text-primary text-lg font-semibold">
+                {event?.event?.currency ||'₦'}  {event?.event?.price}
+                </Text>
               </View>
+               
+              </View>
+             
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
+ 
     </View>
   );
 }

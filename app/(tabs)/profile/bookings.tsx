@@ -1,42 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
-
-const events = [
-  {
-    id: 1,
-    title: 'Event title that can go up to two lines',
-    image: 'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f',
-    date: 'Dec 24, 2025',
-    time: '0:00 AM - 0:00 PM',
-    interested: 10,
-    price: 499
-  },
-  {
-    id: 2,
-    title: 'Event title that can go up to two lines',
-    image: 'https://images.unsplash.com/photo-1501084817091-a4f3d1d19e07',
-    date: 'Dec 24, 2025',
-    time: '0:00 AM - 0:00 PM',
-    interested: 10,
-    price: 499
-  },
-  {
-    id: 3,
-    title: 'Event title that can go up to two lines',
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87',
-    date: 'Dec 24, 2025',
-    time: '0:00 AM - 0:00 PM',
-    interested: 10,
-    price: 499
-  }
-];
+import { ArrowLeft, Calendar, TimerReset } from 'lucide-react-native';
+import { useGetBookingsQuery, useGetBookmarksQuery } from '@/redux/api/eventsApiSlice';
+import { formatDate } from '@/utils/formatDate';
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('upcoming');
-
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past'|null>('upcoming');
+  
+  const { data: bookmarks, isLoading, error } = useGetBookingsQuery({
+    type: activeTab
+  });
+console.log(activeTab)
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
@@ -65,40 +41,64 @@ export default function BookingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-4">
-        {events.map((event) => (
-          <TouchableOpacity
-            key={event.id}
-            className="bg-[#1A2432] rounded-lg overflow-hidden mb-4"
-            onPress={() => router.push(`/event/${event.id}`)}
-          >
-            <Image
-              source={{ uri: event.image }}
-              className="w-full h-48"
-              resizeMode="cover"
-            />
-            <View className="p-4">
-              <Text className="text-white text-lg font-semibold mb-2">
-                {event.title}
-              </Text>
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                  <Text className="text-gray-400 text-sm">{event.date}</Text>
-                  <Text className="text-gray-400 text-sm ml-4">{event.time}</Text>
+      <ScrollView className="mt-2 px-4">
+        {isLoading ? (
+          <View className="py-4">
+            <ActivityIndicator color="#FFFFFF" />
+          </View>
+        ) : error ? (
+          <View className="py-4 justify-center items-center">
+            <Text className="text-red-500">Error loading events</Text>
+          </View>
+        ) : (
+          bookmarks?.body?.map((event) => (
+              <TouchableOpacity
+                key={event.id}
+                onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
+                className="bg-[#1A2432] rounded-lg mb-4"
+              >
+                <Image
+                  source={{ uri: event?.event?.images?.[0] }}
+                  className="w-full h-48 rounded-t-lg"
+                  resizeMode="cover"
+                />
+                <View className="p-4">
+                  <View className="flex-row justify-between mb-2">
+                    <Text className="text-white text-lg font-bold flex-shrink mr-2">
+                      {event?.event?.title}
+                    </Text>
+                    <View className="flex-row items-center">
+                      <Text className="text-amber-400 mr-1">★</Text>
+                      <Text className="text-gray-400 text-sm">
+                        {event?.event?.likes} interested
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-col gap-1">
+                      <View className="flex-row items-center gap-2">
+                        <Calendar color="#6B7280" size={18} />
+                        <Text className="text-gray-400 text-sm">
+                          {formatDate(event?.event?.start_date)}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center gap-2">
+                        <TimerReset color="#6B7280" size={18} />
+                        <Text className="text-gray-400 text-sm">
+                          {event?.event?.time}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text className="text-primary text-lg font-semibold">
+                      {event?.event?.currency || '₦'} {event?.event?.price}
+                    </Text>
+                  </View>
                 </View>
-                <View className="flex-row items-center">
-                  <Text className="text-amber-400 mr-2">★</Text>
-                  <Text className="text-gray-400">{event.interested} interested</Text>
-                </View>
-              </View>
-              <View className="mt-2">
-                <Text className="text-primary text-lg font-semibold">
-                  ₦ {event.price}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+              </TouchableOpacity>
+            ))
+        )}
       </ScrollView>
     </View>
   );

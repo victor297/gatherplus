@@ -11,7 +11,6 @@ const SuccessFeedbackScreen = () => {
   const emojiIcons = ["😡", "😠", "😐", "😊", "😎"];
 
   const handleSendFeedback = () => {
-    console.log("Feedback Sent:", { rating, feedback });
     alert("Feedback Submitted! Thank you!");
   };
   const handleDismiss = () => {

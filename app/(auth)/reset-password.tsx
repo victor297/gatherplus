@@ -28,7 +28,6 @@ export default function ResetPassword() {
 
     try {
       setError(null);
-      console.log(email)
       await resetPassword({ email, code, password }).unwrap();
       
       router.push('/login');

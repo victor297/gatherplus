@@ -8,11 +8,9 @@ import { Text, View } from "react-native";
 export default function Index() {
   const [loading, setLoading] = useState(true);
   const [storedUser, setStoredUser] = useState(null);
-console.log("index")
   useFocusEffect(() => {
     const checkUser = async () => {
       const user = await AsyncStorage.getItem("userInfo");
-      console.log(user,"userasync")
 
       if (user) {
         const parsedUser = JSON.parse(user);
@@ -23,7 +21,6 @@ console.log("index")
 
     checkUser();
   }, );
-  console.log(storedUser,"storedUser")
 
   if (loading) return <View className="flex-1 bg-background"></View>; // Prevent flicker before checking storage
 

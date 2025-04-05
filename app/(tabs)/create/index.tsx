@@ -65,7 +65,6 @@ export default function CreateEventScreen() {
     'Metropolitan Museum',
     'Sports Complex',
   ];
-  console.log(categories)
 
   const addSession = () => {
     setSessions([...sessions, {
