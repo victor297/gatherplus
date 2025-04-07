@@ -10,7 +10,7 @@ export default function ProfileScreen() {
   const router:any = useRouter();
     const dispatch = useDispatch()
   
-  const { data: userProfile, isLoading: isFetchingProfile, error: profileError } = useGetProfileQuery(null);
+  const { data: userProfile, isLoading: isFetchingProfile, error: profileError } = useGetProfileQuery<any>(null);
  
   const handlelogout = async () => {
   await  dispatch(logout())

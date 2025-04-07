@@ -15,7 +15,7 @@ export default function OrderSummaryScreen() {
       const [createBooking, { isLoading:isBookmarkLoading }] = useCreateBookingMutation();
   
   // Calculate ticket groups and totals
-  const ticketGroups = bookingData.bookings.reduce((groups, booking) => {
+  const ticketGroups = bookingData.bookings.reduce((groups:any, booking:any) => {
     const name = booking.name;
     if (!groups[name]) {
       groups[name] = { count: 0, total: 0 };
@@ -25,7 +25,7 @@ export default function OrderSummaryScreen() {
     return groups;
   }, {});
 
-  const subtotal = bookingData.bookings.reduce((sum, booking) => sum + booking.price, 0);
+  const subtotal = bookingData.bookings.reduce((sum:any, booking:any) => sum + booking.price, 0);
   const tax = 0; // Add your tax calculation logic here if needed
   const total = subtotal + tax;
   const handleBookEvent = async()=>{
@@ -52,7 +52,7 @@ router.push(`/home/event/${bookingData.event_id}/success`)
       <ScrollView className="flex-1 px-4">
         <Text className="text-white text-xl mb-4">Tickets</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="">
-          {bookingData.bookings.map((booking, index) => (
+          {bookingData.bookings.map((booking:any, index:any) => (
             <View className="relative w-80 m-1" key={`${booking.ticket_id}-${index}`}>
               <Svg height="100" width="100%" viewBox="0 0 520 160">
                 <Rect x="0" y="0" width="520" height="160" rx="10" ry="10" fill="white" stroke="gray" strokeWidth="2" />
@@ -69,8 +69,11 @@ router.push(`/home/event/${bookingData.event_id}/success`)
                     <Text className="text-sm text-gray-500">{booking.email}</Text>
                   </View>
                   <Text className="text-white font-bold text-sm bg-blue-600 p-1 rounded-full">
-                    ₦{booking.price.toLocaleString()}
-                  </Text>
+  {booking?.price == 0
+    ? 'Free'
+    : `${bookingData?.currency?.split(' - ')[0]} ${booking.price.toLocaleString()}`}
+</Text>
+
                 </View>
               </View>
             </View>
@@ -81,11 +84,11 @@ router.push(`/home/event/${bookingData.event_id}/success`)
           <Text className="text-white text-xl mb-4">Order Details</Text>
           
           <View className="space-y-3">
-            {Object.entries(ticketGroups).map(([name, group]) => (
+            {Object.entries(ticketGroups).map(([name, group]:any) => (
               <View className="flex-row justify-between" key={name}>
                 <Text className="text-gray-400">{name}</Text>
                 <Text className="text-white">
-                  {group.count} × ₦{(group.total / group.count).toLocaleString()}
+                  {group?.count} × {bookingData?.currency} {(group?.total / group?.count).toLocaleString()}
                 </Text>
               </View>
             ))}
@@ -96,11 +99,11 @@ router.push(`/home/event/${bookingData.event_id}/success`)
           <View className="space-y-3">
             <View className="flex-row justify-between">
               <Text className="text-gray-400">Sub-total</Text>
-              <Text className="text-white">₦{subtotal.toLocaleString()}</Text>
+              <Text className="text-white">{bookingData?.currency} {subtotal.toLocaleString()}</Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-gray-400">Tax</Text>
-              <Text className="text-white">₦{tax.toLocaleString()}</Text>
+              <Text className="text-white"> {bookingData?.currency} {tax.toLocaleString()}</Text>
             </View>
           </View>
 
@@ -108,7 +111,7 @@ router.push(`/home/event/${bookingData.event_id}/success`)
 
           <View className="flex-row justify-between">
             <Text className="text-gray-400">Total</Text>
-            <Text className="text-primary text-xl font-bold">₦{total.toLocaleString()}</Text>
+            <Text className="text-primary text-xl font-bold"> {bookingData?.currency} {total.toLocaleString()}</Text>
           </View>
         </View>
       </ScrollView>

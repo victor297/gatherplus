@@ -12,7 +12,7 @@ export default function BookingsScreen() {
   const { data: bookmarks, isLoading, error } = useGetBookingsQuery({
     type: activeTab
   });
-console.log(activeTab)
+console.log(activeTab,bookmarks)
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
@@ -51,10 +51,10 @@ console.log(activeTab)
             <Text className="text-red-500">Error loading events</Text>
           </View>
         ) : (
-          bookmarks?.body?.map((event) => (
+          bookmarks?.body?.map((event:any) => (
               <TouchableOpacity
                 key={event.id}
-                onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
+                onPress={() => router.push(`/(tabs)/home/event/${event.event_id}`)}
                 className="bg-[#1A2432] rounded-lg mb-4"
               >
                 <Image
@@ -91,9 +91,9 @@ console.log(activeTab)
                       </View>
                     </View>
 
-                    <Text className="text-primary text-lg font-semibold">
-                      {event?.event?.currency || '₦'} {event?.event?.price}
-                    </Text>
+                   {event?.event?.is_free?<Text className="text-primary text-lg font-semibold">free</Text>: <Text className="text-primary text-lg font-semibold">
+                                {event?.event?.currency?.split(' - ')[0] ||'₦'} {event?.event?.price}
+                                </Text> }
                   </View>
                 </View>
               </TouchableOpacity>

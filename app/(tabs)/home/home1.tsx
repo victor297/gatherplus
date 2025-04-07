@@ -81,10 +81,9 @@ export default function HomeScreen() {
               onPress={() => setShowCountryModal(true)}
             >
               <Text className="text-white text-lg font-medium">
-                {selectedCountry && selectedState ? `${selectedState.name}, ${selectedCountry.name}`
-                  : "Select Location"}
+                {selectedCountry && selectedState ? `${selectedState.name}, ${selectedCountry.name}`: "Select Location"}
               </Text>
-              <Text className="text-primary text-lg">⏷</Text> {/* Arrow Icon */}
+              <Text className="text-primary text-lg">⏷</Text>
             </TouchableOpacity>
 
             {/* Country Modal */}
@@ -97,7 +96,7 @@ export default function HomeScreen() {
                 <View className="bg-[#1A2432] rounded-t-3xl p-6">
                   <Text className="text-white text-xl font-semibold mb-4">Select Country</Text>
                   <ScrollView className="max-h-96">
-                    {countryData?.body?.map((country) => (
+                    {countryData?.body?.map((country:any) => (
                       <TouchableOpacity
                         key={country.code2}
                         className="py-4 border-b border-gray-700"
@@ -126,7 +125,7 @@ export default function HomeScreen() {
                 <View className="bg-[#1A2432] rounded-t-3xl p-6">
                   <Text className="text-white text-xl font-semibold mb-4">Select State</Text>
                   <ScrollView className="max-h-96">
-                    {stateData?.body?.map((state) => (
+                    {stateData?.body?.map((state:any) => (
                       <TouchableOpacity
                         key={state.id}
                         className="py-4 border-b border-gray-700"
@@ -135,7 +134,7 @@ export default function HomeScreen() {
                           setShowStateModal(false);
                         }}
                       >
-                        <Text className="text-white">{state.name}</Text>
+                      <Text className="text-white">{state.name}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -174,7 +173,7 @@ export default function HomeScreen() {
             {/* Categories */}
             <Text className="text-white text-xl font-bold px-4 mb-4">Categories</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 mb-6">
-              {categories?.body?.map((category, index) => (
+              {[{ id: null, name: "All" }, ...(categories?.body || [])].map((category, index) => (
                 <TouchableOpacity
                   key={index}
                   onPress={() => setSelectedCategory(category?.id)}
@@ -211,7 +210,7 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-4">
-                {upcoming?.body?.result?.map((event) => (
+                {upcoming?.body?.result?.map((event:any) => (
                   <TouchableOpacity key={event.id} onPress={() => router.push(`/(tabs)/home/event/${event.id}`)} className="bg-[#1A2432] rounded-lg overflow-hidden mr-4 w-48">
                     <Image source={{ uri: event?.images?.[0] }} className="w-full h-32" resizeMode="cover" />
                     <View className="p-3">
@@ -234,19 +233,21 @@ export default function HomeScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-4">
               <View className="px-4 flex-row gap-4">
 
-{live?.body?.result?.map((event) => (
+{live?.body?.result?.map((event:any) => (
   <TouchableOpacity
     key={event.id}  onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
-    className="bg-[#1A2432] rounded-lg overflow-hidden mb-4"
+    className="bg-[#1A2432] w-48 rounded-lg overflow-hidden mb-4"
   >
     <Image
       source={{ uri: event?.images?.[0] }}
-      className="w-full h-48"
+      className="w-full h-32"
       resizeMode="cover"
     />
     <View className="p-4">
       <Text className="text-white text-xl font-semibold">{event?.title}</Text>
-      <Text className="text-gray-400 mb-4">{event?.address}</Text>
+      <Text className="text-gray-400 mb-4">{event?.address?.length > 25
+    ? `${event.address.slice(0, 25)}...`
+    : event?.address}</Text>
       <View className="flex-row items-center justify-between">
         <View className="flex-row">
           {[1, 2, 3].map((avatar) => (

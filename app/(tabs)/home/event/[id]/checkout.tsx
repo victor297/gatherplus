@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, User, Mail, Phone } from 'lucide-react-native';
-
+import { useSelector } from 'react-redux';
+import { useGetEventQuery } from '@/redux/api/eventsApiSlice';
 
 interface AttendeeDetails {
   fullname: string;
@@ -10,28 +11,15 @@ interface AttendeeDetails {
   phone: string;
 }
 
-const eventData = {
-  id: 10,
-  title: "Music Festival 2025",
-  description: "An amazing music festival featuring top artists.",
-  address: "123 Festival Avenue, New York",
-  images: ["https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3"],
-  sessions: [
-    { id: 17, name: "Opening Ceremony", start_time: "18:00", end_time: "19:00" },
-    { id: 18, name: "Main Concert", start_time: "19:30", end_time: "23:00" },
-  ],
-  tickets: [
-    { id: 18, name: "General Admission", price: "50", quantity: 100 },
-    { id: 19, name: "VIP", price: "150", quantity: 50 },
-  ],
-};
 export default function CheckoutScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
-  const ticketData = JSON.parse(data as string);
-  console.log(ticketData,"ticketDataticketData")
-  
-  const [useCommonDetails, setUseCommonDetails] = useState(!ticketData.each_ticket_identity);
+  const ticketData: any = JSON.parse(data as string);
+  const { userInfo } = useSelector((state: any) => state.auth);
+  const { data: event, isLoading, error, refetch } = useGetEventQuery({ id: ticketData?.eventId, user_id: userInfo?.sub });
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  const [useCommonDetails, setUseCommonDetails] = useState(ticketData.each_ticket_identity);
   const [commonDetails, setCommonDetails] = useState<AttendeeDetails>({
     fullname: '',
     email: '',
@@ -45,35 +33,84 @@ export default function CheckoutScreen() {
     })
   );
 
+  // Validate form whenever details change
+  useEffect(() => {
+    validateForm();
+  }, [commonDetails, attendeeDetails, useCommonDetails]);
+
+  const validateForm = () => {
+    if (useCommonDetails) {
+      // Validate common details
+      const isValid = commonDetails.fullname.trim() !== '' && 
+                     commonDetails.email.trim() !== '' && 
+                     commonDetails.phone.trim() !== '';
+      setIsFormValid(isValid);
+    } else {
+      // Validate all individual attendee details
+      const allValid = attendeeDetails.every(attendee => 
+        attendee.fullname.trim() !== '' && 
+        attendee.email.trim() !== '' && 
+        attendee.phone.trim() !== ''
+      );
+      setIsFormValid(allValid);
+    }
+  };
+
   const handleContinue = () => {
+    if (!isFormValid) return;
+
     // Prepare data for backend
     const bookings = useCommonDetails 
       ? ticketData.ticketInstances.map(instance => ({
           ...commonDetails,
           session_id: instance.sessionId,
           ticket_id: instance.ticketId,
-          name:instance.name,
-          price:instance.price
+          name: instance.name,
+          price: instance.price
         }))
       : ticketData.ticketInstances.map((instance, index) => ({
           ...attendeeDetails[index],
           session_id: instance.sessionId,
           ticket_id: instance.ticketId,
-          name:instance.name,
-          price:instance.price
+          name: instance.name,
+          price: instance.price
         }));
 
     const bookingData = {
       event_id: Number(ticketData.eventId),
+      currency:ticketData?.currency,
       channel: "PayStack",
       bookings
     };
 
-    console.log('Booking data to be sent:', bookingData);
-    router.push({pathname:`/home/event/${ticketData?.eventId}/summary`,    
-        params: { data: JSON.stringify(bookingData) }}
-  );
+    router.push({
+      pathname: `/home/event/${ticketData?.eventId}/summary`,
+      params: { data: JSON.stringify(bookingData) }
+    });
   };
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-background justify-center items-center">
+        <ActivityIndicator size="large" color="#ffffff" />
+        <Text className="text-white mt-4">Loading event details...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 bg-background justify-center items-center p-4">
+        <Text className="text-white text-center mb-4">Failed to load event details</Text>
+        <TouchableOpacity 
+          className="bg-primary rounded-lg px-6 py-3"
+          onPress={() => refetch()}
+        >
+          <Text className="text-background">Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -85,11 +122,10 @@ export default function CheckoutScreen() {
       </View>
 
       <ScrollView className="flex-1 px-4">
-        
         <View className="mb-6">
           <TouchableOpacity
             className={`p-4 rounded-lg mb-4 ${useCommonDetails ? 'bg-primary' : 'bg-[#1A2432]'}`}
-            // onPress={() => setUseCommonDetails(true)}
+            onPress={() => setUseCommonDetails(true)}
           >
             <Text className={useCommonDetails ? 'text-background' : 'text-white'}>
               Use same details for all tickets
@@ -98,7 +134,7 @@ export default function CheckoutScreen() {
 
           <TouchableOpacity
             className={`p-4 rounded-lg ${!useCommonDetails ? 'bg-primary' : 'bg-[#1A2432]'}`}
-            // onPress={() => setUseCommonDetails(false)}
+            onPress={() => setUseCommonDetails(false)}
           >
             <Text className={!useCommonDetails ? 'text-background' : 'text-white'}>
               Add individual details for each ticket
@@ -109,12 +145,12 @@ export default function CheckoutScreen() {
         {useCommonDetails ? (
           <View className="space-y-4">
             <View>
-              <Text className="text-white mb-2">Full Name</Text>
-              <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4 py-3">
+              <Text className="text-white mb-2">Full Name <Text className="text-red-500">*</Text></Text>
+              <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!commonDetails.fullname ? 'border-red-500' : 'border-transparent'}`}>
                 <User size={20} color="#6B7280" />
                 <TextInput
                   className="flex-1 ml-3 text-white"
-                  placeholder="Enter full name"
+                  placeholder="Enter full name*"
                   placeholderTextColor="#6B7280"
                   value={commonDetails.fullname}
                   onChangeText={(text) => setCommonDetails({...commonDetails, fullname: text})}
@@ -123,12 +159,12 @@ export default function CheckoutScreen() {
             </View>
 
             <View>
-              <Text className="text-white mb-2">Email</Text>
-              <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4 py-3">
+              <Text className="text-white mb-2">Email <Text className="text-red-500">*</Text></Text>
+              <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!commonDetails.email ? 'border-red-500' : 'border-transparent'}`}>
                 <Mail size={20} color="#6B7280" />
                 <TextInput
                   className="flex-1 ml-3 text-white"
-                  placeholder="Enter email"
+                  placeholder="Enter email*"
                   placeholderTextColor="#6B7280"
                   value={commonDetails.email}
                   onChangeText={(text) => setCommonDetails({...commonDetails, email: text})}
@@ -138,12 +174,12 @@ export default function CheckoutScreen() {
             </View>
 
             <View>
-              <Text className="text-white mb-2">Phone</Text>
-              <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4 py-3">
+              <Text className="text-white mb-2">Phone <Text className="text-red-500">*</Text></Text>
+              <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!commonDetails.phone ? 'border-red-500' : 'border-transparent'}`}>
                 <Phone size={20} color="#6B7280" />
                 <TextInput
                   className="flex-1 ml-3 text-white"
-                  placeholder="Enter phone number"
+                  placeholder="Enter phone number*"
                   placeholderTextColor="#6B7280"
                   value={commonDetails.phone}
                   onChangeText={(text) => setCommonDetails({...commonDetails, phone: text})}
@@ -158,18 +194,18 @@ export default function CheckoutScreen() {
               <View className="bg-[#4d6382] rounded-lg p-4 mb-4">
                 <Text className="text-white">Ticket {index + 1}</Text>
                 <Text className="text-gray-400">
-                  Session: {ticketData?.event.sessions.find(s => s.id === instance.sessionId)?.name} {ticketData?.event.sessions.find(s => s.id === instance.sessionId)?.start_time} - {ticketData?.event.sessions.find(s => s.id === instance.sessionId)?.end_time}
+                  Session: {event?.body?.sessions.find(s => s.id === instance.sessionId)?.name} {event?.body?.sessions.find(s => s.id === instance.sessionId)?.start_time} - {event?.body?.sessions.find(s => s.id === instance.sessionId)?.end_time}
                 </Text>
               </View>
               
               <View className="space-y-4">
                 <View>
-                  <Text className="text-white mb-2">Full Name</Text>
-                  <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4 py-3">
+                  <Text className="text-white mb-2">Full Name <Text className="text-red-500">*</Text></Text>
+                  <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!attendeeDetails[index].fullname ? 'border-red-500' : 'border-transparent'}`}>
                     <User size={20} color="#6B7280" />
                     <TextInput
                       className="flex-1 ml-3 text-white"
-                      placeholder="Enter full name"
+                      placeholder="Enter full name*"
                       placeholderTextColor="#6B7280"
                       value={attendeeDetails[index].fullname}
                       onChangeText={(text) => {
@@ -182,12 +218,12 @@ export default function CheckoutScreen() {
                 </View>
 
                 <View>
-                  <Text className="text-white mb-2">Email</Text>
-                  <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4 py-3">
+                  <Text className="text-white mb-2">Email <Text className="text-red-500">*</Text></Text>
+                  <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!attendeeDetails[index].email ? 'border-red-500' : 'border-transparent'}`}>
                     <Mail size={20} color="#6B7280" />
                     <TextInput
                       className="flex-1 ml-3 text-white"
-                      placeholder="Enter email"
+                      placeholder="Enter email*"
                       placeholderTextColor="#6B7280"
                       value={attendeeDetails[index].email}
                       onChangeText={(text) => {
@@ -201,12 +237,12 @@ export default function CheckoutScreen() {
                 </View>
 
                 <View>
-                  <Text className="text-white mb-2">Phone</Text>
-                  <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4 py-3">
+                  <Text className="text-white mb-2">Phone <Text className="text-red-500">*</Text></Text>
+                  <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!attendeeDetails[index].phone ? 'border-red-500' : 'border-transparent'}`}>
                     <Phone size={20} color="#6B7280" />
                     <TextInput
                       className="flex-1 ml-3 text-white"
-                      placeholder="Enter phone number"
+                      placeholder="Enter phone number*"
                       placeholderTextColor="#6B7280"
                       value={attendeeDetails[index].phone}
                       onChangeText={(text) => {
@@ -222,13 +258,13 @@ export default function CheckoutScreen() {
             </View>
           ))
         )}
-        
       </ScrollView>
     
       <View className="p-4 border-t border-[#1A2432]">
         <TouchableOpacity
-          className="bg-primary rounded-lg py-4"
+          className={`rounded-lg py-4 ${isFormValid ? 'bg-primary' : 'bg-gray-500'}`}
           onPress={handleContinue}
+          disabled={!isFormValid}
         >
           <Text className="text-background text-center font-semibold">
             Continue to checkout

@@ -1,28 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Share2, MapPin, Calendar, Clock, Plus, Minus, ChevronDown, BookmarkIcon, BookmarkCheck } from 'lucide-react-native';
-import MapView from './MapView';
 import { useBookmarkeventMutation, useDeleteBookmarkMutation, useGetEventQuery } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
 import { useSelector } from 'react-redux';
+import MapView, { Marker } from 'react-native-maps';
 
 
-const eventData = {
-  id: 10,
-  title: "Music Festival 2025",
-  description: "An amazing music festival featuring top artists.",
-  address: "123 Festival Avenue, New York",
-  images: ["https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3"],
-  sessions: [
-    { id: 17, name: "Opening Ceremony", start_time: "18:00", end_time: "19:00" },
-    { id: 18, name: "Main Concert", start_time: "19:30", end_time: "23:00" },
-  ],
-  tickets: [
-    { id: 18, name: "General Admission", price: "50", quantity: 100 },
-    { id: 19, name: "VIP", price: "150", quantity: 50 },
-  ],
-};
+
 interface TicketSelection {
   quantity: number;
   sessionId: number;
@@ -31,8 +17,8 @@ interface TicketSelection {
 export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-    const { userInfo } = useSelector((state:any) => state.auth);
-  const { data: event, isLoading, error,refetch } = useGetEventQuery({id,user_id:userInfo.sub});
+  const { userInfo } = useSelector((state: any) => state.auth);
+  const { data: event, isLoading, error, refetch } = useGetEventQuery({ id, user_id: userInfo?.sub });
   const [ticketSelections, setTicketSelections] = useState<Record<number, TicketSelection>>({});
   const updateSession = (ticketId: number, newSessionId: number) => {
     setTicketSelections(prev => ({
@@ -44,7 +30,7 @@ export default function EventDetailsScreen() {
     }));
   };
   const [bookmarkevent, { isLoading: isBookmarkLoading }] = useBookmarkeventMutation();
-  const [deleteBookmark, { isLoading:isRemovingBookmarkLoading, isSuccess, isError }] = useDeleteBookmarkMutation();
+  const [deleteBookmark, { isLoading: isRemovingBookmarkLoading, isSuccess, isError }] = useDeleteBookmarkMutation();
 
   const addTicket = (ticketId: number) => {
     const ticket = event?.body?.tickets.find(t => t.id === ticketId);
@@ -101,6 +87,7 @@ export default function EventDetailsScreen() {
 
     const ticketData = {
       eventId: id,
+      currency: event?.body?.currency,
       ticketInstances,
       totalAmount,
       each_ticket_identity: event?.body?.each_ticket_identit
@@ -115,21 +102,29 @@ export default function EventDetailsScreen() {
     try {
       const res = await bookmarkevent({ event_id: Number(id) }).unwrap();
       alert("Bookmarked")
-refetch()    } catch (err) {
+      refetch()
+    } catch (err) {
+      console.log(err)
     }
   }
 
 
   const handleBookmarkRemove = async () => {
     try {
-      const res = await deleteBookmark(Number(id) ).unwrap();
+      const res = await deleteBookmark(Number(id)).unwrap();
       alert("Bookmarked")
-      refetch()  
-        } catch (err) {
+      refetch()
+    } catch (err) {
       console.log(err)
     }
   }
+  const openMaps = () => {
+    const address = encodeURIComponent(`${event?.body?.address}, ${event?.body?.city}, ${event?.body?.country?.name}`);
+    const url = `https://www.google.com/maps/search/?api=1&query=${address}`;
+    Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
+  };
 
+  console.log(event?.body?.sessions, id, "event")
   return (
     <>
       {isLoading ? <View className="text-white flex-1 bg-background flex justify-center items-center py-4"><ActivityIndicator /></View>
@@ -150,13 +145,13 @@ refetch()    } catch (err) {
                   <ArrowLeft color="white" size={24} />
                 </TouchableOpacity>
                 <TouchableOpacity>
-                  {isBookmarkLoading||isRemovingBookmarkLoading ? <ActivityIndicator /> : event?.body?.isBookmark? <BookmarkCheck fill="#9EDD45"  size={24} onPress={handleBookmarkRemove} />:<BookmarkIcon color="white" size={24} onPress={handleBookmark} />}
+                  {isBookmarkLoading || isRemovingBookmarkLoading ? <ActivityIndicator /> : event?.body?.isBookmark ? <BookmarkCheck fill="#9EDD45" size={24} onPress={handleBookmarkRemove} /> : <BookmarkIcon color="white" size={24} onPress={handleBookmark} />}
                 </TouchableOpacity>
               </View>
 
               <View className="px-4 pt-4">
                 <Text className="text-white text-2xl font-bold mb-2">{event?.body?.title}</Text>
-                <View className='flex-row justify-between'>                          <Text className="text-gray-400 mb-6">{event?.body?.address}</Text> <Text className='text-white'>{formatDate(event?.body?.start_date)}</Text></View>
+                <View className='flex-row justify-between'><Text className="text-gray-400 mb-6">{event?.body?.address}</Text><Text className='text-white'>{formatDate(event?.body?.start_date)}</Text></View>
                 <View className='bg-gray-800 rounded-lg p-3 mb-2'>
                   <Text className="text-white text-xl font-semibold mb-4">About Event</Text>
                   <Text className="text-gray-400 mb-6">
@@ -166,8 +161,24 @@ refetch()    } catch (err) {
                   <Text className="text-white text-xl font-semibold mb-4">Location</Text>
                   <Text className="text-white mb-2">{event?.body?.address}</Text>
                   <Text className="text-gray-400 mb-4">{event?.body?.country?.name}, {event?.body?.state?.name}, {event?.body?.city}</Text>
-                  <MapView className="w-full h-32 rounded-lg mb-2" />
-                  <TouchableOpacity>
+                  <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
+                    <MapView
+                      style={{ flex: 1 }}
+                      initialRegion={{
+                        latitude: 51.5074, // Default to London coordinates
+                        longitude: -0.1278,
+                        latitudeDelta: 0.0922,
+                        longitudeDelta: 0.0421,
+                      }}
+                    >
+                      <Marker
+                        coordinate={{ latitude: 51.5074, longitude: -0.1278 }}
+                        title={event?.body?.address}
+                        description={event?.body?.city}
+                      />
+                    </MapView>
+                  </View>
+                  <TouchableOpacity onPress={openMaps} className="self-end">
                     <Text className="text-primary">View map</Text>
                   </TouchableOpacity>
                 </View>
@@ -182,7 +193,7 @@ refetch()    } catch (err) {
                       {event?.body?.sessions?.map((session, index) => <View className="flex-row items-center">
                         <Clock className="text-gray-400 mr-2" size={20} />
                         <Text className="text-gray-400">{session?.start_time} - {session?.end_time} </Text>
-                        <Text className='text-primary font-bold'>{`  Session ${index + 1} - ${session?.name || ''}`}</Text>
+                        <Text className='text-primary'>{`(${session?.name || ''})`}</Text>
 
                       </View>)}
                     </View>
@@ -201,7 +212,7 @@ refetch()    } catch (err) {
                           <View className="flex-row items-center justify-between bg-[#1A2432] p-4 rounded-lg">
                             <View>
                               <Text className="text-white">{ticket.name}</Text>
-                              <Text className="text-primary">₦ {ticket.price}</Text>
+                              <Text className="text-primary">{event?.body?.currency?.split(' - ')[0]} {ticket.price}</Text>
                               <Text className="text-gray-400 text-sm">
                                 {remainingTickets} tickets remaining
                               </Text>
@@ -260,7 +271,7 @@ refetch()    } catch (err) {
 
                   <View className="mt-4 mb-4">
                     <Text className="text-gray-400">Total Tickets: {Object.values(ticketSelections).reduce((sum, s) => sum + s.quantity, 0)}</Text>
-                    <Text className="text-white text-xl font-bold">₦ {totalAmount}</Text>
+                    <Text className="text-white text-xl font-bold">{event?.body?.currency?.split(' - ')[0]} {totalAmount}</Text>
                   </View>
                 </View>
               </View>

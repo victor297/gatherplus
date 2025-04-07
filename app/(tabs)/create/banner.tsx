@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -7,17 +7,9 @@ import ProgressSteps from '@/app/components/create/ProgressSteps';
 
 export default function BannerScreen() {
   const router = useRouter();
-  const params:any = useLocalSearchParams();
-  const [courseData,setCourseData] = useState(() => {
-    try {
-      return params.courseData ? JSON.parse(params.courseData) : null;
-    } catch (error) {
-      console.error('Error parsing courseData:', error);
-      return null;
-    }
-  });
-
-  // ✅ Parse formData & sessions correctly
+  const params: any = useLocalSearchParams();
+  
+  // Initialize formData with params or empty object
   const [formData, setFormData] = useState(() => {
     try {
       return params.formData ? JSON.parse(params.formData as string) : {};
@@ -27,22 +19,34 @@ export default function BannerScreen() {
     }
   });
 
-  const [sessions, setSessions] = useState(() => {
-    try {
-      return params.sessions ? JSON.parse(params.sessions as string) : [];
-    } catch (error) {
-      console.error('Error parsing sessions:', error);
-      return [];
-    }
-  });
-  console.log(formData,sessions)
+  // Track the uploaded banner image separately
+  const [bannerImage, setBannerImage] = useState<string | null>(
+    // First check if we have a bannerImage in formData
+    formData.bannerImage || 
+    // Then check if we have any images in the array
+    (formData.images && formData.images.length > 0 ? formData.images[0] : null)
+  );
 
-  // ✅ Maintain uploaded image state
-  const [selectedImage, setSelectedImage] = useState<string | null>(formData.bannerImage || null);
   const [loading, setLoading] = useState(false);
 
-  // ✅ Handle Image Upload
   const handleImageUpload = async () => {
+    // If we already have a banner image, confirm if user wants to replace it
+    if (bannerImage) {
+      Alert.alert(
+        'Replace Image?',
+        'You already have a banner image. Do you want to replace it?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Replace', onPress: uploadNewImage }
+        ]
+      );
+      return;
+    }
+    
+    await uploadNewImage();
+  };
+
+  const uploadNewImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'Please allow access to media library.');
@@ -66,7 +70,7 @@ export default function BannerScreen() {
       uri: imageUri,
       name: fileName,
       type: `image/${fileType}`,
-    } as any); // ✅ Make sure the key is "files"
+    } as any);
   
     try {
       setLoading(true);
@@ -82,17 +86,14 @@ export default function BannerScreen() {
   
       if (data.code === 200 && data.body?.[0]?.secure_url) {
         const uploadedUrl = data.body[0].secure_url;
-        setSelectedImage(uploadedUrl);
-  
-        // ✅ Update formData with new image URL
-        setCourseData((prevData:any) => ({
+        setBannerImage(uploadedUrl);
+        
+        // Update formData with the new banner image
+        setFormData((prevData: any) => ({
           ...prevData,
-          images: [...(prevData.images || []), uploadedUrl],
+          // Maintain only one image in the array (replace if exists)
+          images: [uploadedUrl]
         }));
-  
-        if (courseData) {
-          courseData.images = [...(courseData.images || []), uploadedUrl]; // Update courseData directly
-        }
       } else {
         Alert.alert('Upload Failed', 'Could not upload the image.');
       }
@@ -102,21 +103,30 @@ export default function BannerScreen() {
       setLoading(false);
     }
   };
-  
 
-  // ✅ Pass updated formData when navigating
   const handleSaveAndContinue = () => {
+    if (!bannerImage) {
+      Alert.alert('Image Required', 'Please upload a banner image');
+      return;
+    }
+
     router.push({
       pathname: '/create/ticketing',
       params: {
-        formData: JSON.stringify(courseData), // Ensure updated image URL is included
+        formData: JSON.stringify({
+          ...formData,
+          // Ensure images array contains only our banner image
+          images: [bannerImage]
+        }),
+        sessions: params.sessions || JSON.stringify([]),
       },
     });
   };
+  console.log(bannerImage,formData,"bannerImage")
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row items-center px-4 pt-12 pb-4">
+    <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="mr-4">
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
@@ -125,9 +135,10 @@ export default function BannerScreen() {
 
       <ProgressSteps currentStep={1} />
 
+       
       <View className="flex-1 px-4">
         <Text className="text-white mb-2">
-          Event Title <Text className="text-red-500">*</Text>
+          Event Banner <Text className="text-red-500">*</Text>
         </Text>
 
         <TouchableOpacity
@@ -136,26 +147,28 @@ export default function BannerScreen() {
         >
           {loading ? (
             <ActivityIndicator size="large" color="#6B7280" />
-          ) : selectedImage ? (
-            <Image source={{ uri: selectedImage }} className="w-full h-48 rounded-lg" resizeMode="cover" />
+          ) : bannerImage ? (
+            <Image source={{ uri: bannerImage }} className="w-full h-48 rounded-lg" resizeMode="cover" />
           ) : (
             <>
               <Upload size={48} color="#6B7280" />
               <Text className="text-gray-400 mt-4">No file chosen</Text>
-              <TouchableOpacity className="bg-primary px-6 py-2 rounded-lg mt-4">
-                <Text className="text-background font-semibold">Upload</Text>
-              </TouchableOpacity>
+              <Text className="text-primary font-semibold mt-2">Choose File</Text>
             </>
           )}
         </TouchableOpacity>
 
         <Text className="text-gray-400 text-sm mt-2">
-          Feature Image must be at least 1170 pixels wide by 504 pixels high. Valid file formats: JPG, GIF, PNG.
+          Feature Image must be at least 1170px wide by 504px high. JPG, GIF, or PNG.
         </Text>
       </View>
 
       <View className="p-4 border-t border-[#1A2432]">
-        <TouchableOpacity className="bg-primary rounded-lg py-4" onPress={handleSaveAndContinue}>
+        <TouchableOpacity 
+          className={`rounded-lg py-4 ${bannerImage ? 'bg-primary' : 'bg-gray-500'}`} 
+          onPress={handleSaveAndContinue}
+          disabled={!bannerImage}
+        >
           <Text className="text-background text-center font-semibold">Save and continue</Text>
         </TouchableOpacity>
       </View>
