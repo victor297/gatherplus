@@ -104,7 +104,7 @@ export default function EventDetailsScreen() {
       alert("Bookmarked")
       refetch()
     } catch (err) {
-      console.log(err)
+      console.log(err,"errrrrrrrrr")
     }
   }
 
@@ -115,7 +115,7 @@ export default function EventDetailsScreen() {
       alert("Bookmarked")
       refetch()
     } catch (err) {
-      console.log(err)
+      console.log(err,"errrrrrrrrr")
     }
   }
   const openMaps = () => {
@@ -151,7 +151,10 @@ export default function EventDetailsScreen() {
 
               <View className="px-4 pt-4">
                 <Text className="text-white text-2xl font-bold mb-2">{event?.body?.title}</Text>
-                <View className='flex-row justify-between'><Text className="text-gray-400 mb-6">{event?.body?.address}</Text><Text className='text-white'>{formatDate(event?.body?.start_date)}</Text></View>
+                <View className='flex-row justify-between '>
+                  <Text className="text-gray-400 mb-6 flex flex-wrap w-64">{event?.body?.address}</Text>
+                  <Text className='text-white'>{formatDate(event?.body?.start_date)}</Text>
+                  </View>
                 <View className='bg-gray-800 rounded-lg p-3 mb-2'>
                   <Text className="text-white text-xl font-semibold mb-4">About Event</Text>
                   <Text className="text-gray-400 mb-6">
@@ -160,7 +163,7 @@ export default function EventDetailsScreen() {
                 <View className="bg-[#1A2432] rounded-lg p-4 mb-6">
                   <Text className="text-white text-xl font-semibold mb-4">Location</Text>
                   <Text className="text-white mb-2">{event?.body?.address}</Text>
-                  <Text className="text-gray-400 mb-4">{event?.body?.country?.name}, {event?.body?.state?.name}, {event?.body?.city}</Text>
+                  <Text className="text-gray-400 mb-4 ">{event?.body?.country?.name}, {event?.body?.state?.name}, {event?.body?.city}</Text>
                   <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
                     <MapView
                       style={{ flex: 1 }}
@@ -190,7 +193,7 @@ export default function EventDetailsScreen() {
                         <Calendar className="text-gray-400 mr-2" size={20} />
                         <Text className="text-gray-400">{formatDate(event?.body?.start_date)}</Text>
                       </View>
-                      {event?.body?.sessions?.map((session, index) => <View className="flex-row items-center">
+                      {event?.body?.sessions?.map((session:any, index:any) => <View key={index} className="flex-row items-center">
                         <Clock className="text-gray-400 mr-2" size={20} />
                         <Text className="text-gray-400">{session?.start_time} - {session?.end_time} </Text>
                         <Text className='text-primary'>{`(${session?.name || ''})`}</Text>
@@ -203,12 +206,12 @@ export default function EventDetailsScreen() {
                 <View className='bg-gray-800 rounded-lg p-2 mb-2'>
                   <Text className="text-white text-xl font-semibold mb-4">Ticket Information</Text>
                   <View className="space-y-4">
-                    {event?.body?.tickets.map((ticket) => {
+                    {event?.body?.tickets.map((ticket:any, index:any) => {
                       const selection = ticketSelections[ticket.id] || { quantity: 0, sessionId: event?.body?.sessions[0].id };
                       const remainingTickets = ticket.quantity - selection.quantity;
 
                       return (
-                        <View key={ticket.id}>
+                        <View key={index}>
                           <View className="flex-row items-center justify-between bg-[#1A2432] p-4 rounded-lg">
                             <View>
                               <Text className="text-white">{ticket.name}</Text>

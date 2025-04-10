@@ -1,52 +1,69 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, Ticket, Mail, Lock, Bookmark, LogOutIcon } from 'lucide-react-native';
-import { useGetProfileQuery } from '@/redux/api/usersApiSlice';
-import { useDispatch } from 'react-redux';
-import { logout } from '@/redux/features/auth/authSlice';
+import React, { useEffect } from "react";
+import { View, Text, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import { useRouter } from "expo-router";
+import { ArrowLeft, ChevronRight, Ticket, Mail, Lock, Bookmark, LogOutIcon } from "lucide-react-native";
+import { useGetProfileQuery } from "@/redux/api/usersApiSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { logout, startTokenExpirationCheck } from "@/redux/features/auth/authSlice";
 
 export default function ProfileScreen() {
   const router:any = useRouter();
-    const dispatch = useDispatch()
-  
+  const dispatch:any = useDispatch();
+  const { userInfo } = useSelector((state:any) => state.auth); // Get auth state from Redux
+
   const { data: userProfile, isLoading: isFetchingProfile, error: profileError } = useGetProfileQuery<any>(null);
- 
-  const handlelogout = async () => {
-  await  dispatch(logout())
-    // router.push("/(auth)/login")
-  }
+
+  // Handle manual logout
+  const handleLogout = async () => {
+    await dispatch(logout());
+    router.replace("/(auth)/login"); // Redirect to login after manual logout
+  };
+
+  // Start token expiration check and redirect if logged out
+  useEffect(() => {
+    if (!userInfo) {
+      router.replace("/(auth)/login"); // Redirect if userInfo is null (logged out)
+      return;
+    }
+
+    // Start the expiration check
+    const cleanup = dispatch(startTokenExpirationCheck());
+    return cleanup; // Cleanup interval on unmount
+  }, [dispatch, userInfo, router]);
+
   const menuItems = [
     {
       icon: <Ticket size={24} color="#6B7280" />,
-      title: 'Bookings',
-      subtitle: 'Upcoming events, past events',
-      route: '/profile/bookings',
+      title: "Bookings",
+      subtitle: "Upcoming events, past events",
+      route: "/profile/bookings",
     },
     {
       icon: <Mail size={24} color="#6B7280" />,
-      title: 'Change Email',
-      subtitle: 'Update your email',
-      route: '/profile/change-email',
+      title: "Change Email",
+      subtitle: "Update your email",
+      route: "/profile/change-email",
     },
     {
       icon: <Lock size={24} color="#6B7280" />,
-      title: 'Password',
-      subtitle: 'Update your password',
-      route: '/profile/change-password',
+      title: "Password",
+      subtitle: "Update your password",
+      route: "/profile/change-password",
     },
     {
       icon: <Bookmark size={24} color="#6B7280" />,
-      title: 'Bookmarks',
-      subtitle: 'Bookmarks',
-      route: '/profile/bookmarks',
+      title: "Bookmarks",
+      subtitle: "Bookmarks",
+      route: "/profile/bookmarks",
     },
   ];
+
+  // If userInfo is null, don't render anything (redirect will handle it)
+  if (!userInfo) return null;
 
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
-     
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="mr-4">
           <ArrowLeft color="white" size={24} />
@@ -57,7 +74,9 @@ export default function ProfileScreen() {
       {/* Error Handling */}
       {profileError && (
         <View className="px-4 py-4 bg-red-500 rounded-lg mx-4">
-          <Text className="text-white text-center">{profileError?.data?.body||`Error fetching profile data. Please try again.`}</Text>
+          <Text className="text-white text-center">
+            {profileError?.data?.body || "Error fetching profile data. Please try again."}
+          </Text>
         </View>
       )}
 
@@ -69,21 +88,21 @@ export default function ProfileScreen() {
       ) : (
         <>
           {/* Profile Info */}
-          <TouchableOpacity 
+          <TouchableOpacity
             className="flex-row items-center px-4 py-4 border-b border-[#1A2432]"
-            onPress={() => router.push('/profile/account-info')}
+            onPress={() => router.push("/profile/account-info")}
           >
             <Image
-              source={{ uri: userProfile?.body?.image_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde' }}
+              source={{
+                uri: userProfile?.body?.image_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+              }}
               className="w-12 h-12 rounded-full"
             />
             <View className="ml-3 flex-1">
               <Text className="text-white text-lg">
-                {userProfile ? `${userProfile.body.firstname} ${userProfile.body.lastname}` : 'User Name'}
+                {userProfile ? `${userProfile.body.firstname} ${userProfile.body.lastname}` : "User Name"}
               </Text>
-              <Text className="text-gray-400">
-                {userProfile?.body?.email || 'user@example.com'}
-              </Text>
+              <Text className="text-gray-400">{userProfile?.body?.email || "user@example.com"}</Text>
             </View>
             <ChevronRight color="#6B7280" size={24} />
           </TouchableOpacity>
@@ -107,15 +126,13 @@ export default function ProfileScreen() {
           </View>
         </>
       )}
-    <TouchableOpacity className="bg-primary rounded-lg py-2 w-40 mt-5 self-center"   onPress={handlelogout}
-    >
-   
-              <View className='flex-row items-center gap-2 justify-center'>
-                              <Text className="text-white  text-center text-lg font-bold">LogOut </Text>
-                              <LogOutIcon color="white" />
-           </View>
-          </TouchableOpacity>
-  
+      {/* Logout Button */}
+      <TouchableOpacity className="bg-primary rounded-lg py-2 w-40 mt-5 self-center" onPress={handleLogout}>
+        <View className="flex-row items-center gap-2 justify-center">
+          <Text className="text-white text-center text-lg font-bold">LogOut</Text>
+          <LogOutIcon color="white" />
+        </View>
+      </TouchableOpacity>
     </View>
   );
 }

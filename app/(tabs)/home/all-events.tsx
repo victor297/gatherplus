@@ -85,7 +85,7 @@ export default function ExploreScreen() {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 h-12 mb-2">
-        {isupcomingLoading||isFetching ? (
+        {isupcomingLoading||isLoading ? (
           <View className="text-white flex justify-center items-center py-4"><ActivityIndicator /></View>
         ) : upcomingError ? (
           <Text className="text-red-500 text-center py-4">Failed to load data. Please try again.</Text>
@@ -102,7 +102,7 @@ export default function ExploreScreen() {
 
       <FlatList
   data={allEvents}
-  keyExtractor={(item) => item.id.toString()}
+  keyExtractor={(item,index) => index.toString()}
   contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
   ListEmptyComponent={() => (
     <View className="flex-1 bg-background justify-center items-center py-8">

@@ -61,14 +61,14 @@ export default function CheckoutScreen() {
 
     // Prepare data for backend
     const bookings = useCommonDetails 
-      ? ticketData.ticketInstances.map(instance => ({
+      ? ticketData.ticketInstances.map((instance:any)=> ({
           ...commonDetails,
           session_id: instance.sessionId,
           ticket_id: instance.ticketId,
           name: instance.name,
           price: instance.price
         }))
-      : ticketData.ticketInstances.map((instance, index) => ({
+      : ticketData.ticketInstances.map((instance:any, index:any) => ({
           ...attendeeDetails[index],
           session_id: instance.sessionId,
           ticket_id: instance.ticketId,
@@ -149,7 +149,7 @@ export default function CheckoutScreen() {
               <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!commonDetails.fullname ? 'border-red-500' : 'border-transparent'}`}>
                 <User size={20} color="#6B7280" />
                 <TextInput
-                  className="flex-1 ml-3 text-white"
+                  className="flex-1 ml-3 text-white text-xl py-2"
                   placeholder="Enter full name*"
                   placeholderTextColor="#6B7280"
                   value={commonDetails.fullname}
@@ -163,7 +163,7 @@ export default function CheckoutScreen() {
               <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!commonDetails.email ? 'border-red-500' : 'border-transparent'}`}>
                 <Mail size={20} color="#6B7280" />
                 <TextInput
-                  className="flex-1 ml-3 text-white"
+                  className="flex-1 ml-3 text-white text-xl py-2"
                   placeholder="Enter email*"
                   placeholderTextColor="#6B7280"
                   value={commonDetails.email}
@@ -178,7 +178,7 @@ export default function CheckoutScreen() {
               <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!commonDetails.phone ? 'border-red-500' : 'border-transparent'}`}>
                 <Phone size={20} color="#6B7280" />
                 <TextInput
-                  className="flex-1 ml-3 text-white"
+                  className="flex-1 ml-3 text-white text-xl py-2"
                   placeholder="Enter phone number*"
                   placeholderTextColor="#6B7280"
                   value={commonDetails.phone}
@@ -189,7 +189,7 @@ export default function CheckoutScreen() {
             </View>
           </View>
         ) : (
-          ticketData.ticketInstances.map((instance, index) => (
+          ticketData.ticketInstances.map((instance:any, index:any) => (
             <View key={index} className="mb-6">
               <View className="bg-[#4d6382] rounded-lg p-4 mb-4">
                 <Text className="text-white">Ticket {index + 1}</Text>
@@ -204,7 +204,7 @@ export default function CheckoutScreen() {
                   <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!attendeeDetails[index].fullname ? 'border-red-500' : 'border-transparent'}`}>
                     <User size={20} color="#6B7280" />
                     <TextInput
-                      className="flex-1 ml-3 text-white"
+                      className="flex-1 ml-3 text-white text-xl py-2 "
                       placeholder="Enter full name*"
                       placeholderTextColor="#6B7280"
                       value={attendeeDetails[index].fullname}
@@ -222,7 +222,7 @@ export default function CheckoutScreen() {
                   <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!attendeeDetails[index].email ? 'border-red-500' : 'border-transparent'}`}>
                     <Mail size={20} color="#6B7280" />
                     <TextInput
-                      className="flex-1 ml-3 text-white"
+                      className="flex-1 ml-3 text-white text-xl py-2"
                       placeholder="Enter email*"
                       placeholderTextColor="#6B7280"
                       value={attendeeDetails[index].email}
@@ -241,7 +241,7 @@ export default function CheckoutScreen() {
                   <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!attendeeDetails[index].phone ? 'border-red-500' : 'border-transparent'}`}>
                     <Phone size={20} color="#6B7280" />
                     <TextInput
-                      className="flex-1 ml-3 text-white"
+                      className="flex-1 ml-3 text-white text-xl py-2"
                       placeholder="Enter phone number*"
                       placeholderTextColor="#6B7280"
                       value={attendeeDetails[index].phone}
