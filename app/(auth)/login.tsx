@@ -50,7 +50,8 @@ export default function Login() {
         throw new Error("Invalid response format");
       }
     } catch (err: any) {
-      setError(err?.data?.message || "Login failed. Please try again.");
+      console.log(err)
+      setError(err?.data?.body || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
