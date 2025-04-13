@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
@@ -6,7 +6,8 @@ import Svg, { Rect, Circle } from "react-native-svg";
 import QRCode from "react-native-qrcode-svg";
 import { useCreateBookingMutation } from '@/redux/api/eventsApiSlice';
 import { Paystack } from 'react-native-paystack-webview';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
+import { useStripe } from '@stripe/stripe-react-native';
+import * as Linking from 'expo-linking';
 
 export default function OrderSummaryScreen() {
   const router = useRouter();
@@ -17,9 +18,10 @@ export default function OrderSummaryScreen() {
   // Payment states
   const [paymentResponse, setPaymentResponse] = useState<any>(null);
   const [selectedChannel, setSelectedChannel] = useState<"Stripe" | "PayStack" | null>(null);
-  const { confirmPayment } = useStripe();
-  const [paystackKey] = useState('pk_test_24f80340f75a34e90b00aa800e59608dfd6a0b06'); // Replace with your Paystack public key
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const [paystackKey] = useState('pk_test_24f80340f75a34e90b00aa800e59608dfd6a0b06');
   const [stripeLoading, setStripeLoading] = useState(false);
+  const [paymentSheetEnabled, setPaymentSheetEnabled] = useState(false);
 
   // Calculate totals
   const ticketGroups = bookingData.bookings.reduce((groups: any, booking: any) => {
@@ -36,6 +38,72 @@ export default function OrderSummaryScreen() {
   const tax = 0;
   const total = subtotal + tax;
 
+  const fetchPaymentSheetParams = async () => {
+    try {
+      const response = await createBooking({
+        ...bookingData,
+        channel: "Stripe"
+      }).unwrap();
+      
+      if (response.message === "SUCCESSFUL") {
+        return {
+          paymentIntent: response.body.paymentIntent,
+          ephemeralKey: response.body.ephemeralKey,
+          customer: response.body.customer
+        };
+      }
+      throw new Error("Failed to fetch payment sheet params");
+    } catch (error) {
+      console.error("Error fetching payment sheet params:", error);
+      throw error;
+    }
+  };
+
+  const initializePaymentSheet = async () => {
+    try {
+      // const { paymentIntent, ephemeralKey, customer } = await fetchPaymentSheetParams();
+      
+      const { error } = await initPaymentSheet({
+        merchantDisplayName: "LogaXP",
+        customerId: "cus_S7oW0tVVeQivTB",
+        customerEphemeralKeySecret: "ek_test_YWNjdF8xMDNmQjQyeDZSMTBLUnJoLHBtejQ3bGdtSFFlWXIyd0hlS3JVb2tCRkxQNzFTSzc_00ksESIAuV",
+        paymentIntentClientSecret: "pi_3RDYtp2x6R10KRrh1JYDrjP1_secret_0oD48UaAGa4PVb9zZW38eIbYJ",
+        allowsDelayedPaymentMethods: true,
+        defaultBillingDetails: {
+          name: bookingData.bookings[0]?.fullname || "Customer",
+          email: bookingData.bookings[0]?.email || "customer@example.com",
+          phone: "888-888-8888",
+        },
+        returnURL: Linking.createURL("stripe-redirect"),
+        applePay: {
+          merchantCountryCode: "US",
+        },
+      });
+
+      if (!error) {
+        setPaymentSheetEnabled(true);
+      } else {
+        Alert.alert("Error", "Failed to initialize payment sheet");
+        console.error(error);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to set up payment");
+      console.error(error);
+    }
+  };
+
+  const openPaymentSheet = async () => {
+    setStripeLoading(true);
+    const { error } = await presentPaymentSheet();
+
+    if (error) {
+      Alert.alert(`Error code: ${error.code}`, error.message);
+    } else {
+      router.push(`/home/event/${bookingData.event_id}/success`);
+    }
+    setStripeLoading(false);
+  };
+
   const handleBookEvent = async () => {
     if (!selectedChannel) {
       Alert.alert("Error", "Please select a payment method");
@@ -43,58 +111,18 @@ export default function OrderSummaryScreen() {
     }
 
     try {
-      const bookingPayload = {
-        ...bookingData,
-        channel: selectedChannel, // Add the selected channel to the payload
-      };
-      const res = await createBooking(bookingPayload).unwrap();
-      setPaymentResponse(res);
-console.log(res,"resres")
-      if (selectedChannel === "PayStack" && res?.message==="SUCCESSFUL") {
-        console.log(res,"resrespay")
-        // Paystack payment will be handled by the Paystack component
-        return;
-      } else if (selectedChannel === "Stripe" && res?.message==="SUCCESSFUL") {
-        await handleStripePayment("https://buy.stripe.com/test_6oEdSJ0nNcaA7L24gg");
+      if (selectedChannel === "PayStack") {
+        const res = await createBooking({
+          ...bookingData,
+          channel: selectedChannel
+        }).unwrap();
+        setPaymentResponse(res);
+      } else if (selectedChannel === "Stripe") {
+        await initializePaymentSheet();
       }
     } catch (err) {
       Alert.alert("Error", "Failed to process payment");
       console.log(err);
-    }
-  };
-
-  const handleStripePayment = async (clientSecret: string) => {
-    try {
-      setStripeLoading(true);
-      const { paymentIntent, error } = await confirmPayment(clientSecret, {
-        paymentMethodType: 'Card',paymentMethodData:{
-          billingDetails: {
-            email: 'test@example.com',
-            name: 'Test User',
-            address: {
-              line1: '123 Main Street',
-              city: 'Lagos',
-              postalCode: '101001',
-              country: 'NG',
-            },
-            phone:"09087686677"
-          },
-          
-        },
-       
-      });
-    
-
-      if (error) {
-        Alert.alert("Payment Error", error.message);
-        console.log("Payment Error", error.message);
-      } else if (paymentIntent) {
-        router.push(`/home/event/${bookingData.event_id}/success`);
-      }
-    } catch (err) {
-      Alert.alert("Error", "Something went wrong with Stripe payment");
-    } finally {
-      setStripeLoading(false);
     }
   };
 
@@ -109,8 +137,8 @@ console.log(res,"resres")
       {/* Header */}
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
-            <ArrowLeft color="white" size={24} />
-          </TouchableOpacity>
+          <ArrowLeft color="white" size={24} />
+        </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Order Summary</Text>
       </View>
 
@@ -195,7 +223,7 @@ console.log(res,"resres")
 
       {/* Payment Section */}
       <View className="p-4 border-t border-[#1A2432]">
-        {selectedChannel === "PayStack" && paymentResponse?.message==="SUCCESSFUL"&& (
+        {selectedChannel === "PayStack" && paymentResponse?.message === "SUCCESSFUL" && (
           <Paystack
             paystackKey={paystackKey}
             amount={total}
@@ -205,7 +233,6 @@ console.log(res,"resres")
             onCancel={() => Alert.alert("Payment Cancelled")}
             onSuccess={handlePaystackSuccess}
             autoStart={true}
-            // refNumber={paymentResponse.body.reference}
             channels={['card', 'bank', 'ussd', 'qr', 'mobile_money']}
             render={(paystack: any) => (
               <TouchableOpacity
@@ -221,43 +248,19 @@ console.log(res,"resres")
           />
         )}
 
-{selectedChannel === "Stripe" && (
-  <View>
-   <CardField
-  postalCodeEnabled={true}
-  placeholders={{
-    number: '4242 4242 4242 4242',
-  }}
-  cardStyle={{
-    backgroundColor: '#FFFFFF',
-    textColor: '#000000',
-  }}
-  style={{
-    width: '100%',
-    height: 150,
-    marginVertical: 30,
-  }}
-  onCardChange={(cardDetails) => {
-    console.log('Card details:', cardDetails);
-  }}
-  onFocus={(focusedField) => {
-    console.log('Focused field:', focusedField);
-  }}
-/>
+        {selectedChannel === "Stripe" && paymentSheetEnabled && (
+          <TouchableOpacity
+            className="bg-primary rounded-lg py-4"
+            onPress={openPaymentSheet}
+            disabled={stripeLoading}
+          >
+            <Text className="text-background text-center font-semibold">
+              {stripeLoading ? "Processing..." : "Pay Now with Stripe"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
-    <TouchableOpacity
-      className="bg-primary rounded-lg py-4"
-      onPress={handleBookEvent}
-      disabled={isBookmarkLoading || stripeLoading}
-    >
-      <Text className="text-background text-center font-semibold">
-        {stripeLoading ? "Processing..." : "Pay Now with Stripe"}
-      </Text>
-    </TouchableOpacity>
-  </View>
-)}
-
-        {!paymentResponse && (
+        {!paymentResponse && !paymentSheetEnabled && (
           <TouchableOpacity
             className="bg-primary rounded-lg py-4"
             onPress={handleBookEvent}

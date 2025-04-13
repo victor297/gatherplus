@@ -447,7 +447,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
       {/* Events List */}
       <FlatList
   data={allEvents}
-  keyExtractor={(item) => item.id.toString()}
+  keyExtractor={(item,index) => index.toString()}
   contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
   ListEmptyComponent={() => (
     <View className="flex-1 bg-background justify-center items-center py-8">

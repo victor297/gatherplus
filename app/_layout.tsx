@@ -32,7 +32,7 @@ export default function RootLayout() {
     window.frameworkReady?.();
   }, []);
   return (
-      <StripeProvider publishableKey="pk_test_51NBH8TCoGgyS4IMgLfhgPvjjgS8WLYywU41OgxXWJcupSLvfnAPg2TlrRilNv44SoaCHP8mnmqRrKoaOnTnTCudT00kzinHWas">
+      <StripeProvider merchantIdentifier="merchant.REPLACE_ME" publishableKey="pk_test_qblFNYngBkEdjEZ16jxxoWSM">
     <Provider store={store}>
       <RootLayoutContent />
       <StatusBar style="light" />

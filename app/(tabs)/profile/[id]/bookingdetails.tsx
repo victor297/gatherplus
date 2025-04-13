@@ -64,7 +64,7 @@ const TicketScreen = () => {
 
   return (
     <SafeAreaView className="bg-background flex-1">
-      <View className="flex-row items-center px-4  pb-4">
+      <View className="flex-row items-center px-4 pt-8 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
