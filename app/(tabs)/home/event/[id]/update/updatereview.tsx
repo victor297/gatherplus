@@ -3,13 +3,13 @@ import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Lin
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, Ticket, MapPin, Edit2 } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
-import { useCreateventMutation } from '@/redux/api/eventsApiSlice';
+import { useCreateventMutation, useUpdateventMutation } from '@/redux/api/eventsApiSlice';
 import MapView, { Marker } from 'react-native-maps';
 
 export default function ReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [createvent, { isLoading, error }] = useCreateventMutation();
+  const [updateevent, { isLoading, error }] = useUpdateventMutation();
 
   const [formData, setFormData] = useState(() => {
     try {
@@ -19,22 +19,15 @@ export default function ReviewScreen() {
       return {};
     }
   });
-
   const handleSubmit = async () => {
     try {
-      const res = await createvent(formData).unwrap();
+      const res = await updateevent({data:formData,id:10}).unwrap();
       router.push('/success');
     } catch (error) {
       console.error('Event creation failed:', error);
     }
   };
 
-  const handleEdit = () => {
-    router.push({
-      pathname: '/create',
-      params: { formData: JSON.stringify(formData) }
-    });
-  };
 
   const openMaps = () => {
     const address = encodeURIComponent(`${formData.address}, ${formData.city}, ${formData.country_code}`);
@@ -46,13 +39,11 @@ export default function ReviewScreen() {
     <View className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
-            <ArrowLeft color="white" size={24} />
-          </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Create Event</Text>
-        <TouchableOpacity onPress={handleEdit} className="ml-auto">
-          <Edit2 color="white" size={20} />
-        </TouchableOpacity>
+       <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+                   <ArrowLeft color="white" size={24} />
+                 </TouchableOpacity>
+        <Text className="text-white text-xl font-semibold">Update Event</Text>
+      
       </View>
 
       <ProgressSteps currentStep={3} />

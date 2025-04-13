@@ -96,7 +96,7 @@ export default function EditProfileScreen() {
     <View className="flex-1 bg-background">
       <View className="flex-row items-center justify-between px-4 pt-12 pb-4">
         <View className="flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()} className="mr-4">
+          <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
           <Text className="text-white text-xl font-semibold">Account Info</Text>
@@ -182,13 +182,15 @@ export default function EditProfileScreen() {
             </View>
           </>
         )}
-      </ScrollView>
 
-      <View className="p-4 border-t border-[#1A2432]">
+<View className="p-4 mt-4 border-t border-[#1A2432]">
         <TouchableOpacity className="bg-primary rounded-lg py-4" onPress={handleSave} disabled={isLoading}>
           {isLoading ? <ActivityIndicator color="white" /> : <Text className="text-background text-center font-semibold">Save</Text>}
         </TouchableOpacity>
       </View>
+      </ScrollView>
+
+   
     </View>
   );
 }

@@ -115,9 +115,9 @@ export default function CheckoutScreen() {
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <ArrowLeft color="white" size={24} />
-        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+            <ArrowLeft color="white" size={24} />
+          </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Event Details</Text>
       </View>
 

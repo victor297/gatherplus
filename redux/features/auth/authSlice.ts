@@ -118,4 +118,21 @@ export const startTokenExpirationCheck = () => (dispatch: any, getState: any) =>
   return () => clearInterval(intervalId);
 };
 
+export const checkTokenImmediately = () => (dispatch: any, getState: any) => {
+  const state = getState();
+  const { userInfo } = state.auth;
+
+  if (!userInfo || !userInfo.exp) return false;
+
+  const currentTime = Math.floor(Date.now() / 1000);
+  const timeToExpiry = userInfo.exp - currentTime;
+  const fiveMinutes = 300;
+
+  if (timeToExpiry <= fiveMinutes) {
+    dispatch(logout());
+    return true;
+  }
+  return false;
+};
+
 export default authSlice.reducer;

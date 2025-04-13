@@ -9,16 +9,16 @@ export default function BookingsScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'|null>('upcoming');
   
-  const { data: bookmarks, isLoading, error } = useGetBookingsQuery({
+  const { data: bookings, isLoading, error } = useGetBookingsQuery({
     type: activeTab
   });
-console.log(activeTab,bookmarks)
+console.log(activeTab)
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <ArrowLeft color="white" size={24} />
-        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+            <ArrowLeft color="white" size={24} />
+          </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">My Bookings</Text>
       </View>
 
@@ -51,10 +51,10 @@ console.log(activeTab,bookmarks)
             <Text className="text-red-500">Error loading events</Text>
           </View>
         ) : (
-          bookmarks?.body?.map((event:any) => (
+          bookings?.body?.map((event:any) => (
               <TouchableOpacity
                 key={event.id}
-                onPress={() => router.push(`/(tabs)/home/event/${event.event_id}`)}
+                onPress={() => router.push(`/profile/${event.event_id}/bookingdetails`)}
                 className="bg-[#1A2432] rounded-lg mb-4"
               >
                 <Image

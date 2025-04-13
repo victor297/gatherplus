@@ -3,11 +3,19 @@ import { BASE_URL, USER_URL } from "../constants";
 
 
 export const userApiSlice = apiSlice.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     createvent: builder.mutation<any,any>({
       query: (data) => ({
         url: `${BASE_URL}/event`,
         method: "POST",
+        body: data,
+      }),
+    }),
+    updatevent: builder.mutation<any,any>({
+      query: ({data,id}) => ({
+        url: `${BASE_URL}/event/${id}`,
+        method: "PUT",
         body: data,
       }),
     }),
@@ -33,9 +41,10 @@ export const userApiSlice = apiSlice.injectEndpoints({
       keepUnusedDataFor: 5,
     }),
     getEvents: builder.query<any,any>({
-      query: ({ category_id, state_id, city, type, search, sortBy, sortDirection,page,size } = {}) => {
+      query: ({ category_id,country_code, state_id, city, type, search, sortBy, sortDirection,page,size,start_date,end_date } = {}) => {
         const params = new URLSearchParams();
         if (category_id) params.append("category_id", category_id);
+        if (country_code) params.append("country_code", country_code);
         if (state_id) params.append("state_id", state_id);
         if (city) params.append("city", city);
         if (type) params.append("type", type);
@@ -44,7 +53,8 @@ export const userApiSlice = apiSlice.injectEndpoints({
         if (sortDirection) params.append("sortDirection", sortDirection);
         if (page) params.append("page", page);
         if (size) params.append("size", size);
-  
+        if (start_date) params.append("start_date", start_date);
+        if (end_date) params.append("end_date", end_date);
         return {
           url: `${BASE_URL}/event?${params.toString()}`,
         };
@@ -102,13 +112,41 @@ export const userApiSlice = apiSlice.injectEndpoints({
       providesTags: ["Event"],
       keepUnusedDataFor: 5,
     }),
+    getBookingDetails: builder.query({     
+      query: (id) => ({
+        url: `${BASE_URL}/event/booking/${id}`,
+      }),
+      providesTags: ["Event"],
+      keepUnusedDataFor: 5,
+    }),
+    getMyEvents: builder.query<any,any>({
+      query: ({ category_id, state_id, city, type, search, sortBy, sortDirection,page,size } = {}) => {
+        const params = new URLSearchParams();
+        if (category_id) params.append("category_id", category_id);
+        if (state_id) params.append("state_id", state_id);
+        if (city) params.append("city", city);
+        if (type) params.append("type", type);
+        if (search) params.append("search", search);
+        if (sortBy) params.append("sortBy", sortBy);
+        if (sortDirection) params.append("sortDirection", sortDirection);
+        if (page) params.append("page", page);
+        if (size) params.append("size", size);
+  
+        return {
+          url: `${BASE_URL}/event/me?${params.toString()}`,
+        };
+      },
+      providesTags: ["Event"],
+      keepUnusedDataFor: 5,
+    }),
   }),
 
 });
 
 export const {
 useGetcategoriesQuery,
-  useCreateventMutation, 
+  useCreateventMutation,
+  useUpdateventMutation, 
   useDeleteBookmarkMutation,
   useGetEventsQuery,
   useGetCountriesQuery,
@@ -117,5 +155,7 @@ useGetcategoriesQuery,
   useBookmarkeventMutation,
   useGetBookmarksQuery,
   useCreateBookingMutation,
-  useGetBookingsQuery
+  useGetBookingsQuery,
+  useGetMyEventsQuery,
+  useGetBookingDetailsQuery,
 } = userApiSlice;

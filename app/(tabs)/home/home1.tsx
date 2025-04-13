@@ -1,14 +1,17 @@
 import { View, Text, TextInput, ScrollView, Image, TouchableOpacity, RefreshControl, ActivityIndicator, Modal } from 'react-native';
-import { MapPin, Search, Bell } from 'lucide-react-native';
+import { MapPin, Search, Bell, ChevronDown } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
 import { useGetcategoriesQuery, useGetCountriesQuery, useGetEventsQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
 import { useCallback, useEffect, useState } from 'react';
 import { formatDate } from '@/utils/formatDate';
+import { useDispatch } from 'react-redux';
+import { checkTokenImmediately } from '@/redux/features/auth/authSlice';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const dispatch:any = useDispatch();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -18,6 +21,8 @@ export default function HomeScreen() {
   const [selectedCountry, setSelectedCountry] = useState<any>(null);
   const [selectedState, setSelectedState] = useState<any>(null);
   useEffect(() => {
+        dispatch(checkTokenImmediately());
+    
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -52,7 +57,7 @@ export default function HomeScreen() {
 
   const { data: live, error: liveError, isLoading: isliveLoading, refetch: refetchLive } = useGetEventsQuery({
     city: null,
-    type: "upcomming",
+    type: "LIVE",
     category_id: selectedCategory,
     page: 1, size: 4,
     search: searchTerm,
@@ -83,7 +88,7 @@ export default function HomeScreen() {
               <Text className="text-white text-lg font-medium">
                 {selectedCountry && selectedState ? `${selectedState.name}, ${selectedCountry.name}`: "Select Location"}
               </Text>
-              <Text className="text-primary text-lg">⏷</Text>
+             <ChevronDown size={20} color="#9EDD45"/>
             </TouchableOpacity>
 
             {/* Country Modal */}
@@ -171,7 +176,7 @@ export default function HomeScreen() {
         ) : (
           <>
             {/* Categories */}
-            <Text className="text-white text-xl font-bold px-4 mb-4">Categories</Text>
+            <Text className="text-white text-xl font-bold px-4 mb-4" >Categories</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 mb-6">
               {[{ id: null, name: "All" }, ...(categories?.body || [])].map((category, index) => (
                 <TouchableOpacity
@@ -205,7 +210,7 @@ export default function HomeScreen() {
             <View className="mb-6">
               <View className="flex-row justify-between items-center px-4 mb-4">
                 <Text className="text-white text-xl font-bold">Upcoming Events</Text>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/home/all-events')}>
+                <TouchableOpacity className='p-2' onPress={() => router.push('/(tabs)/home/all-events')}>
                   <Text className="text-primary">See All</Text>
                 </TouchableOpacity>
               </View>
@@ -226,7 +231,7 @@ export default function HomeScreen() {
             <View className="mb-6">
               <View className="flex-row justify-between items-center px-4 mb-4">
                 <Text className="text-white text-xl font-bold">Live Events</Text>
-                <TouchableOpacity onPress={() => router.push('/(tabs)/home/explore')}>
+                <TouchableOpacity className='p-2' onPress={() => router.push('/(tabs)/home/explore')}>
                   <Text className="text-primary">Show All</Text>
                 </TouchableOpacity>
               </View>

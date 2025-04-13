@@ -52,7 +52,6 @@ export default function OrderSummaryScreen() {
 console.log(res,"resres")
       if (selectedChannel === "PayStack" && res?.message==="SUCCESSFUL") {
         console.log(res,"resrespay")
-
         // Paystack payment will be handled by the Paystack component
         return;
       } else if (selectedChannel === "Stripe" && res?.message==="SUCCESSFUL") {
@@ -109,9 +108,9 @@ console.log(res,"resres")
     <View className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <ArrowLeft color="white" size={24} />
-        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+            <ArrowLeft color="white" size={24} />
+          </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Order Summary</Text>
       </View>
 

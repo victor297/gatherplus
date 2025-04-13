@@ -1,4 +1,4 @@
-export function formatDate(dateString?: string): string {
+export function formatDate(dateString?: string|Date): string {
     try {
       if (!dateString) {
         return "No date provided";

@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, X } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
 import { useGetCurrenciesQuery } from '@/redux/api/currencyAPI';
+import { RelativePathString } from 'expo-router';
 
 export default function TicketingScreen() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function TicketingScreen() {
     }
 
     // Check each ticket has required fields
-    tickets.forEach(ticket => {
+    tickets.forEach((ticket:any) => {
       if (!ticket.name || !ticket.price || !ticket.quantity) {
         isValid = false;
       }
@@ -132,20 +133,19 @@ export default function TicketingScreen() {
     if (!isFormValid) return;
     
     router.push({
-      pathname: '/create/review',
+      pathname: `/(tabs)/home/event/${params.id}/update/updatereview` as RelativePathString,
       params: {
         formData: JSON.stringify(formData),
       },
     });
   };
-
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
-            <ArrowLeft color="white" size={24} />
-          </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Create Event</Text>
+       <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+                   <ArrowLeft color="white" size={24} />
+                 </TouchableOpacity>
+        <Text className="text-white text-xl font-semibold">Update Event</Text>
       </View>
 
       <ProgressSteps currentStep={2} />
@@ -163,7 +163,7 @@ export default function TicketingScreen() {
                 setFormData((prev:any) => ({ ...prev, is_free: false, ticketed: true }));
               }}
             >
-              <Image source={require('../../../assets/images/paid.png')} className="h-36 w-full" />
+              <Image source={require('../../../../../../assets/images/paid.png')} className="h-36 w-full" />
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -173,7 +173,7 @@ export default function TicketingScreen() {
                 setFormData((prev:any) => ({ ...prev, is_free: true, ticketed: false, tickets: [] }));
               }}
             >
-              <Image source={require('../../../assets/images/free.png')} className="h-36 w-full" />
+              <Image source={require('../../../../../../assets/images/free.png')} className="h-36 w-full" />
             </TouchableOpacity>
           </View>
         </View>

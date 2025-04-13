@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, ChevronDown } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
-import { useGetcategoriesQuery, useGetCountriesQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
+import { useGetcategoriesQuery, useGetCountriesQuery, useGetStatesQuery, useGetEventQuery } from '@/redux/api/eventsApiSlice';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 interface Session {
@@ -13,24 +13,35 @@ interface Session {
   endTime: string;
 }
 
-export default function CreateEventScreen() {
+export default function UpdateEventScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const eventId = params.id as string;
   const [selectedCountry, setSelectedCountry] = useState<any>(null);
   const [selectedState, setSelectedState] = useState<any>(null);
   const [isFormValid, setIsFormValid] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [formData, setFormData] = useState({
+
+  const { data: event, isLoading: eventLoading, error: eventError } = useGetEventQuery({ id: eventId });
+  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useGetcategoriesQuery({});
+  const { data: countryData, isLoading: countryLoading, error: countryError } = useGetCountriesQuery({});
+  const { data: stateData, isLoading: stateLoading, error: stateError } = useGetStatesQuery(selectedCountry?.code2, {
+    skip: !selectedCountry,
+  });
+
+  // Initialize form data with empty values
+  const [formData, setFormData] = useState<any>({
     title: '',
     eventCategory: "",
     category_id: '',
     sessionType: '',
-    state_id: 2,
+    state_id: 0,
     city: '',
-    country_code: 'NG',
+    country_code: '',
     description: '',
     images: [],
-    start_date: '2025-06-15',
+    start_date: '',
     address: '',
     currency: '',
     each_ticket_identity: false,
@@ -43,12 +54,6 @@ export default function CreateEventScreen() {
     absorb_fee: true,
     ticketed: true,
     tickets: [],
-  });
-
-  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useGetcategoriesQuery({});
-  const { data: countryData, isLoading: countryLoading, error: countryError } = useGetCountriesQuery({});
-  const { data: stateData, isLoading: stateLoading, error: stateError } = useGetStatesQuery(selectedCountry?.code2, {
-    skip: !selectedCountry,
   });
 
   const [sessions, setSessions] = useState<Session[] | any>([{
@@ -72,17 +77,73 @@ export default function CreateEventScreen() {
   const countries = countryData?.body || [];
   const states = stateData?.body || [];
 
+  // Load event data when it's fetched
+  useEffect(() => {
+    if (event && categories.length > 0 && countries.length > 0) {
+      const eventData = event.body;
+
+      // Find the category name
+      const category = categories.find((cat: any) => cat.id === eventData.category_id);
+
+      // Initialize form data
+      setFormData({
+        title: eventData.title,
+        eventCategory: category?.name || "",
+        category_id: eventData.category_id.toString(),
+        sessionType: eventData.sessions.length > 1 ? 'multiple' : 'single',
+        state_id: eventData.state_id,
+        city: eventData.city,
+        country_code: eventData.country_code,
+        description: eventData.description,
+        images: eventData.images,
+        start_date: eventData.start_date,
+        address: eventData.address,
+        currency: eventData.currency,
+        each_ticket_identity: eventData.each_ticket_identity,
+        price: parseFloat(eventData.price) || 0,
+        age_restriction: eventData.age_restriction || 0,
+        guardian_required: eventData.guardian_required || false,
+        is_free: eventData.is_free,
+        event_type: eventData.event_type === 'RECURRING' ? 'recurring' : 'single',
+        time: eventData.time,
+        absorb_fee: eventData.absorb_fee,
+        ticketed: eventData.ticketed,
+        tickets: eventData.tickets,
+      });
+
+      // Initialize sessions
+      setSessions(eventData.sessions.map((session: any) => ({
+        name: session.name || '',
+        startDate: session.date.split('T')[0],
+        startTime: session.start_time,
+        endTime: session.end_time
+      })));
+
+      // Find and set country and state
+      const country = countries.find((c: any) => c.code2 === eventData.country_code);
+      if (country) {
+        setSelectedCountry(country);
+        // State will be set after country is selected and states are loaded
+      }
+
+      setIsLoadingData(false);
+    }
+  }, [event, categories, countries]);
+
+  // Set state after country is selected and states are loaded
+  useEffect(() => {
+    if (event && states.length > 0 && selectedCountry) {
+      const state = states.find((s: any) => s.id === event.body.state_id);
+      if (state) {
+        setSelectedState(state);
+      }
+    }
+  }, [states, event, selectedCountry]);
+
   // Validate form whenever form data changes
   useEffect(() => {
     validateForm();
   }, [formData, sessions, selectedCountry, selectedState]);
-
-  // Check if all data is loaded
-  useEffect(() => {
-    if (!categoriesLoading && !countryLoading) {
-      setIsLoadingData(false);
-    }
-  }, [categoriesLoading, countryLoading]);
 
   const validateForm = () => {
     // Basic validation
@@ -95,7 +156,7 @@ export default function CreateEventScreen() {
 
     // Sessions validation
     if (sessions.length === 0) isValid = false;
-    sessions.forEach((session:any) => {
+    sessions.forEach((session: any) => {
       if (!session.name.trim()) isValid = false;
       if (!session.startDate) isValid = false;
       if (!session.startTime) isValid = false;
@@ -111,6 +172,7 @@ export default function CreateEventScreen() {
     setIsFormValid(isValid);
   };
 
+  // ... [rest of the component code remains the same]
   const addSession = () => {
     setSessions([...sessions, {
       name: '',
@@ -144,9 +206,9 @@ export default function CreateEventScreen() {
 
   const handleSaveAndContinue = () => {
     if (!isFormValid) return;
-    
+
     router.push({
-      pathname: '/create/banner',
+      pathname: `/(tabs)/home/event/${eventId}/update/updatebanner` as RelativePathString,
       params: {
         formData: JSON.stringify({
           ...formData,
@@ -158,6 +220,7 @@ export default function CreateEventScreen() {
             end_time: session.endTime
           }))
         }),
+        eventId: formData?.id || '',
       },
     });
   };
@@ -168,7 +231,7 @@ export default function CreateEventScreen() {
     }
   }, [categoriesError, countryError, stateError]);
 
-  if (isLoadingData) {
+  if (isLoadingData || !formData) {
     return (
       <View className="flex-1 bg-background justify-center items-center">
         <ActivityIndicator size="large" color="#ffffff" />
@@ -181,9 +244,9 @@ export default function CreateEventScreen() {
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
-            <ArrowLeft color="white" size={24} />
-          </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Create Event</Text>
+                    <ArrowLeft color="white" size={24} />
+                  </TouchableOpacity>
+        <Text className="text-white text-xl font-semibold">Update Event</Text>
       </View>
       <ProgressSteps currentStep={0} />
 
@@ -192,7 +255,7 @@ export default function CreateEventScreen() {
           {/* Event Details Section */}
           <View className="bg-[#111823] p-3 rounded-lg">
             <Text className='text-lg font-bold text-white mb-4'>Event Details</Text>
-            
+
             {/* Event Title */}
             <View>
               <Text className="text-white my-2">Event Title <Text className="text-red-500">*</Text></Text>
@@ -295,12 +358,12 @@ export default function CreateEventScreen() {
                 {/* Start Date */}
                 <View>
                   <Text className="text-white my-2">Start Date<Text className="text-red-500">*</Text></Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     className={`bg-[#1A2432] rounded-lg px-4 py-3 flex-row items-center justify-between border ${!session.startDate ? 'border-red-500' : 'border-transparent'}`}
                     onPress={() => {
                       setActiveTimeField({ sessionIndex: index, field: 'startDate' });
                       setShowDatePicker(true);
-                    }}>         
+                    }}>
                     <Text className={session.startDate ? "text-white" : "text-gray-400"}>
                       {session.startDate || 'Select start date*'}
                     </Text>
@@ -311,7 +374,7 @@ export default function CreateEventScreen() {
                 {/* Start Time */}
                 <View>
                   <Text className="text-white my-2">Start Time <Text className="text-red-500">*</Text></Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     className={`bg-[#1A2432] rounded-lg px-4 py-3 flex-row items-center justify-between border ${!session.startTime ? 'border-red-500' : 'border-transparent'}`}
                     onPress={() => {
                       setActiveTimeField({ sessionIndex: index, field: 'startTime' });
@@ -327,7 +390,7 @@ export default function CreateEventScreen() {
                 {/* End Time */}
                 <View>
                   <Text className="text-white my-2">End Time <Text className="text-red-500">*</Text></Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     className={`bg-[#1A2432] rounded-lg px-4 py-3 flex-row items-center justify-between border ${!session.endTime ? 'border-red-500' : 'border-transparent'}`}
                     onPress={() => {
                       setActiveTimeField({ sessionIndex: index, field: 'endTime' });
@@ -463,12 +526,12 @@ export default function CreateEventScreen() {
             ) : (
               <ScrollView className="max-h-96">
                 {categories.map((category: any) => (
-                  <TouchableOpacity 
-                    key={category.id} 
+                  <TouchableOpacity
+                    key={category.id}
                     className="py-4 border-b border-gray-700"
-                    onPress={() => { 
-                      setFormData({ ...formData, eventCategory: category?.name, category_id: category?.id }); 
-                      setShowCategoryModal(false); 
+                    onPress={() => {
+                      setFormData({ ...formData, eventCategory: category?.name, category_id: category?.id });
+                      setShowCategoryModal(false);
                     }}
                   >
                     <Text className="text-white">{category?.name}</Text>

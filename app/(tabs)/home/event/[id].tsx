@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { ArrowLeft, Share2, MapPin, Calendar, Clock, Plus, Minus, ChevronDown, BookmarkIcon, BookmarkCheck } from 'lucide-react-native';
 import { useBookmarkeventMutation, useDeleteBookmarkMutation, useGetEventQuery } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
@@ -33,7 +33,7 @@ export default function EventDetailsScreen() {
   const [deleteBookmark, { isLoading: isRemovingBookmarkLoading, isSuccess, isError }] = useDeleteBookmarkMutation();
 
   const addTicket = (ticketId: number) => {
-    const ticket = event?.body?.tickets.find(t => t.id === ticketId);
+    const ticket = event?.body?.tickets.find((t:any) => t.id === ticketId);
     if (!ticket) return;
 
     setTicketSelections(prev => {
@@ -67,13 +67,13 @@ export default function EventDetailsScreen() {
     });
   };
 
-  const totalAmount = event?.body?.tickets.reduce((sum, ticket) => {
+  const totalAmount = event?.body?.tickets.reduce((sum:any, ticket:any) => {
     const selection = ticketSelections[ticket.id];
     return sum + (selection?.quantity || 0) * Number(ticket.price);
   }, 0);
 
   const handleBuyTickets = () => {
-    const ticketInstances = event?.body?.tickets.flatMap(ticket => {
+    const ticketInstances = event?.body?.tickets.flatMap((ticket:any) => {
       const selection = ticketSelections[ticket.id];
       if (!selection || selection.quantity === 0) return [];
 
@@ -94,7 +94,7 @@ export default function EventDetailsScreen() {
     };
 
     router.push({
-      pathname: `/home/event/${id}/checkout`,
+      pathname: `/home/event/${id}/checkout` as RelativePathString,
       params: { data: JSON.stringify(ticketData) }
     });
   };
@@ -141,11 +141,11 @@ export default function EventDetailsScreen() {
               />
 
               <View className="absolute w-full flex-row justify-between items-center p-4 pt-12">
-                <TouchableOpacity onPress={() => router.back()}>
-                  <ArrowLeft color="white" size={24} />
-                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+                                 <ArrowLeft color="white" size={24} />
+                               </TouchableOpacity>
                 <TouchableOpacity>
-                  {isBookmarkLoading || isRemovingBookmarkLoading ? <ActivityIndicator /> : event?.body?.isBookmark ? <BookmarkCheck fill="#9EDD45" size={24} onPress={handleBookmarkRemove} /> : <BookmarkIcon color="white" size={24} onPress={handleBookmark} />}
+                  {isBookmarkLoading || isRemovingBookmarkLoading ? <ActivityIndicator  /> : event?.body?.isBookmark ? <BookmarkCheck  color="white" fill="#9EDD45" className='p-5' size={32} onPress={handleBookmarkRemove} /> : <BookmarkIcon className='p-5'  color="white" size={32} onPress={handleBookmark} />}
                 </TouchableOpacity>
               </View>
 
@@ -249,18 +249,18 @@ export default function EventDetailsScreen() {
                               <TouchableOpacity
                                 className="flex-row items-center justify-between bg-[#1A2432] px-3 py-2 rounded-lg"
                                 onPress={() => {
-                                  const currentIndex = event?.body?.sessions.findIndex(s => s.id === selection.sessionId);
+                                  const currentIndex = event?.body?.sessions.findIndex((s:any) => s.id === selection.sessionId);
                                   const newIndex = (currentIndex + 1) % event?.body?.sessions.length;
                                   updateSession(ticket.id, event?.body?.sessions[newIndex].id);
                                 }}
                               >
                                 <View>
                                   <Text className="text-white">
-                                    {event?.body?.sessions.find(s => s.id === selection.sessionId)?.name}
+                                    {event?.body?.sessions.find((s:any) => s.id === selection.sessionId)?.name}
                                   </Text>
                                   <Text className="text-gray-400">
-                                    {event?.body?.sessions.find(s => s.id === selection.sessionId)?.start_time} -
-                                    {event?.body?.sessions.find(s => s.id === selection.sessionId)?.end_time}
+                                    {event?.body?.sessions.find((s:any) => s.id === selection.sessionId)?.start_time} -
+                                    {event?.body?.sessions.find((s:any) => s.id === selection.sessionId)?.end_time}
                                   </Text>
                                 </View>
                                 <ChevronDown size={20} color="#fff" />
