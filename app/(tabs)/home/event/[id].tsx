@@ -17,6 +17,7 @@ interface TicketSelection {
 export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+
   const { userInfo } = useSelector((state: any) => state.auth);
   const { data: event, isLoading, error, refetch } = useGetEventQuery({ id, user_id: userInfo?.sub });
   const [ticketSelections, setTicketSelections] = useState<Record<number, TicketSelection>>({});
@@ -101,7 +102,7 @@ export default function EventDetailsScreen() {
   const handleBookmark = async () => {
     try {
       const res = await bookmarkevent({ event_id: Number(id) }).unwrap();
-      alert("Bookmarked")
+      // alert("Bookmarked")
       refetch()
     } catch (err) {
       console.log(err,"errrrrrrrrr")
@@ -112,7 +113,7 @@ export default function EventDetailsScreen() {
   const handleBookmarkRemove = async () => {
     try {
       const res = await deleteBookmark(Number(id)).unwrap();
-      alert("Bookmarked")
+      // alert("Unbookmarked")
       refetch()
     } catch (err) {
       console.log(err,"errrrrrrrrr")
@@ -124,7 +125,7 @@ export default function EventDetailsScreen() {
     Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
   };
 
-  console.log(event?.body?.sessions, id, "event")
+  console.log(event?.body, "event")
   return (
     <>
       {isLoading ? <View className="text-white flex-1 bg-background flex justify-center items-center py-4"><ActivityIndicator /></View>
@@ -200,6 +201,7 @@ export default function EventDetailsScreen() {
 
                       </View>)}
                     </View>
+                    
                   </View>
                 </View>
 
@@ -275,9 +277,12 @@ export default function EventDetailsScreen() {
                   <View className="mt-4 mb-4">
                     <Text className="text-gray-400">Total Tickets: {Object.values(ticketSelections).reduce((sum, s) => sum + s.quantity, 0)}</Text>
                     <Text className="text-white text-xl font-bold">{event?.body?.currency?.split(' - ')[0]} {totalAmount}</Text>
+                      {event?.body?.age_restriction>0 &&<Text className="text-red-500 text-xs font-bold mt-2">⚠️ {event?.body?.age_restriction} + is required for this event</Text>
+            }
                   </View>
                 </View>
               </View>
+
             </ScrollView>
 
             <View className="p-4 border-t border-[#1A2432]">

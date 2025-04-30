@@ -7,12 +7,12 @@ import { formatDate } from '@/utils/formatDate';
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'past'|null>('upcoming');
+  const [activeTab, setActiveTab] = useState<'UPCOMING' | 'PAST'|null>('UPCOMING');
   
   const { data: bookings, isLoading, error } = useGetBookingsQuery({
     type: activeTab
   });
-console.log(activeTab)
+console.log(bookings,activeTab)
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
@@ -24,18 +24,18 @@ console.log(activeTab)
 
       <View className="flex-row px-4 border-b border-[#1A2432]">
         <TouchableOpacity
-          className={`py-4 px-6 ${activeTab === 'upcoming' ? 'border-b-2 border-primary' : ''}`}
-          onPress={() => setActiveTab('upcoming')}
+          className={`py-4 px-6 ${activeTab === 'UPCOMING' ? 'border-b-2 border-primary' : ''}`}
+          onPress={() => setActiveTab('UPCOMING')}
         >
-          <Text className={activeTab === 'upcoming' ? 'text-primary' : 'text-gray-400'}>
+          <Text className={activeTab === 'UPCOMING' ? 'text-primary' : 'text-gray-400'}>
             Upcoming
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          className={`py-4 px-6 ${activeTab === 'past' ? 'border-b-2 border-primary' : ''}`}
-          onPress={() => setActiveTab('past')}
+          className={`py-4 px-6 ${activeTab === 'PAST' ? 'border-b-2 border-primary' : ''}`}
+          onPress={() => setActiveTab('PAST')}
         >
-          <Text className={activeTab === 'past' ? 'text-primary' : 'text-gray-400'}>
+          <Text className={activeTab === 'PAST' ? 'text-primary' : 'text-gray-400'}>
             Past Events
           </Text>
         </TouchableOpacity>

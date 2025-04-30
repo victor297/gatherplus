@@ -13,8 +13,9 @@ export default function ChangeEmailScreen() {
     try {
       const res = await updateEmail({ email }).unwrap();
       router.back();
+
     } catch (err: any) {
-      console.log('Failed to update email:', err?.data?.body);
+      console.log('Failed to update email:', err?.data);
     }
   };
 

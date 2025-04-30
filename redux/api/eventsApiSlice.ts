@@ -56,7 +56,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
         if (start_date) params.append("start_date", start_date);
         if (end_date) params.append("end_date", end_date);
         return {
-          url: `${BASE_URL}/event?${params.toString()}`,
+          url: `${BASE_URL}/event/list?${params.toString()}`,
         };
       },
       providesTags: ["Event"],
@@ -136,8 +136,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
           url: `${BASE_URL}/event/me?${params.toString()}`,
         };
       },
-      providesTags: ["Event"],
-      keepUnusedDataFor: 5,
+      
     }),
   }),
 

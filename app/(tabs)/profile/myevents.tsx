@@ -23,12 +23,12 @@ export default function MyEventsScreen() {
     isFetching, 
     refetch: refetchUpcoming 
   } = useGetMyEventsQuery<any>({
-    category_id: selectedCategory,
-    search: searchTerm,
-    page,
-    size,
+    // category_id: selectedCategory,
+    // search: searchTerm,
+    // page,
+    // size,
   });
-
+console.log(upcoming,"upcoming")
   // Reset page and clear events when filters change
   useEffect(() => {
     setPage(1);

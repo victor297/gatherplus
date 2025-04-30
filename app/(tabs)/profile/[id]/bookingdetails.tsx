@@ -87,12 +87,13 @@ const TicketScreen = () => {
                   <Circle cx="520" cy="80" r="20" fill="#020e1e" stroke="#020e1e" strokeWidth="2" />
                 </Svg>
                 <View className="absolute top-0 left-0 w-full h-full flex justify-center items-center p-4">
-                  <Text className="text-lg font-bold text-blue-600 text-center">{"booking.name"}</Text>
+                  <Text className="font-bold text-blue-600 text-center">{booking?.session?.name}-{booking?.session?.start_time}</Text>
                   <View className='flex-row justify-center gap-2 items-center'>
                     <QRCode value={`${booking.session_id}-${booking.ticket_id}-${index}`} size={50} />
                     <View>
                       <Text className="text-base text-gray-700">{booking.fullname}</Text>
                       <Text className="text-sm text-gray-500">{booking.email}</Text>
+                      <Text className="text-sm text-gray-500">{booking?.ticket?.seat_type} </Text>
                     </View>
                     {/* Download Button */}
 

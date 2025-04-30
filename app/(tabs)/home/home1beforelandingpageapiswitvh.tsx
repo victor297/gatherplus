@@ -63,7 +63,7 @@ export default function HomeScreen() {
     search: searchTerm,
   });
 
-console.log(upcoming,"upcoming")
+
   // const categories = ['Concerts', 'Sports', 'Theater', 'Festivals'];
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -215,7 +215,7 @@ console.log(upcoming,"upcoming")
                 </TouchableOpacity>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-4">
-                {upcoming?.body?.events?.result?.map((event:any) => (
+                {upcoming?.body?.result?.map((event:any) => (
                   <TouchableOpacity key={event.id} onPress={() => router.push(`/(tabs)/home/event/${event.id}`)} className="bg-[#1A2432] rounded-lg overflow-hidden mr-4 w-48">
                     <Image source={{ uri: event?.images?.[0] }} className="w-full h-32" resizeMode="cover" />
                     <View className="p-3">
@@ -238,7 +238,7 @@ console.log(upcoming,"upcoming")
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-4">
               <View className="px-4 flex-row gap-4">
 
-{live?.body?.events?.result?.map((event:any) => (
+{live?.body?.result?.map((event:any) => (
   <TouchableOpacity
     key={event.id}  onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
     className="bg-[#1A2432] w-48 rounded-lg overflow-hidden mb-4"

@@ -26,7 +26,7 @@ export default function BookmarksScreen() {
               <Text className="text-red-500">{error?.data.body}Failed to load data. Please try again.</Text>
             </View> : bookmarks?.body?.map((event: any) => (
               <TouchableOpacity
-                key={event.id} onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
+                key={event.id} onPress={() => router.push(`/(tabs)/home/event/${event.event_id}`)}
                 className="bg-[#1A2432] rounded-lg mb-4"
               >
                 <Image

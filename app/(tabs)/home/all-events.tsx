@@ -415,7 +415,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 h-12 mb-2">
-        {isUpcomingLoading || isFetching ? (
+        {isCategoriesLoading ? (
           <View className="text-white flex justify-center items-center py-4"><ActivityIndicator /></View>
         ) : upcomingError ? (
           <Text className="text-red-500 text-center py-4">Failed to load data. Please try again.</Text>

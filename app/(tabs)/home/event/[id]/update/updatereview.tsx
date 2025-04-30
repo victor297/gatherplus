@@ -10,7 +10,6 @@ export default function ReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [updateevent, { isLoading, error }] = useUpdateventMutation();
-
   const [formData, setFormData] = useState(() => {
     try {
       return params.formData ? JSON.parse(params.formData as string) : {};
@@ -19,12 +18,15 @@ export default function ReviewScreen() {
       return {};
     }
   });
+  console.log(formData,params.id)
   const handleSubmit = async () => {
     try {
-      const res = await updateevent({data:formData,id:10}).unwrap();
+      const res = await updateevent({data:formData,id:params.id}).unwrap();
+      console.log(res,"update")
+      console.log(formData,"formDataupdate")
       router.push('/success');
     } catch (error) {
-      console.error('Event creation failed:', error);
+      console.error('Event update failed:', error);
     }
   };
 

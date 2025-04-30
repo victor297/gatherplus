@@ -1,27 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Modal, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import Svg, { Rect, Circle } from "react-native-svg";
 import QRCode from "react-native-qrcode-svg";
 import { useCreateBookingMutation } from '@/redux/api/eventsApiSlice';
-import { Paystack } from 'react-native-paystack-webview';
 import { useStripe } from '@stripe/stripe-react-native';
 import * as Linking from 'expo-linking';
+import { WebView } from 'react-native-webview';
 
 export default function OrderSummaryScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
   const bookingData = JSON.parse(data as string);
   const [createBooking, { isLoading: isBookmarkLoading }] = useCreateBookingMutation();
-  
+  console.log(bookingData,"bookingData")
   // Payment states
   const [paymentResponse, setPaymentResponse] = useState<any>(null);
   const [selectedChannel, setSelectedChannel] = useState<"Stripe" | "PayStack" | null>(null);
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
-  const [paystackKey] = useState('pk_test_24f80340f75a34e90b00aa800e59608dfd6a0b06');
   const [stripeLoading, setStripeLoading] = useState(false);
-  const [paymentSheetEnabled, setPaymentSheetEnabled] = useState(false);
+  const [showPaystackWebView, setShowPaystackWebView] = useState(false);
 
   // Calculate totals
   const ticketGroups = bookingData.bookings.reduce((groups: any, booking: any) => {
@@ -44,69 +43,48 @@ export default function OrderSummaryScreen() {
         ...bookingData,
         channel: "Stripe"
       }).unwrap();
+
+      console.log(response,"stripe")
       
       if (response.message === "SUCCESSFUL") {
         return {
-          paymentIntent: response.body.paymentIntent,
+          paymentIntent: response.body.client_secret,
           ephemeralKey: response.body.ephemeralKey,
           customer: response.body.customer
         };
       }
-      throw new Error("Failed to fetch payment sheet params");
+      // throw new Error("Failed to fetch payment sheet params");
     } catch (error) {
-      console.error("Error fetching payment sheet params:", error);
-      throw error;
+      Alert.alert("Try Again", error?.data?.body|| "Failed to set up payment");
+      console.log("Error fetching payment sheet params:", error);
+      // throw error;
     }
-  };
-
-  const initializePaymentSheet = async () => {
-    try {
-      // const { paymentIntent, ephemeralKey, customer } = await fetchPaymentSheetParams();
-      
-      const { error } = await initPaymentSheet({
-        merchantDisplayName: "LogaXP",
-        customerId: "cus_S7oW0tVVeQivTB",
-        customerEphemeralKeySecret: "ek_test_YWNjdF8xMDNmQjQyeDZSMTBLUnJoLHBtejQ3bGdtSFFlWXIyd0hlS3JVb2tCRkxQNzFTSzc_00ksESIAuV",
-        paymentIntentClientSecret: "pi_3RDYtp2x6R10KRrh1JYDrjP1_secret_0oD48UaAGa4PVb9zZW38eIbYJ",
-        allowsDelayedPaymentMethods: true,
-        defaultBillingDetails: {
-          name: bookingData.bookings[0]?.fullname || "Customer",
-          email: bookingData.bookings[0]?.email || "customer@example.com",
-          phone: "888-888-8888",
-        },
-        returnURL: Linking.createURL("stripe-redirect"),
-        applePay: {
-          merchantCountryCode: "US",
-        },
-      });
-
-      if (!error) {
-        setPaymentSheetEnabled(true);
-      } else {
-        Alert.alert("Error", "Failed to initialize payment sheet");
-        console.error(error);
-      }
-    } catch (error) {
-      Alert.alert("Error", "Failed to set up payment");
-      console.error(error);
-    }
-  };
-
-  const openPaymentSheet = async () => {
-    setStripeLoading(true);
-    const { error } = await presentPaymentSheet();
-
-    if (error) {
-      Alert.alert(`Error code: ${error.code}`, error.message);
-    } else {
-      router.push(`/home/event/${bookingData.event_id}/success`);
-    }
-    setStripeLoading(false);
   };
 
   const handleBookEvent = async () => {
+    // If total is zero, skip payment gateway and directly submit
+    if (total === 0) {
+      try {
+        const response = await createBooking({
+          ...bookingData,
+          channel: "Free" // or whatever you want to call it
+        }).unwrap();
+        console.log(response,"free")
+        if (response.message === "SUCCESSFUL") {
+          router.push(`/home/event/${bookingData.event_id}/success`);
+        } else {
+          throw new Error("Booking failed");
+        }
+      } catch (err) {
+        Alert.alert("Try Again", "Failed to create booking");
+        console.log(err);
+      }
+      return;
+    }
+
+    // For non-zero amounts, proceed with payment flow
     if (!selectedChannel) {
-      Alert.alert("Error", "Please select a payment method");
+      Alert.alert("Try Again", "Please select a payment method");
       return;
     }
 
@@ -117,18 +95,67 @@ export default function OrderSummaryScreen() {
           channel: selectedChannel
         }).unwrap();
         setPaymentResponse(res);
+        console.log(res,"res")
+        setShowPaystackWebView(true);
       } else if (selectedChannel === "Stripe") {
+        setStripeLoading(true);
         await initializePaymentSheet();
       }
     } catch (err) {
-      Alert.alert("Error", "Failed to process payment");
-      console.log(err);
+      Alert.alert("Try Again", err?.data?.body|| "Failed to set up payment");
+
+      console.log(err,"processssssssss");
+      setStripeLoading(false);
+    }
+  };
+  
+  const initializePaymentSheet = async () => {
+    try {
+      const { paymentIntent, ephemeralKey, customer } = await fetchPaymentSheetParams();
+      
+      const { error } = await initPaymentSheet({
+        merchantDisplayName: "LogaXP",
+        paymentIntentClientSecret: paymentIntent,
+        allowsDelayedPaymentMethods: true,
+        returnURL: Linking.createURL("stripe-redirect"),
+        applePay: {
+          merchantCountryCode: "US",
+        },
+      });
+
+      if (!error) {
+        const {error} = await presentPaymentSheet();
+        if (error) {
+          console.log(error)
+          Alert.alert(` ${error.code}`, error.message);
+        } else {
+          router.push(`/home/event/${bookingData.event_id}/success`);
+        }
+      } else {
+        Alert.alert("Error", "Failed to initialize payment sheet");
+        console.log(error);
+      }
+    } catch (error) {
+      // Alert.alert("Error", error?.data?.body|| "Failed to set up payment");
+      console.log(error,"2");
+    } finally {
+      setStripeLoading(false);
     }
   };
 
-  const handlePaystackSuccess = (response: any) => {
-    if (response.status === "success") {
+  const handlePaystackWebViewNavigation = (navState: any) => {
+    const { url } = navState;
+  
+    if (url.includes('success') || url.includes('reference=')) {
+      setShowPaystackWebView(false);
+      setPaymentResponse(null);
       router.push(`/home/event/${bookingData.event_id}/success`);
+    }
+  
+    if (url.includes('close') || url.includes('cancel')) {
+      setShowPaystackWebView(false);
+      setPaymentResponse(null);
+      Alert.alert("Info", "Payment was cancelled");
     }
   };
 
@@ -178,7 +205,7 @@ export default function OrderSummaryScreen() {
               <View className="flex-row justify-between" key={name}>
                 <Text className="text-gray-400">{name}</Text>
                 <Text className="text-white">
-                  {group?.count} × {bookingData?.currency} {(group?.total / group?.count).toLocaleString()}
+                  {group?.count} × {bookingData?.currency?.split(' - ')[0]} {(group?.total / group?.count).toLocaleString()}
                 </Text>
               </View>
             ))}
@@ -187,91 +214,86 @@ export default function OrderSummaryScreen() {
           <View className="space-y-3">
             <View className="flex-row justify-between">
               <Text className="text-gray-400">Sub-total</Text>
-              <Text className="text-white">{bookingData?.currency} {subtotal.toLocaleString()}</Text>
+              <Text className="text-white">{bookingData?.currency?.split(' - ')[0]} {subtotal.toLocaleString()}</Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-gray-400">Tax</Text>
-              <Text className="text-white">{bookingData?.currency} {tax.toLocaleString()}</Text>
+              <Text className="text-white">{bookingData?.currency?.split(' - ')[0]} {tax.toLocaleString()}</Text>
             </View>
           </View>
           <View className="h-[1px] bg-[#1A2432] my-4" />
           <View className="flex-row justify-between">
             <Text className="text-gray-400">Total</Text>
-            <Text className="text-primary text-xl font-bold">{bookingData?.currency} {total.toLocaleString()}</Text>
+            <Text className="text-primary text-xl font-bold">{bookingData?.currency?.split(' - ')[0]} {total.toLocaleString()}</Text>
           </View>
         </View>
 
-        {/* Payment Method Selection */}
-        <View className="mt-6">
-          <Text className="text-white text-xl mb-4">Select Payment Method</Text>
-          <View className="flex-row justify-between">
-            <TouchableOpacity
-              className={`flex-1 mr-2 p-4 rounded-lg ${selectedChannel === "Stripe" ? 'bg-primary' : 'bg-gray-800'}`}
-              onPress={() => setSelectedChannel("Stripe")}
-            >
-              <Text className="text-white text-center font-semibold">Stripe</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className={`flex-1 ml-2 p-4 rounded-lg ${selectedChannel === "PayStack" ? 'bg-primary' : 'bg-gray-800'}`}
-              onPress={() => setSelectedChannel("PayStack")}
-            >
-              <Text className="text-white text-center font-semibold">Paystack</Text>
-            </TouchableOpacity>
+        {/* Only show payment method selection if total is not zero */}
+        {total > 0 && (
+          <View className="mt-6">
+            <Text className="text-white text-xl mb-4">Select Payment Method</Text>
+            <View className="flex-row justify-between">
+              <TouchableOpacity
+                className={`flex-1 mr-2 p-4 rounded-lg ${selectedChannel === "Stripe" ? 'bg-primary' : 'bg-gray-800'}`}
+                onPress={() => setSelectedChannel("Stripe")}
+              >
+                <Text className="text-white text-center font-semibold">Stripe</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className={`flex-1 ml-2 p-4 rounded-lg ${selectedChannel === "PayStack" ? 'bg-primary' : 'bg-gray-800'}`}
+                onPress={() => setSelectedChannel("PayStack")}
+              >
+                <Text className="text-white text-center font-semibold">Paystack</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
       </ScrollView>
 
-      {/* Payment Section */}
       <View className="p-4 border-t border-[#1A2432]">
-        {selectedChannel === "PayStack" && paymentResponse?.message === "SUCCESSFUL" && (
-          <Paystack
-            paystackKey={paystackKey}
-            amount={total}
-            currency={bookingData?.currency}
-            billingEmail={bookingData.bookings[0].email}
-            activityIndicatorColor="green"
-            onCancel={() => Alert.alert("Payment Cancelled")}
-            onSuccess={handlePaystackSuccess}
-            autoStart={true}
-            channels={['card', 'bank', 'ussd', 'qr', 'mobile_money']}
-            render={(paystack: any) => (
-              <TouchableOpacity
-                className="bg-primary rounded-lg py-4"
-                onPress={() => paystack.startPayment()}
-                disabled={isBookmarkLoading}
-              >
-                <Text className="text-background text-center font-semibold">
-                  Pay Now with Paystack
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
-        )}
-
-        {selectedChannel === "Stripe" && paymentSheetEnabled && (
-          <TouchableOpacity
-            className="bg-primary rounded-lg py-4"
-            onPress={openPaymentSheet}
-            disabled={stripeLoading}
-          >
-            <Text className="text-background text-center font-semibold">
-              {stripeLoading ? "Processing..." : "Pay Now with Stripe"}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {!paymentResponse && !paymentSheetEnabled && (
-          <TouchableOpacity
-            className="bg-primary rounded-lg py-4"
-            onPress={handleBookEvent}
-            disabled={isBookmarkLoading || !selectedChannel}
-          >
-            <Text className="text-background text-center font-semibold">
-              Proceed to Payment
-            </Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          className="bg-primary rounded-lg py-4"
+          onPress={handleBookEvent}
+          disabled={isBookmarkLoading || stripeLoading || (total > 0 && !selectedChannel)}
+        >
+          <Text className="text-background text-center font-semibold">
+            {isBookmarkLoading || stripeLoading 
+              ? "Processing..." 
+              : total > 0 ? "Proceed to Payment" : "Confirm Booking"}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Paystack WebView Modal */}
+      <Modal visible={showPaystackWebView} animationType="slide" onRequestClose={() => setShowPaystackWebView(false)}>
+        <View className="flex-1 bg-background pt-12">
+          <TouchableOpacity 
+            onPress={() => setShowPaystackWebView(false)}
+            className="absolute  left-4 z-10 bg-gray-200 p-2 rounded-full"
+          >
+            <ArrowLeft color="black" size={24} />
+          </TouchableOpacity>
+          
+          {paymentResponse?.body?.authorization_url ? (
+            <WebView
+              source={{ uri: paymentResponse.body.authorization_url }}
+              onNavigationStateChange={handlePaystackWebViewNavigation}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <View className="flex-1 justify-center items-center">
+                  <ActivityIndicator size="large" color="#000" />
+                  <Text className="mt-4">Loading payment gateway...</Text>
+                </View>
+              )}
+            />
+          ) : (
+            <View className="flex-1 justify-center items-center">
+              <ActivityIndicator size="large" color="#000" />
+              <Text className="mt-4">Preparing payment...</Text>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
