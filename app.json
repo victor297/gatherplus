@@ -14,13 +14,25 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show your position on the map.",
         "NSLocationAlwaysUsageDescription": "This app needs access to your location even when in the background."
-      }
+      },
+      "splash": {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain",
+          "backgroundColor": "#020E1E"
+      
+   }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "splash": {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain",
+          "backgroundColor": "#020E1E"
+      
+   },
       "package": "com.anonymous.gatherPlus"
     },
     "web": {
@@ -36,7 +48,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#020E1E"
         }
       ]
     ],
