@@ -23,9 +23,11 @@ export default function ReviewScreen() {
   const handleSubmit = async () => {
     try {
       const res = await createvent(formData).unwrap();
+
       router.push('/success');
     } catch (error) {
-      console.error('Event creation failed:', error);
+      console.log("rthe")
+      console.log('Event creation failed:', error);
     }
   };
 

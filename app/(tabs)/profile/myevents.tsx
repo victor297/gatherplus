@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, Pressable, ActivityIndicator, TextInput } from 'react-native';
 import { RelativePathString, useRouter } from 'expo-router';
 import { ArrowLeft, Search, Bell, Filter, Calendar, TimerIcon, TimerReset } from 'lucide-react-native';
 import { useGetcategoriesQuery, useGetEventsQuery, useGetMyEventsQuery } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
 import { FlatList } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 
 export default function MyEventsScreen() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function MyEventsScreen() {
   const [size] = useState(10); // Number of items per page
   const [allEvents, setAllEvents] = useState<any>([]); // Store all loaded events
   
-  const { data: categories, isLoading, error } = useGetcategoriesQuery<any>({});
+  const { data: categories, isLoading, error, } = useGetcategoriesQuery<any>({});
   
   const { 
     data: upcoming, 
@@ -23,10 +24,10 @@ export default function MyEventsScreen() {
     isFetching, 
     refetch: refetchUpcoming 
   } = useGetMyEventsQuery<any>({
-    // category_id: selectedCategory,
-    // search: searchTerm,
-    // page,
-    // size,
+    category_id: selectedCategory,
+    search: searchTerm,
+    page,
+    size,
   });
 console.log(upcoming,"upcoming")
   // Reset page and clear events when filters change
@@ -45,6 +46,10 @@ console.log(upcoming,"upcoming")
       }
     }
   }, [upcoming]);
+  useFocusEffect(() => {
+  
+    refetchUpcoming();
+  }, );
 
   const handleLoadMore = () => {
     if (!isFetching && upcoming?.body?.result?.length === size) {

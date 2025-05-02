@@ -14,7 +14,7 @@ const TicketScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { data: bookingData, isLoading, isError, error, refetch } = useGetBookingDetailsQuery(id);
-  console.log(bookingData, "bookingData")
+  console.log(bookingData,id, "bookingData")
   // Create an array of refs upfront based on the maximum possible tickets
   const ticketRefs = useRef<(View | null)[]>([]);
 
@@ -89,7 +89,7 @@ const TicketScreen = () => {
                 <View className="absolute top-0 left-0 w-full h-full flex justify-center items-center p-4">
                   <Text className="font-bold text-blue-600 text-center">{booking?.session?.name}-{booking?.session?.start_time}</Text>
                   <View className='flex-row justify-center gap-2 items-center'>
-                    <QRCode value={`${booking.session_id}-${booking.ticket_id}-${index}`} size={50} />
+                    <QRCode value={`${booking.code}`} size={50} />
                     <View>
                       <Text className="text-base text-gray-700">{booking.fullname}</Text>
                       <Text className="text-sm text-gray-500">{booking.email}</Text>

@@ -59,22 +59,25 @@ export const userApiSlice = apiSlice.injectEndpoints({
           url: `${BASE_URL}/event/list?${params.toString()}`,
         };
       },
-      providesTags: ["Event"],
-      keepUnusedDataFor: 5,
+
     }),
     getEvent: builder.query({     
       query: ({id,user_id}) => ({
         url: `${BASE_URL}/event/${id}?user_id=${user_id}`,
       }),
-      providesTags: ["Event"],
-      keepUnusedDataFor: 5,
+    
+    }),
+    deleteEvent: builder.mutation({
+      query: (id) => ({
+        url: `${BASE_URL}/event/${id}`,
+        method: 'DELETE',
+      }),
     }),
     deleteBookmark: builder.mutation({
       query: (id) => ({
         url: `${BASE_URL}/event/bookmark/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ["Event"],
     }),
     bookmarkevent: builder.mutation<any,any>({
       query: (data) => ({
@@ -87,8 +90,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
       query: (id) => ({
         url: `${BASE_URL}/event/bookmark`,
       }),
-      providesTags: ["Event"],
-      keepUnusedDataFor: 5,
+ 
     }),
     createBooking: builder.mutation<any,any>({
       query: (data) => ({
@@ -106,18 +108,29 @@ export const userApiSlice = apiSlice.injectEndpoints({
   
   
         return {
-          url: `${BASE_URL}/event/booking/me?${params.toString()}`,
+          url: `${BASE_URL}/event/booking/event?${params.toString()}`,
         };
       },
-      providesTags: ["Event"],
-      keepUnusedDataFor: 5,
+  
+    }),
+    getMyEventBookings: builder.query<any,any>({
+      query: ({id,  type } = {}) => {
+        const params = new URLSearchParams();
+  
+        if (type) params.append("type", type);
+  
+  
+        return {
+          url: `${BASE_URL}/event/booking/${id}/booking?${params.toString()}`,
+        }; 
+      },
+  
     }),
     getBookingDetails: builder.query({     
       query: (id) => ({
-        url: `${BASE_URL}/event/booking/${id}`,
+        url: `${BASE_URL}/event/booking/${id}/booking/me`,
       }),
-      providesTags: ["Event"],
-      keepUnusedDataFor: 5,
+   
     }),
     getMyEvents: builder.query<any,any>({
       query: ({ category_id, state_id, city, type, search, sortBy, sortDirection,page,size } = {}) => {
@@ -157,4 +170,6 @@ useGetcategoriesQuery,
   useGetBookingsQuery,
   useGetMyEventsQuery,
   useGetBookingDetailsQuery,
+  useDeleteEventMutation,
+  useGetMyEventBookingsQuery,
 } = userApiSlice;

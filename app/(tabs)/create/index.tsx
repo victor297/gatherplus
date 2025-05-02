@@ -169,7 +169,7 @@ export default function CreateEventScreen() {
   };
   const handleSaveAndContinue = () => {
     if (!isFormValid) return;
-    
+  
     router.push({
       pathname: '/create/banner',
       params: {
@@ -181,12 +181,13 @@ export default function CreateEventScreen() {
             date: session.startDate,
             start_time: session.startTime,
             end_time: session.endTime,
-            participants: session.participants
+            participants: session.participants.map(({ imageUploading, ...rest }: any) => rest)
           }))
         }),
       },
     });
   };
+  
   const removeSession = (index: number) => {
     if (sessions.length > 1) { // Don't allow removing the last session
       const newSessions = [...sessions];

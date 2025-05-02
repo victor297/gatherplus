@@ -8,11 +8,13 @@ import { useCreateBookingMutation } from '@/redux/api/eventsApiSlice';
 import { useStripe } from '@stripe/stripe-react-native';
 import * as Linking from 'expo-linking';
 import { WebView } from 'react-native-webview';
+import { useSelector } from 'react-redux';
 
 export default function OrderSummaryScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
   const bookingData = JSON.parse(data as string);
+    const { userInfo } = useSelector((state: any) => state.auth);
   const [createBooking, { isLoading: isBookmarkLoading }] = useCreateBookingMutation();
   console.log(bookingData,"bookingData")
   // Payment states
@@ -41,7 +43,8 @@ export default function OrderSummaryScreen() {
     try {
       const response = await createBooking({
         ...bookingData,
-        channel: "Stripe"
+        channel: "Stripe",  user_id: userInfo?.sub
+
       }).unwrap();
 
       console.log(response,"stripe")
@@ -67,7 +70,8 @@ export default function OrderSummaryScreen() {
       try {
         const response = await createBooking({
           ...bookingData,
-          channel: "Free" // or whatever you want to call it
+          channel: "Free",    user_id: userInfo?.sub
+          // or whatever you want to call it
         }).unwrap();
         console.log(response,"free")
         if (response.message === "SUCCESSFUL") {
@@ -92,7 +96,8 @@ export default function OrderSummaryScreen() {
       if (selectedChannel === "PayStack") {
         const res = await createBooking({
           ...bookingData,
-          channel: selectedChannel
+          channel: selectedChannel,    user_id: userInfo?.sub
+
         }).unwrap();
         setPaymentResponse(res);
         console.log(res,"res")

@@ -117,17 +117,17 @@ export default function ExploreScreen() {
 
   // Append new events when data is loaded
   useEffect(() => {
-    if (upcoming?.body?.result) {
+    if (upcoming?.body?.events?.result) {
       if (page === 1) {
-        setAllEvents(upcoming.body.result);
+        setAllEvents(upcoming?.body?.events?.result);
       } else {
-        setAllEvents((prev: any) => [...prev, ...upcoming.body.result]);
+        setAllEvents((prev: any) => [...prev, ...upcoming?.body?.events?.result]);
       }
     }
   }, [upcoming]);
 
   const handleLoadMore = () => {
-    if (!isFetching && upcoming?.body?.result?.length === size) {
+    if (!isFetching && upcoming?.body?.events?.result?.length === size) {
       setPage((prev) => prev + 1);
     }
   };

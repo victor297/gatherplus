@@ -32,7 +32,7 @@ export default function EventDetailsScreen() {
   };
   const [bookmarkevent, { isLoading: isBookmarkLoading }] = useBookmarkeventMutation();
   const [deleteBookmark, { isLoading: isRemovingBookmarkLoading, isSuccess, isError }] = useDeleteBookmarkMutation();
-
+console.log(event,"eventevent")
   const addTicket = (ticketId: number) => {
     const ticket = event?.body?.tickets.find((t:any) => t.id === ticketId);
     if (!ticket) return;
@@ -125,7 +125,7 @@ export default function EventDetailsScreen() {
     Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
   };
 
-  console.log(event?.body, "event")
+  console.log(event?.body?.sessions, "event")
   return (
     <>
       {isLoading ? <View className="text-white flex-1 bg-background flex justify-center items-center py-4"><ActivityIndicator /></View>
@@ -187,19 +187,49 @@ export default function EventDetailsScreen() {
                   </TouchableOpacity>
                 </View>
                 <View className='bg-gray-800 rounded-lg p-3 mb-2'>
-                  <Text className="text-white text-xl font-semibold mb-4">Date and Time</Text>
+                  <Text className="text-white text-xl font-semibold mb-4">Date and Time -- Presenter</Text>
                   <View className="flex-row mb-6">
                     <View className='flex-col gap-2'>
                       <View className="flex-row items-center mr-6">
                         <Calendar className="text-gray-400 mr-2" size={20} />
                         <Text className="text-gray-400">{formatDate(event?.body?.start_date)}</Text>
                       </View>
-                      {event?.body?.sessions?.map((session:any, index:any) => <View key={index} className="flex-row items-center">
-                        <Clock className="text-gray-400 mr-2" size={20} />
-                        <Text className="text-gray-400">{session?.start_time} - {session?.end_time} </Text>
-                        <Text className='text-primary'>{`(${session?.name || ''})`}</Text>
-
-                      </View>)}
+                      {event?.body?.sessions?.map((session: any, sessionIndex: any) => (
+  <View key={sessionIndex} className="mb-4">
+    <View className="flex-row items-center mb-2">
+      <Clock className="text-gray-400 mr-2" size={20} />
+      <Text className="text-gray-400">
+        {session?.start_time} - {session?.end_time}
+      </Text>
+      <Text className="text-primary ml-1">
+        {`(${session?.name || ''})`}
+      </Text>
+    </View>
+    
+    {session?.participants?.map((participant: any, participantIndex: any) => (
+      <View key={participantIndex} className="flex-row items-start mb-3 ">
+        {participant?.image ? (
+          <Image
+            source={{ uri: participant.image }}
+            className="w-10 h-10 rounded-full mr-3"
+            resizeMode="cover"
+          />
+        ) : (
+          <View className="w-10 h-10 rounded-full bg-gray-200 mr-3 flex items-center justify-center">
+            <Text>No Image</Text>
+          </View>
+        )}
+        <View className="flex-1">
+          <Text className="font-bold text-primary text-lg">{participant.name}</Text>
+          {participant.title && (
+            <Text className="text-primary text-sm">{participant.title}</Text>
+          )}
+          <Text className="text-white mt-1">{participant.description}</Text>
+        </View>
+      </View>
+    ))}
+  </View>
+))}
                     </View>
                     
                   </View>

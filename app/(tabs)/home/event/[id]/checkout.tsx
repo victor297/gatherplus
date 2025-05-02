@@ -9,6 +9,8 @@ interface AttendeeDetails {
   fullname: string;
   email: string;
   phone: string;
+  dob?:string;
+
 }
 
 export default function CheckoutScreen() {
@@ -23,39 +25,45 @@ export default function CheckoutScreen() {
   const [commonDetails, setCommonDetails] = useState<AttendeeDetails>({
     fullname: '',
     email: '',
-    phone: ''
+    phone: '',
+    ...(event?.body?.age_restriction && { dob: '' })
   });
+  
   const [attendeeDetails, setAttendeeDetails] = useState<AttendeeDetails[]>(
     Array(ticketData.ticketInstances.length).fill({
       fullname: '',
       email: '',
-      phone: ''
+      phone: '',
+      ...(event?.body?.age_restriction && { dob: '' })
     })
   );
-
+console.log(event?.body?.age_restriction,"checkout")
   // Validate form whenever details change
   useEffect(() => {
     validateForm();
   }, [commonDetails, attendeeDetails, useCommonDetails]);
 
   const validateForm = () => {
+    const needsDOB = event?.body?.age_restriction;
+    
     if (useCommonDetails) {
       // Validate common details
       const isValid = commonDetails.fullname.trim() !== '' && 
                      commonDetails.email.trim() !== '' && 
-                     commonDetails.phone.trim() !== '';
+                     commonDetails.phone.trim() !== '' &&
+                     (!needsDOB || (needsDOB && commonDetails.dob));
       setIsFormValid(isValid);
     } else {
       // Validate all individual attendee details
       const allValid = attendeeDetails.every(attendee => 
         attendee.fullname.trim() !== '' && 
         attendee.email.trim() !== '' && 
-        attendee.phone.trim() !== ''
+        attendee.phone.trim() !== '' &&
+        (!needsDOB || (needsDOB && attendee.dob))
       );
       setIsFormValid(allValid);
     }
   };
-
   const handleContinue = () => {
     if (!isFormValid) return;
 
@@ -187,6 +195,22 @@ export default function CheckoutScreen() {
                 />
               </View>
             </View>
+            {event?.body?.age_restriction && (
+  <View>
+    <Text className="text-white mb-2">Date of Birth <Text className="text-red-500">*</Text></Text>
+    <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!commonDetails.dob ? 'border-red-500' : 'border-transparent'}`}>
+      <TextInput
+        className="flex-1 text-white text-xl py-2"
+        placeholder="YYYY-MM-DD"
+        placeholderTextColor="#6B7280"
+        value={commonDetails.dob}
+        onChangeText={(text) => setCommonDetails({...commonDetails, dob: text})}
+        keyboardType="numbers-and-punctuation"
+      />
+    </View>
+    <Text className="text-gray-400 text-sm mt-1">Format: YYYY-MM-DD</Text>
+  </View>
+)}
           </View>
         ) : (
           ticketData.ticketInstances.map((instance:any, index:any) => (
@@ -254,6 +278,27 @@ export default function CheckoutScreen() {
                     />
                   </View>
                 </View>
+
+                {event?.body?.age_restriction && (
+  <View>
+    <Text className="text-white mb-2">Date of Birth <Text className="text-red-500">*</Text></Text>
+    <View className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${!attendeeDetails[index].dob ? 'border-red-500' : 'border-transparent'}`}>
+      <TextInput
+        className="flex-1 text-white text-xl py-2"
+        placeholder="YYYY-MM-DD"
+        placeholderTextColor="#6B7280"
+        value={attendeeDetails[index].dob}
+        onChangeText={(text) => {
+          const newDetails = [...attendeeDetails];
+          newDetails[index] = {...attendeeDetails[index], dob: text};
+          setAttendeeDetails(newDetails);
+        }}
+        keyboardType="numbers-and-punctuation"
+      />
+    </View>
+    <Text className="text-gray-400 text-sm mt-1">Format: YYYY-MM-DD</Text>
+  </View>
+)}
               </View>
             </View>
           ))

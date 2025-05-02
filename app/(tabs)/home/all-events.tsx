@@ -115,23 +115,23 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
 
   // Append new events when data is loaded
   useEffect(() => {
-    if (upcoming?.body?.result) {
+    if (upcoming?.body?.events?.result) {
       if (page === 1) {
-        setAllEvents(upcoming.body.result);
+        setAllEvents(upcoming.body.events.result);
       } else {
-        setAllEvents((prev: any) => [...prev, ...upcoming.body.result]);
+        setAllEvents((prev: any) => [...prev, ...upcoming.body.events.result]);
       }
     }
   }, [upcoming]);
   useEffect(() => {
-    if (upcoming?.body?.result) {
+    if (upcoming?.body?.events?.result) {
       if (page === 1) {
-        setAllEvents(upcoming.body.result);
+        setAllEvents(upcoming.body.events.result);
       } else {
         // Only append new events if they don't already exist
         setAllEvents((prev:any) => {
           const existingIds = new Set(prev.map((event:any) => event.id));
-          const newEvents = upcoming.body.result.filter((event:any) => !existingIds.has(event.id));
+          const newEvents = upcoming.body.events.result.filter((event:any) => !existingIds.has(event.id));
           return [...prev, ...newEvents];
         });
       }
@@ -142,7 +142,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
   }, [upcoming, page]);
 
   const handleLoadMore = () => {
-    if (!isFetching && upcoming?.body?.result?.length === size) {
+    if (!isFetching && upcoming?.body?.events?.result?.length === size) {
       setPage((prev) => prev + 1);
     }
   };
@@ -453,7 +453,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
     <View className="flex-1 bg-background justify-center items-center py-8">
       <Text className="text-gray-400 text-lg">
         {isUpcomingLoading ? 'Loading events...' : 
-         upcoming?.body?.result?.length === 0 ? 'No events found matching your criteria' : 
+         upcoming?.body?.events?.result?.length === 0 ? 'No events found matching your criteria' : 
          'No events available'}
       </Text>
     </View>

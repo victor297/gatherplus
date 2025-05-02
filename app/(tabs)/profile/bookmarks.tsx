@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, TimerReset } from 'lucide-react-native';
 import { useGetBookmarksQuery } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
@@ -9,7 +9,11 @@ import { formatDate } from '@/utils/formatDate';
 
 export default function BookmarksScreen() {
   const router = useRouter();
-  const { data: bookmarks, isLoading, error } = useGetBookmarksQuery({});
+  const { data: bookmarks, isLoading, error,refetch } = useGetBookmarksQuery({});
+ useFocusEffect(() => {
+  
+    refetch();
+  }, );
 
   return (
     <View className="flex-1 bg-background">

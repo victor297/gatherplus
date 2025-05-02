@@ -2,20 +2,51 @@ import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking, Modal, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, EllipsisVerticalIcon, UserIcon } from 'lucide-react-native';
-import {useGetEventQuery } from '@/redux/api/eventsApiSlice';
+import {useDeleteEventMutation, useGetEventQuery } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
 import { useSelector } from 'react-redux';
 import MapView, { Marker } from 'react-native-maps';
-
-
 
 export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { userInfo } = useSelector((state: any) => state.auth);
   const { data: event, isLoading, error, refetch } = useGetEventQuery({ id, user_id: userInfo?.sub });
+  const [deleteEvent] = useDeleteEventMutation();
 
   const [showOptions, setShowOptions] = useState(false);
+
+  const handleDeleteEvent = async () => {
+    try {
+     const res = await deleteEvent(id).unwrap();
+      Alert.alert('Success', 'Event deleted successfully');
+
+      console.log(res,id,"resresresres")
+      router.back();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete event');
+      console.log('Delete event error:', error);
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this event?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: handleDeleteEvent,
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   const handleOptionPress = (option: string) => {
     setShowOptions(false);
@@ -24,17 +55,23 @@ export default function EventDetailsScreen() {
         router.push(`/home/event/${id}/update/updatecreate`);        
         break;
       case 'share':
-        // Handle share action
         Alert.alert('Share', 'Share functionality would go here');
         break;
       case 'delete':
-        // Handle delete action
-        Alert.alert('Delete', 'Delete functionality would go here no backend implementation');
+        confirmDelete();
         break;
     }
   };
 
-
+  const getTotalSalesAmount = () => {
+    return event?.body?.tickets?.reduce((total:any, ticket:any) => {
+      return total + ticket.price * ticket.totalSold;
+    }, 0);
+  };
+  const getTotalTicketsSold = () => {
+    return event?.body?.tickets?.reduce((total:any, ticket:any) => total + ticket.totalSold, 0);
+  };
+  
   const openMaps = () => {
     const address = encodeURIComponent(`${event?.body?.address}, ${event?.body?.city}, ${event?.body?.country?.name}`);
     const url = `https://www.google.com/maps/search/?api=1&query=${address}`;
@@ -50,8 +87,6 @@ export default function EventDetailsScreen() {
           </View> :
           <View className="flex-1 bg-background">
             <ScrollView className="flex-1">
-
-
               <View className=" w-full flex-row justify-between items-center p-4 pt-12">
                 <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
                   <ArrowLeft color="white" size={24} />
@@ -111,16 +146,16 @@ export default function EventDetailsScreen() {
               <View className="px-4 pt-4">
                 <Text className="text-white text-2xl font-bold mb-2">{event?.body?.title}</Text>
                 <View className="flex-row justify-between items-end mb-6">
-  <View>
-    <Text className="text-gray-400">{event?.body?.address || 'Downtown Jazz Club'}</Text>
-    <Text className="text-white">{formatDate(event?.body?.start_date || '2025-12-24')}</Text>
-  </View>
+                  <View>
+                    <Text className="text-gray-400">{event?.body?.address || 'Downtown Jazz Club'}</Text>
+                    <Text className="text-white">{formatDate(event?.body?.start_date || '2025-12-24')}</Text>
+                  </View>
 
-  <View className="flex-row items-center bg-[#9edd45]/20 rounded-xl px-3 py-1">
-    <UserIcon color="#9edd45" size={18} />
-    <Text className="text-[#9edd45] font-semibold ml-2 text-sm">23,000 Participants</Text>
-  </View>
-</View>
+                  <View className="flex-row items-center bg-[#9edd45]/20 rounded-xl px-3 py-1">
+                    <UserIcon color="#9edd45" size={18} />
+                    <Text className="text-[#9edd45] font-semibold ml-2 text-sm">{getTotalTicketsSold().toLocaleString()} Participants</Text>
+                  </View>
+                </View>
 
                 <View className='bg-gray-800 rounded-lg p-3 mb-2'>
                   <Text className="text-white text-xl font-semibold mb-4">About Event</Text>
@@ -164,54 +199,43 @@ export default function EventDetailsScreen() {
                         <Clock className="text-gray-400 mr-2" size={20} />
                         <Text className="text-gray-400">{session?.start_time} - {session?.end_time} </Text>
                         <Text className='text-primary'>{`(${session?.name || ''})`}</Text>
-
                       </View>)}
                     </View>
                   </View>
                 </View>
 
-
                 <View className="bg-gray-800 rounded-lg p-4 mb-4">
                   <Text className="text-white text-xl font-semibold mb-4">Tickets</Text>
-
                   <View className="space-y-2">
-                    <View className="flex-row justify-between">
-                      <Text className="text-white text-base">Regular</Text>
-                      <Text className="text-white text-base font-bold">5</Text>
-                    </View>
-                    <View className="flex-row justify-between">
-                      <Text className="text-white text-base">Standard</Text>
-                      <Text className="text-white text-base font-bold">5</Text>
-                    </View>
-                    <View className="flex-row justify-between">
-                      <Text className="text-white text-base">Reserved</Text>
-                      <Text className="text-white text-base font-bold">5</Text>
-                    </View>
+                    {event?.body?.tickets?.map((ticket: any, index: any) => <View key={index} className="flex-row justify-between">
+                      <Text className="text-white text-base">{ticket?.name}</Text>
+                      <Text className="text-white text-base font-bold">{`${ticket?.totalSold || 0}`}</Text>
+                    </View>)}
                   </View>
 
                   <View className="border-t border-gray-600 my-4" />
 
                   <View className="flex-row justify-between mb-2">
                     <Text className="text-white text-base">Sub-total</Text>
-                    <Text className="text-white text-base font-bold">₦190,000</Text>
+                    <Text className="text-white text-base font-bold">{event?.body?.currency?.split(' - ')[0]}{getTotalSalesAmount().toLocaleString()}</Text>
                   </View>
                   <View className="flex-row justify-between mb-4">
                     <Text className="text-white text-base">Tax</Text>
-                    <Text className="text-white text-base font-bold">₦10,000</Text>
+                    <Text className="text-white text-base font-bold">0</Text>
                   </View>
 
                   <View className="border-t border-gray-600 my-2" />
 
                   <View className="flex-row justify-between">
                     <Text className="text-white text-xl font-bold">Total</Text>
-                    <Text className="text-primary text-xl font-bold">₦200,000</Text>
+                    <Text className="text-primary text-xl font-bold">{event?.body?.currency?.split(' - ')[0]}{getTotalSalesAmount().toLocaleString()}</Text>
                   </View>
                 </View>
               </View>
             </ScrollView>
 
             <View className="p-4 border-t mb-3 flex flex-row justify-between border-[#1A2432]">
-              <TouchableOpacity className="border border-gray-500 w-[49%] rounded-lg py-3" onPress={() => { }}>
+              <TouchableOpacity className="border border-gray-500 w-[49%] rounded-lg py-3"  onPress={() => router.push(`/profile/${event?.body?.id}/myeventbookingdetails`)}>
                 <Text className="text-white text-center  text-xl font-bolsemiboldd">View Participants</Text>
               </TouchableOpacity>
               <TouchableOpacity className="border-gray-400 w-[49%]  bg-primary rounded-lg py-3" onPress={() => router.back()}>
@@ -220,9 +244,9 @@ export default function EventDetailsScreen() {
             </View>
           </View>
       }</>
-
   );
 }
+
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,

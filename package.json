@@ -42,6 +42,7 @@
     "expo-system-ui": "~4.0.8",
     "expo-web-browser": "~14.0.2",
     "gatherplus": "github:victor297/gatherplus",
+    "lodash": "^4.17.21",
     "lucide-react-native": "^0.479.0",
     "nativewind": "^2.0.11",
     "react": "18.3.1",
