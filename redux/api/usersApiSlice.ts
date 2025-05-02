@@ -66,8 +66,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
       query: (id) => ({
         url: `${USER_URL}/${id}`,
       }),
-      providesTags: ["User"],
-      keepUnusedDataFor: 5,
     }),
 
    //Profile
@@ -75,8 +73,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
       query: () => ({
         url: `${PROFILE_URL}`,
       }),
-      providesTags: ["User"],
-      keepUnusedDataFor: 5,
     }),  
      updateProfile: builder.mutation<{ success: boolean }, any>({
       query: (data) => ({

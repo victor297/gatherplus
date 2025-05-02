@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Lin
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, Ticket, MapPin, Edit2 } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
-import { useCreateventMutation, useUpdateventMutation } from '@/redux/api/eventsApiSlice';
+import { useUpdateventMutation } from '@/redux/api/eventsApiSlice';
 import MapView, { Marker } from 'react-native-maps';
 
 export default function ReviewScreen() {
@@ -24,7 +24,7 @@ export default function ReviewScreen() {
       const res = await updateevent({data:formData,id:params.id}).unwrap();
       console.log(res,"update")
       console.log(formData,"formDataupdate")
-      router.push('/success');
+      router.replace('/success');
     } catch (error) {
       console.error('Event update failed:', error);
     }

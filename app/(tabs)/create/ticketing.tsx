@@ -19,10 +19,14 @@ export default function TicketingScreen() {
       if (data.each_ticket_identity === undefined) {
         data.each_ticket_identity = false;
       }
+      // Initialize is_free if not present
+      if (data.is_free === undefined) {
+        data.is_free = false;
+      }
       return data;
     } catch (error) {
       console.error('Error parsing formData:', error);
-      return { each_ticket_identity: false };
+      return { each_ticket_identity: false, is_free: false };
     }
   });
 
@@ -53,7 +57,20 @@ export default function TicketingScreen() {
   // Function to validate the form
   const validateForm = () => {
     if (eventType === 'free') {
-      setIsFormValid(true);
+      // For free events, we just need at least one ticket with a name and quantity
+      let isValid = true;
+      
+      if (tickets.length === 0) {
+        isValid = false;
+      }
+      
+      tickets.forEach(ticket => {
+        if (!ticket.name || !ticket.quantity) {
+          isValid = false;
+        }
+      });
+      
+      setIsFormValid(isValid);
       return;
     }
 
@@ -69,13 +86,10 @@ export default function TicketingScreen() {
     if (tickets.length === 0) {
       isValid = false;
     }
-    if (tickets.length === 0) {
-      isValid = false;
-    }
 
     // Check each ticket has required fields
     tickets.forEach(ticket => {
-      if (!ticket.name || !ticket.price || !ticket.quantity) {
+      if (!ticket.name || !ticket.price || !ticket.quantity || !ticket.seat_type) {
         isValid = false;
       }
     });
@@ -89,7 +103,7 @@ export default function TicketingScreen() {
       ...prev,
       tickets: [...(prev.tickets || []), { 
         name: '', 
-        price: '', 
+        price: eventType === 'ticketed' ? '' : 0, 
         quantity: '', 
         seat_type: '', 
         no_per_seat_type: 0
@@ -131,10 +145,28 @@ export default function TicketingScreen() {
   const handleSaveAndContinue = () => {
     if (!isFormValid) return;
     
+    // Ensure all free tickets have price set to 0
+    if (eventType === 'free') {
+      const updatedTickets = tickets.map(ticket => ({
+        ...ticket,
+        price: 0
+
+      }));
+      setFormData((prev: any) => ({ ...prev, tickets: updatedTickets, is_free: true }));
+    } else {
+      setFormData((prev: any) => ({ ...prev, is_free: false }));
+    }
+    
     router.push({
       pathname: '/create/review',
       params: {
-        formData: JSON.stringify(formData),
+        formData: JSON.stringify({
+          ...formData,
+          is_free: eventType === 'free',
+          tickets: eventType === 'free' 
+            ? tickets.map(ticket => ({ ...ticket, price: 0 }))
+            : tickets
+        }),
       },
     });
   };
@@ -160,7 +192,13 @@ export default function TicketingScreen() {
               className={`bg-[#1A2432] p-6 rounded-lg flex-row items-center ${eventType === 'ticketed' ? 'border border-primary' : ''}`}
               onPress={() => {
                 setEventType('ticketed');
-                setFormData((prev:any) => ({ ...prev, is_free: false, ticketed: true }));
+                setFormData((prev:any) => ({ 
+                  ...prev, 
+                  is_free: false, 
+                  ticketed: true,
+                  // Reset tickets if switching from free to paid
+                  tickets: prev.is_free ? [] : prev.tickets
+                }));
               }}
             >
               <Image source={require('../../../assets/images/paid.png')} className="h-36 w-full" />
@@ -170,7 +208,16 @@ export default function TicketingScreen() {
               className={`bg-[#1A2432] p-6 rounded-lg flex-row items-center ${eventType === 'free' ? 'border border-primary' : ''}`}
               onPress={() => {
                 setEventType('free');
-                setFormData((prev:any) => ({ ...prev, is_free: true, ticketed: false, tickets: [] }));
+                setFormData((prev:any) => ({ 
+                  ...prev, 
+                  is_free: true, 
+                  ticketed: false,
+                  // Set all ticket prices to 0 when switching to free
+                  tickets: prev.tickets ? prev.tickets.map((ticket: any) => ({ 
+                    ...ticket, 
+                    price: 0 
+                  })) : []
+                }));
               }}
             >
               <Image source={require('../../../assets/images/free.png')} className="h-36 w-full" />
@@ -178,7 +225,7 @@ export default function TicketingScreen() {
           </View>
         </View>
 
-        {/* Currency Selection */}
+        {/* Currency Selection - Only show for paid events */}
         {eventType === 'ticketed' && (
           <View className="bg-[#111823] p-3 rounded-lg my-2">
             <Text className="text-white mb-2">Currency <Text className="text-red-500">*</Text></Text>
@@ -237,49 +284,49 @@ export default function TicketingScreen() {
           </View>
         )}
 
-        {/* Ticketing Section */}
-        {eventType === 'ticketed' && (
-          <View className="mt-2">
-            {/* Identity Requirement Checkbox */}
-            <View className="bg-[#111823] p-3 rounded-lg my-2">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-white">Require identification for each ticket when booking</Text>
-                <Switch
-                  value={each_ticket_identity}
-                  onValueChange={toggleIdentityRequirement}
-                  trackColor={{ false: '#767577', true: '#81b0ff' }}
-                  thumbColor={each_ticket_identity ? '#f5dd4b' : '#f4f3f4'}
-                />
-              </View>
+        {/* Ticketing Section - Shows for both free and paid events */}
+        <View className="mt-2">
+          {/* Identity Requirement Checkbox */}
+          <View className="bg-[#111823] p-3 rounded-lg my-2">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-white">Require identification for each ticket when booking</Text>
+              <Switch
+                value={each_ticket_identity}
+                onValueChange={toggleIdentityRequirement}
+                trackColor={{ false: '#767577', true: '#81b0ff' }}
+                thumbColor={each_ticket_identity ? '#f5dd4b' : '#f4f3f4'}
+              />
             </View>
+          </View>
 
-            <View className="bg-[#111823] p-3 rounded-lg my-2">
-            <Text className="text-white mb-4">What tickets are you selling? <Text className="text-red-500">*</Text></Text>
-              {tickets.map((ticket: any, index: any) => (
-                <View key={index} className="space-y-4 mb-6 relative">
-                  {/* Remove Ticket Button (only show if more than one ticket) */}
-                  {tickets.length > 1 && (
-                    <TouchableOpacity 
-                      className="absolute top-0 right-0 z-10 p-2"
-                      onPress={() => removeTicket(index)}
-                    >
-                      <X color="red" size={20} />
-                    </TouchableOpacity>
-                  )}
+          <View className="bg-[#111823] p-3 rounded-lg my-2">
+            <Text className="text-white mb-4">What tickets are you offering? <Text className="text-red-500">*</Text></Text>
+            {tickets.map((ticket: any, index: any) => (
+              <View key={index} className="space-y-4 mb-6 relative">
+                {/* Remove Ticket Button (only show if more than one ticket) */}
+                {tickets.length > 1 && (
+                  <TouchableOpacity 
+                    className="absolute top-0 right-0 z-10 p-2"
+                    onPress={() => removeTicket(index)}
+                  >
+                    <X color="red" size={20} />
+                  </TouchableOpacity>
+                )}
 
-                              {/* Ticket Name */}
-                              <View>
-                    <Text className="text-white mb-2">Ticket Name <Text className="text-red-500">*</Text></Text>
-                    <TextInput
-                      className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white border ${!ticket.name ? 'border-red-500' : 'border-transparent'}`}
-                      placeholder="Ticket Name e.g. VIP*"
-                      placeholderTextColor="#6B7280"
-                      value={ticket.name}
-                      onChangeText={(text) => updateTicket(index, 'name', text)}
-                    />
-                  </View>
+                {/* Ticket Name */}
+                <View>
+                  <Text className="text-white mb-2">Ticket Name <Text className="text-red-500">*</Text></Text>
+                  <TextInput
+                    className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white border ${!ticket.name ? 'border-red-500' : 'border-transparent'}`}
+                    placeholder={eventType === 'free' ? "Ticket Name e.g. General Admission*" : "Ticket Name e.g. VIP*"}
+                    placeholderTextColor="#6B7280"
+                    value={ticket.name}
+                    onChangeText={(text) => updateTicket(index, 'name', text)}
+                  />
+                </View>
 
-                  {/* Ticket Price */}
+                {/* Ticket Price - Only show for paid events */}
+                {eventType === 'ticketed' && (
                   <View>
                     <Text className="text-white mb-2">Ticket Price <Text className="text-red-500">*</Text></Text>
                     <View className={`flex-row items-center bg-[#1A2432] rounded-lg border ${!ticket.price ? 'border-red-500' : 'border-transparent'}`}>
@@ -294,131 +341,132 @@ export default function TicketingScreen() {
                       />
                     </View>
                   </View>
+                )}
 
-                  {/* Ticket Quantity */}
-                  <View>
-                    <Text className="text-white mb-2">Quantity <Text className="text-red-500">*</Text></Text>
-                    <TextInput
-                      className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white border ${!ticket.quantity ? 'border-red-500' : 'border-transparent'}`}
-                      placeholder="Enter quantity*"
-                      placeholderTextColor="#6B7280"
-                      keyboardType="numeric"
-                      value={ticket.quantity.toString()}
-                      onChangeText={(text) => updateTicket(index, 'quantity', parseInt(text) || 0)}
-                    />
-                  </View>
-
-                  {/* Seat Type */}
-                  <View>
-                    <Text className="text-white mb-2">Seat Type</Text>
-                    <TouchableOpacity 
-                      className="bg-[#1A2432] rounded-lg px-4 py-3"
-                      onPress={() => {
-                        setCurrentTicketIndex(index);
-                        setSeatTypeModalVisible(true);
-                      }}
-                    >
-                      <Text className="text-white">
-                        {ticket.seat_type || 'Select seat type'}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* Seat Type Modal */}
-                    <Modal
-                      animationType="slide"
-                      transparent={true}
-                      visible={seatTypeModalVisible && currentTicketIndex === index}
-                      onRequestClose={() => setSeatTypeModalVisible(false)}
-                    >
-                      <View className="flex-1 justify-center bg-black/50">
-                        <View className="m-4 bg-[#111823] rounded-lg p-4">
-                          <Text className="text-white text-lg font-bold mb-4">Select Seat Type</Text>
-                          <FlatList
-                            data={seatTypeOptions}
-                            keyExtractor={(item) => item}
-                            renderItem={({ item }) => (
-                              <Pressable
-                                className={`p-3 ${ticket.seat_type === item ? 'bg-primary' : 'bg-[#1A2432]'}`}
-                                onPress={() => handleSeatTypeChange(item)}
-                              >
-                                <Text className={`${ticket.seat_type === item ? 'text-black' : 'text-white'}`}>
-                                  {item}
-                                </Text>
-                              </Pressable>
-                            )}
-                            ItemSeparatorComponent={() => <View className="h-px bg-gray-600" />}
-                          />
-                          <TouchableOpacity
-                            className="mt-4 p-3 bg-red-500 rounded-lg"
-                            onPress={() => setSeatTypeModalVisible(false)}
-                          >
-                            <Text className="text-white text-center">Cancel</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </Modal>
-                  </View>
-
-                  {/* No. of Persons per Seat Type */}
-                  <View>
-                    <Text className="text-white mb-2">Persons per Seat Type</Text>
-                    <TextInput
-                      className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
-                      placeholder="Number per seat type"
-                      placeholderTextColor="#6B7280"
-                      keyboardType="numeric"
-                      value={ticket.no_per_seat_type.toString()}
-                      onChangeText={(text) => updateTicket(index, 'no_per_seat_type', parseInt(text) || 0)}
-                    />
-                  </View>
+                {/* Ticket Quantity */}
+                <View>
+                  <Text className="text-white mb-2">Quantity <Text className="text-red-500">*</Text></Text>
+                  <TextInput
+                    className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white border ${!ticket.quantity ? 'border-red-500' : 'border-transparent'}`}
+                    placeholder="Enter quantity*"
+                    placeholderTextColor="#6B7280"
+                    keyboardType="numeric"
+                    value={ticket.quantity.toString()}
+                    onChangeText={(text) => updateTicket(index, 'quantity', parseInt(text) || 0)}
+                  />
                 </View>
-              ))}
 
-              {/* Add Ticket Button */}
-              <TouchableOpacity onPress={addTicket} className="mb-6">
-                <Text className="text-primary">+ Add Ticket</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View className="bg-[#111823] p-3 rounded-lg my-2">
-              <Text className="text-white mb-4">How many tickets are you selling?</Text>
-              <View className="flex-row flex-wrap gap-2 mb-4">
-                {ticketQuantityOptions.map((quantity) => (
-                  <TouchableOpacity
-                    key={quantity}
-                    className={`bg-[#1A2432] px-4 py-2 rounded-lg ${
-                      selectedQuantity === quantity ? 'border border-primary' : ''
-                    }`}
-                    onPress={() => setSelectedQuantity(quantity)}
+                {/* Seat Type */}
+                <View>
+                  <Text className="text-white mb-2">Seat Type</Text>
+                  <TouchableOpacity 
+                    className="bg-[#1A2432] rounded-lg px-4 py-3"
+                    onPress={() => {
+                      setCurrentTicketIndex(index);
+                      setSeatTypeModalVisible(true);
+                    }}
                   >
-                    <Text className={`${selectedQuantity === quantity ? 'text-primary' : 'text-white'}`}>
-                      {quantity.toLocaleString()}
+                    <Text className="text-white">
+                      {ticket.seat_type || 'Select seat type'}
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </View>
 
-              <View>
-                <Text className="text-white mb-2">
-                  Enter Manually <Text className="text-red-500">*</Text>
-                </Text>
-                <TextInput
-                  className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
-                  placeholder="500"
-                  placeholderTextColor="#6B7280"
-                  keyboardType="numeric"
-                  value={selectedQuantity?.toString()}
-                  onChangeText={(text) => setSelectedQuantity(parseInt(text) || null)}
-                />
+                  {/* Seat Type Modal */}
+                  <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={seatTypeModalVisible && currentTicketIndex === index}
+                    onRequestClose={() => setSeatTypeModalVisible(false)}
+                  >
+                    <View className="flex-1 justify-center bg-black/50">
+                      <View className="m-4 bg-[#111823] rounded-lg p-4">
+                        <Text className="text-white text-lg font-bold mb-4">Select Seat Type</Text>
+                        <FlatList
+                          data={seatTypeOptions}
+                          keyExtractor={(item) => item}
+                          renderItem={({ item }) => (
+                            <Pressable
+                              className={`p-3 ${ticket.seat_type === item ? 'bg-primary' : 'bg-[#1A2432]'}`}
+                              onPress={() => handleSeatTypeChange(item)}
+                            >
+                              <Text className={`${ticket.seat_type === item ? 'text-black' : 'text-white'}`}>
+                                {item}
+                              </Text>
+                            </Pressable>
+                          )}
+                          ItemSeparatorComponent={() => <View className="h-px bg-gray-600" />}
+                        />
+                        <TouchableOpacity
+                          className="mt-4 p-3 bg-red-500 rounded-lg"
+                          onPress={() => setSeatTypeModalVisible(false)}
+                        >
+                          <Text className="text-white text-center">Cancel</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </Modal>
+                </View>
+
+                {/* No. of Persons per Seat Type */}
+                <View>
+                  <Text className="text-white mb-2">Persons per Seat Type</Text>
+                  <TextInput
+                    className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
+                    placeholder="Number per seat type"
+                    placeholderTextColor="#6B7280"
+                    keyboardType="numeric"
+                    value={ticket.no_per_seat_type.toString()}
+                    onChangeText={(text) => updateTicket(index, 'no_per_seat_type', parseInt(text) || 0)}
+                  />
+                </View>
               </View>
-            </View>
+            ))}
+
+            {/* Add Ticket Button */}
+            <TouchableOpacity onPress={addTicket} className="mb-6">
+              <Text className="text-primary">+ Add Ticket</Text>
+            </TouchableOpacity>
           </View>
-        )}
+          
+          {/* Quantity Selection - Show for both free and paid events */}
+          {/* <View className="bg-[#111823] p-3 rounded-lg my-2">
+            <Text className="text-white mb-4">How many tickets are you offering?</Text>
+            <View className="flex-row flex-wrap gap-2 mb-4">
+              {ticketQuantityOptions.map((quantity) => (
+                <TouchableOpacity
+                  key={quantity}
+                  className={`bg-[#1A2432] px-4 py-2 rounded-lg ${
+                    selectedQuantity === quantity ? 'border border-primary' : ''
+                  }`}
+                  onPress={() => setSelectedQuantity(quantity)}
+                >
+                  <Text className={`${selectedQuantity === quantity ? 'text-primary' : 'text-white'}`}>
+                    {quantity.toLocaleString()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View>
+              <Text className="text-white mb-2">
+                Enter Manually <Text className="text-red-500">*</Text>
+              </Text>
+              <TextInput
+                className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
+                placeholder="500"
+                placeholderTextColor="#6B7280"
+                keyboardType="numeric"
+                value={selectedQuantity?.toString()}
+                onChangeText={(text) => setSelectedQuantity(parseInt(text) || null)}
+              />
+            </View>
+          </View> */}
+        </View>
       </ScrollView>
 
       {/* Save and Continue Button */}
       <View className="p-4 border-t border-[#1A2432]">
-      <TouchableOpacity
+        <TouchableOpacity
           className={`rounded-lg py-4 ${isFormValid ? 'bg-primary' : 'bg-gray-500'}`}
           onPress={handleSaveAndContinue}
           disabled={!isFormValid}

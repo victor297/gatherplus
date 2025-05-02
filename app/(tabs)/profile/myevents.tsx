@@ -28,7 +28,8 @@ export default function MyEventsScreen() {
     search: searchTerm,
     page,
     size,
-  });
+  },{ refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,});
 console.log(upcoming,"upcoming")
   // Reset page and clear events when filters change
   useEffect(() => {
@@ -46,10 +47,10 @@ console.log(upcoming,"upcoming")
       }
     }
   }, [upcoming]);
-  useFocusEffect(() => {
+  // useFocusEffect(() => {
   
-    refetchUpcoming();
-  }, );
+  //   refetchUpcoming();
+  // }, );
 
   const handleLoadMore = () => {
     if (!isFetching && upcoming?.body?.result?.length === size) {

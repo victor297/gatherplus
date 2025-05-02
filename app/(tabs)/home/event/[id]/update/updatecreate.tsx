@@ -36,7 +36,9 @@ export default function UpdateEventScreen() {
   const [isLoadingData, setIsLoadingData] = useState(true);
 
 
-  const { data: event, isLoading: eventLoading, error: eventError } = useGetEventQuery({ id: eventId });
+  const { data: event, isLoading: eventLoading, error: eventError } = useGetEventQuery({ id: eventId },  { refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,}
+  );
   const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useGetcategoriesQuery({});
   const { data: countryData, isLoading: countryLoading, error: countryError } = useGetCountriesQuery({});
   const { data: stateData, isLoading: stateLoading, error: stateError } = useGetStatesQuery(selectedCountry?.code2, {
@@ -97,7 +99,11 @@ export default function UpdateEventScreen() {
 
       // Find the category name
       const category = categories.find((cat: any) => cat.id === eventData.category_id);
-
+      const country = countries.find((c: any) => c.code2 === eventData.country_code);
+      if (country) {
+        setSelectedCountry(country);
+      }
+  
       // Initialize form data
       setFormData({
         title: eventData.title,
@@ -121,7 +127,13 @@ export default function UpdateEventScreen() {
         time: eventData.time,
         absorb_fee: eventData.absorb_fee,
         ticketed: eventData.ticketed,
-        tickets: eventData.tickets,
+        tickets: eventData.tickets.map((ticket: any) => ({
+          name:ticket?.name,
+          price:ticket?.price,
+          quantity:ticket?.quantity,
+          seat_type:ticket?.seat_type,
+          no_per_seat_type:ticket?.no_per_seat_type
+        })),
       });
 
       // Initialize sessions
@@ -132,13 +144,13 @@ export default function UpdateEventScreen() {
       //   endTime: session.end_time
       // })));
       setSessions(eventData.sessions.map((session: any) => ({
-        id: session.id,
+        // id: session.id,
         name: session.name || '',
         startDate: session.date.split('T')[0],
         startTime: session.start_time,
         endTime: session.end_time,
         participants: session.participants?.map((p: any) => ({
-          id: p.id,
+          // id: p.id,
           label: p.label || '',
           title: p.title || '',
           name: p.name || '',
@@ -146,12 +158,7 @@ export default function UpdateEventScreen() {
           image: p.image || ''
         })) || []
       })));
-      // Find and set country and state
-      const country = countries.find((c: any) => c.code2 === eventData.country_code);
-      if (country) {
-        setSelectedCountry(country);
-        // State will be set after country is selected and states are loaded
-      }
+
 
       setIsLoadingData(false);
     }
@@ -264,10 +271,10 @@ export default function UpdateEventScreen() {
         updatedSessions[sessionIndex].participants[participantIndex].imageUploading = false;
         setSessions(updatedSessions);
       } else {
-        throw new Error(data.message || 'Failed to upload image');
+        throw new Error(data?.message || 'Failed to upload image');
       }
     } catch (error) {
-      const errorSessions = [...sessions];
+      const errorSessions:any = [...sessions];
       errorSessions[sessionIndex].participants[participantIndex].imageUploading = false;
       errorSessions[sessionIndex].participants[participantIndex].imageError = error?.message;
       setSessions(errorSessions);
@@ -363,7 +370,7 @@ export default function UpdateEventScreen() {
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+        <TouchableOpacity onPress={() => router.replace(`/(tabs)/profile/${eventId}/myeventdetails`)} className="mr-4 bg-[#1A2432] p-2 rounded-full">
                     <ArrowLeft color="white" size={24} />
                   </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Update Event</Text>
@@ -789,17 +796,22 @@ export default function UpdateEventScreen() {
               <ScrollView className="max-h-96">
                 {countries.map((country: any) => (
                   <TouchableOpacity
-                    key={country.code2}
-                    className="py-4 border-b border-gray-700"
-                    onPress={() => {
-                      setSelectedCountry(country);
-                      setSelectedState(null);
-                      setShowCountryModal(false);
-                      setShowStateModal(true);
-                    }}
-                  >
-                    <Text className="text-white">{country.name}</Text>
-                  </TouchableOpacity>
+                  key={country.code2}
+                  className="py-4 border-b border-gray-700"
+                  onPress={() => {
+                    setSelectedCountry(country);
+                    setFormData({
+                      ...formData,
+                      country_code: country.code2, // Update the form data
+                      state_id: 0, // Reset state when country changes
+                    });
+                    setSelectedState(null); // Reset selected state
+                    setShowCountryModal(false);
+                    setShowStateModal(true);
+                  }}
+                >
+                  <Text className="text-white">{country.name}</Text>
+                </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
@@ -822,16 +834,19 @@ export default function UpdateEventScreen() {
               <ScrollView className="max-h-96">
                 {states.map((state: any) => (
                   <TouchableOpacity
-                    key={state.id}
-                    className="py-4 border-b border-gray-700"
-                    onPress={() => {
-                      setFormData({ ...formData, state_id: state.id });
-                      setSelectedState(state);
-                      setShowStateModal(false);
-                    }}
-                  >
-                    <Text className="text-white">{state.name}</Text>
-                  </TouchableOpacity>
+                  key={state.id}
+                  className="py-4 border-b border-gray-700"
+                  onPress={() => {
+                    setFormData({
+                      ...formData,
+                      state_id: state.id,
+                    });
+                    setSelectedState(state);
+                    setShowStateModal(false);
+                  }}
+                >
+                  <Text className="text-white">{state.name}</Text>
+                </TouchableOpacity>
                 ))}
               </ScrollView>
             )}

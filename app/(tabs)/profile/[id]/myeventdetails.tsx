@@ -105,15 +105,17 @@ export default function EventDetailsScreen() {
                         <TouchableOpacity 
                           style={styles.optionButton}
                           onPress={() => handleOptionPress('edit')}
+                          disabled={Boolean(getTotalTicketsSold())}
                         >
-                          <Text style={styles.optionText}>Edit</Text>
+                        {  Boolean(getTotalTicketsSold())?<Text style={styles.optionText}>Can't Edit</Text>:
+                          <Text style={styles.optionText}>Edit</Text>}
                         </TouchableOpacity>
-                        <TouchableOpacity 
+                        {/* <TouchableOpacity 
                           style={styles.optionButton}
                           onPress={() => handleOptionPress('share')}
                         >
                           <Text style={styles.optionText}>Share</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                         <TouchableOpacity 
                           style={styles.optionButton}
                           onPress={() => handleOptionPress('delete')}

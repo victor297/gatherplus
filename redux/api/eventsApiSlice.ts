@@ -23,22 +23,17 @@ export const userApiSlice = apiSlice.injectEndpoints({
       query: () => ({
         url: `${BASE_URL}/base/category`,
       }),
-      providesTags: ["Category"],
-      keepUnusedDataFor: 5,
     }),
     getCountries: builder.query({
       query: () => ({
         url: `${BASE_URL}/base/country`,
       }),
-      providesTags: ["Category"],
-      keepUnusedDataFor: 5,
+     
     }),
     getStates: builder.query<any,any>({
       query: (country:any) => ({
         url: `${BASE_URL}/base/country/state/${country}`,
       }),
-      providesTags: ["Category"],
-      keepUnusedDataFor: 5,
     }),
     getEvents: builder.query<any,any>({
       query: ({ category_id,country_code, state_id, city, type, search, sortBy, sortDirection,page,size,start_date,end_date } = {}) => {

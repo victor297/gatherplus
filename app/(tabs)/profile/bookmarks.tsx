@@ -9,11 +9,12 @@ import { formatDate } from '@/utils/formatDate';
 
 export default function BookmarksScreen() {
   const router = useRouter();
-  const { data: bookmarks, isLoading, error,refetch } = useGetBookmarksQuery({});
- useFocusEffect(() => {
+  const { data: bookmarks, isLoading, error,refetch } = useGetBookmarksQuery<any>({},{ refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,});
+//  useFocusEffect(() => {
   
-    refetch();
-  }, );
+//     refetch();
+//   }, );
 
   return (
     <View className="flex-1 bg-background">

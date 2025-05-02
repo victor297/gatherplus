@@ -168,7 +168,7 @@ export default function BookingsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
         ListEmptyComponent={
-          isLoading ? (
+          isLoading||isFetching ? (
             <View className="py-4">
               <ActivityIndicator color="#FFFFFF" />
             </View>
