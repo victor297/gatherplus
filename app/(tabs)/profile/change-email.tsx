@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'reac
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mail } from 'lucide-react-native';
 import { useUpdateEmailMutation } from '@/redux/api/usersApiSlice';
+import { Alert } from 'react-native';
 
 export default function ChangeEmailScreen() {
   const router = useRouter();
@@ -12,10 +13,13 @@ export default function ChangeEmailScreen() {
   const handleSave = async () => {
     try {
       const res = await updateEmail({ email }).unwrap();
+      Alert.alert("Updated Successfully");
       router.back();
 
     } catch (err: any) {
-      console.log('Failed to update email:', err?.data);
+            Alert.alert("Try Again", err?.data?.body|| "Failed update  email");
+      
+      console.log('Failed to update email:', err);
     }
   };
 
@@ -61,7 +65,7 @@ export default function ChangeEmailScreen() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#1A2432" />
+            <ActivityIndicator color="white" />
           ) : (
             <Text className="text-[#1A2432] font-semibold text-lg">Save</Text>
           )}

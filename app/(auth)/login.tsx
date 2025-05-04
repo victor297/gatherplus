@@ -129,7 +129,7 @@ source={require('../../assets/images/logo.png')}
 
           <TouchableOpacity className="bg-primary rounded-lg py-4" onPress={handleSignIn} disabled={loading}>
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="white" />
             ) : (
               
               <View className='flex-row items-center gap-2 justify-center'>

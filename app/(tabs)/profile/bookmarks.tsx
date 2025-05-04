@@ -11,10 +11,7 @@ export default function BookmarksScreen() {
   const router = useRouter();
   const { data: bookmarks, isLoading, error,refetch } = useGetBookmarksQuery<any>({},{ refetchOnMountOrArgChange: true,
     refetchOnFocus: true,});
-//  useFocusEffect(() => {
-  
-//     refetch();
-//   }, );
+console.log(bookmarks)
 
   return (
     <View className="flex-1 bg-background">
@@ -25,11 +22,11 @@ export default function BookmarksScreen() {
         <Text className="text-white text-xl font-semibold">Bookmarks</Text>
       </View>
       <ScrollView className=" mt-2 px-4 ">
-        {isLoading ? <View className="text-white  bg-background flex justify-center items-center py-4"><ActivityIndicator /></View>
+        {isLoading ? <View className="text-white  bg-background flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
           : error ?
             <View className="flex-1 bg-background justify-center items-center">
               <Text className="text-red-500">{error?.data.body}Failed to load data. Please try again.</Text>
-            </View> : bookmarks?.body?.map((event: any) => (
+            </View> :bookmarks?.body?.length<=0?<Text className='text-white text-center'>You dont have any bookedmared event</Text>: bookmarks?.body?.map((event: any) => (
               <TouchableOpacity
                 key={event.id} onPress={() => router.push(`/(tabs)/home/event/${event.event_id}`)}
                 className="bg-[#1A2432] rounded-lg mb-4"

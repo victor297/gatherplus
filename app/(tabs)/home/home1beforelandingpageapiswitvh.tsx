@@ -170,7 +170,7 @@ export default function HomeScreen() {
       >
         {/* Loading and Error Handling */}
         {isLoading || isupcomingLoading || isliveLoading ? (
-          <View className="text-white flex items-center py-4"><ActivityIndicator /></View>
+          <View className="text-white flex items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
         ) : error || upcomingError || liveError ? (
           <Text className="text-red-500 text-center py-4">Failed to load data. Please try again.</Text>
         ) : (

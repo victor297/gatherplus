@@ -15,7 +15,7 @@ const SuccessFeedbackScreen = () => {
     alert("Feedback Submitted! Thank you!");
   };
   const handleDismiss = () => {
-router.push("/(tabs)/home/home1")  };
+router.replace("/(tabs)/home/home1")  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

@@ -147,8 +147,7 @@ export default function BannerScreen() {
           className="bg-[#1A2432] rounded-lg p-8 items-center justify-center border-2 border-dashed border-gray-600"
         >
           {loading ? (
-            <ActivityIndicator size="large" color="#6B7280" />
-          ) : bannerImage ? (
+<ActivityIndicator color="#9EDD45" />          ) : bannerImage ? (
             <Image source={{ uri: bannerImage }} className="w-full h-48 rounded-lg" resizeMode="cover" />
           ) : (
             <>

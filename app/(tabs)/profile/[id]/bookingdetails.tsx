@@ -21,7 +21,7 @@ const TicketScreen = () => {
   if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center bg-black">
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator color="#9EDD45" />
       </View>
     );
   }

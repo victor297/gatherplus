@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { ArrowLeft, User, Mail, Phone } from 'lucide-react-native';
 import { useSelector } from 'react-redux';
 import { useGetEventQuery } from '@/redux/api/eventsApiSlice';
@@ -21,7 +21,7 @@ export default function CheckoutScreen() {
   const { data: event, isLoading, error, refetch } = useGetEventQuery({ id: ticketData?.eventId, user_id: userInfo?.sub });
   const [isFormValid, setIsFormValid] = useState(false);
 
-  const [useCommonDetails, setUseCommonDetails] = useState(ticketData.each_ticket_identity);
+  const [useCommonDetails, setUseCommonDetails] = useState(event?.body?.each_ticket_identity);
   const [commonDetails, setCommonDetails] = useState<AttendeeDetails>({
     fullname: '',
     email: '',
@@ -37,7 +37,7 @@ export default function CheckoutScreen() {
       ...(event?.body?.age_restriction && { dob: '' })
     })
   );
-console.log(event?.body?.age_restriction,"checkout")
+console.log(useCommonDetails,"checkout")
   // Validate form whenever details change
   useEffect(() => {
     validateForm();
@@ -92,7 +92,7 @@ console.log(event?.body?.age_restriction,"checkout")
     };
 
     router.push({
-      pathname: `/home/event/${ticketData?.eventId}/summary`,
+      pathname: `/home/event/${ticketData?.eventId}/summary` as RelativePathString,
       params: { data: JSON.stringify(bookingData) }
     });
   };
@@ -100,8 +100,7 @@ console.log(event?.body?.age_restriction,"checkout")
   if (isLoading) {
     return (
       <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" color="#ffffff" />
-        <Text className="text-white mt-4">Loading event details...</Text>
+<ActivityIndicator color="#9EDD45" />        <Text className="text-white mt-4">Loading event details...</Text>
       </View>
     );
   }

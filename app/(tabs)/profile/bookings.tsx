@@ -8,13 +8,13 @@ import { debounce } from 'lodash';
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'UPCOMING' | 'PAST'|null>('UPCOMING');
+  const [activeTab, setActiveTab] = useState<'UPCOMING' | 'PAST' | null>('UPCOMING');
   const [page, setPage] = useState(1);
   const [size] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [allBookings, setAllBookings] = useState([]);
-  
+
   const { data: bookings, isLoading, error, isFetching } = useGetBookingsQuery({
     type: activeTab,
     page,
@@ -24,7 +24,7 @@ export default function BookingsScreen() {
 
   // Debounce search input
   const debouncedSearch = useCallback(
-    debounce((query:any) => {
+    debounce((query: any) => {
       setDebouncedSearchQuery(query);
       setPage(1); // Reset to first page when searching
     }, 500),
@@ -53,7 +53,7 @@ export default function BookingsScreen() {
     }
   };
 
-  const handleTabChange = (tab:any) => {
+  const handleTabChange = (tab: any) => {
     setActiveTab(tab);
     setPage(1);
     setAllBookings([]);
@@ -103,7 +103,7 @@ export default function BookingsScreen() {
             <Text className="text-primary text-lg font-semibold">free</Text>
           ) : (
             <Text className="text-primary text-lg font-semibold">
-              {item?.currency?.split(' - ')[0] ||'₦'} {item?.price}
+              {item?.currency?.split(' - ')[0] || '₦'} {item?.price}
             </Text>
           )}
         </View>
@@ -115,7 +115,7 @@ export default function BookingsScreen() {
     if (!isFetching) return null;
     return (
       <View className="py-4">
-        <ActivityIndicator color="#FFFFFF" />
+        <ActivityIndicator color="#9EDD45" />
       </View>
     );
   };
@@ -168,9 +168,9 @@ export default function BookingsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
         ListEmptyComponent={
-          isLoading||isFetching ? (
+          isLoading || isFetching ? (
             <View className="py-4">
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color="#9EDD45" />
             </View>
           ) : error ? (
             <View className="py-4 justify-center items-center">

@@ -82,7 +82,7 @@ console.log(upcoming,"upcoming")
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 h-12 mb-2">
         {isupcomingLoading||isLoading ? (
-          <View className="text-white flex justify-center items-center py-4"><ActivityIndicator /></View>
+          <View className="text-white flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
         ) : upcomingError ? (
           <Text className="text-red-500 text-center py-4">Failed to load data. Please try again. {upcomingError?.data?.message}</Text>
         ) : [{ id: null, name: "All" }, ...(categories?.body || [])].map((category, index) => (
@@ -108,8 +108,8 @@ console.log(upcoming,"upcoming")
   ListFooterComponent={() =>
     isFetching && page > 1 ? (
       <View className="py-4 flex justify-center items-center">
-        <ActivityIndicator />
-      </View>
+        <ActivityIndicator color="#9EDD45" />
+        </View>
     ) : null
   }
   onEndReached={handleLoadMore}

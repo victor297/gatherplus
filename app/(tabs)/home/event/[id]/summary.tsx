@@ -286,15 +286,13 @@ export default function OrderSummaryScreen() {
               startInLoadingState={true}
               renderLoading={() => (
                 <View className="flex-1 justify-center items-center">
-                  <ActivityIndicator size="large" color="#000" />
-                  <Text className="mt-4">Loading payment gateway...</Text>
+<ActivityIndicator color="#9EDD45" />                  <Text className="mt-4">Loading payment gateway...</Text>
                 </View>
               )}
             />
           ) : (
             <View className="flex-1 justify-center items-center">
-              <ActivityIndicator size="large" color="#000" />
-              <Text className="mt-4">Preparing payment...</Text>
+<ActivityIndicator color="#9EDD45" />              <Text className="mt-4">Preparing payment...</Text>
             </View>
           )}
         </View>

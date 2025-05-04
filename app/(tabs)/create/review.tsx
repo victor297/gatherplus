@@ -195,7 +195,7 @@ export default function ReviewScreen() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color="#9EDD45" />
           ) : (
             <Text className="text-background text-center font-semibold">Save and continue</Text>
           )}

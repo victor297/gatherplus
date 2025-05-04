@@ -74,26 +74,53 @@ console.log(event,"eventevent")
   }, 0);
 
   const handleBuyTickets = () => {
-    const ticketInstances = event?.body?.tickets.flatMap((ticket:any) => {
+    // Check if event has tickets
+    if (!event?.body?.tickets || event.body.tickets.length === 0) {
+      // Event has no tickets at all - proceed directly
+      const ticketData = {
+        eventId: id,
+        currency: event?.body?.currency,
+        ticketInstances: [], // No tickets needed
+        totalAmount: 0, // Free event
+        each_ticket_identity: event?.body?.each_ticket_identit
+      };
+  
+      return router.push({
+        pathname: `/home/event/${id}/checkout` as RelativePathString,
+        params: { data: JSON.stringify(ticketData) }
+      });
+    }
+  
+    // Event has tickets - verify at least one is selected
+    const hasSelectedTickets = Object.values(ticketSelections).some(
+      selection => selection?.quantity > 0
+    );
+  
+    if (!hasSelectedTickets) {
+      return Alert.alert("Please select at least one ticket to continue");
+    }
+  
+    // Process selected tickets
+    const ticketInstances = event.body.tickets.flatMap((ticket: any) => {
       const selection = ticketSelections[ticket.id];
       if (!selection || selection.quantity === 0) return [];
-
+      
       return Array(selection.quantity).fill({
         ticketId: ticket.id,
         sessionId: selection.sessionId,
-        price: Number(ticket.price), // Add price to each ticket instance
+        price: Number(ticket.price),
         name: ticket.name
       });
     });
-
+  
     const ticketData = {
       eventId: id,
-      currency: event?.body?.currency,
+      currency: event.body.currency,
       ticketInstances,
       totalAmount,
-      each_ticket_identity: event?.body?.each_ticket_identit
+      each_ticket_identity: event.body.each_ticket_identit
     };
-
+  
     router.push({
       pathname: `/home/event/${id}/checkout` as RelativePathString,
       params: { data: JSON.stringify(ticketData) }
@@ -128,7 +155,7 @@ console.log(event,"eventevent")
   console.log(event?.body?.sessions, "event")
   return (
     <>
-      {isLoading ? <View className="text-white flex-1 bg-background flex justify-center items-center py-4"><ActivityIndicator /></View>
+      {isLoading ? <View className="text-white flex-1 bg-background flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
         : error ?
           <View className="flex-1 bg-background justify-center items-center">
             <Text className="text-red-500">Failed to load data. Please try again.</Text>
@@ -146,7 +173,7 @@ console.log(event,"eventevent")
                                  <ArrowLeft color="white" size={24} />
                                </TouchableOpacity>
                 <TouchableOpacity>
-                  {isBookmarkLoading || isRemovingBookmarkLoading ? <ActivityIndicator  /> : event?.body?.isBookmark ? <BookmarkCheck  color="white" fill="#9EDD45" className='p-5' size={32} onPress={handleBookmarkRemove} /> : <BookmarkIcon className='p-5'  color="white" size={32} onPress={handleBookmark} />}
+                  {isBookmarkLoading || isRemovingBookmarkLoading ? <ActivityIndicator color="#9EDD45" /> : event?.body?.isBookmark ? <BookmarkCheck  color="white" fill="#9EDD45" className='p-5' size={32} onPress={handleBookmarkRemove} /> : <BookmarkIcon className='p-5'  color="white" size={32} onPress={handleBookmark} />}
                 </TouchableOpacity>
               </View>
 

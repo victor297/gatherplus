@@ -43,7 +43,7 @@ export default function CreateEventScreen() {
     start_date: '2025-06-15',
     address: '',
     currency: '',
-    each_ticket_identity: false,
+    each_ticket_identity: true,
     price: 0,
     age_restriction: 0,
     guardian_required: false,
@@ -282,7 +282,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
   if (isLoadingData) {
     return (
       <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" color="#ffffff" />
+        <ActivityIndicator color="#9EDD45" />
         <Text className="text-white mt-4">Loading event data...</Text>
       </View>
     );
@@ -291,7 +291,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+        <TouchableOpacity onPress={() => router.replace('/home/home1')} className="mr-4 bg-[#1A2432] p-2 rounded-full">
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Create Event</Text>
@@ -541,7 +541,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
                   />
                   {participant.imageUploading && (
                     <View className="absolute inset-0 bg-black/50 rounded-full justify-center items-center">
-                      <ActivityIndicator size="small" color="#ffffff" />
+                      <ActivityIndicator color="#9EDD45" />
                     </View>
                   )}
                 </View>
@@ -559,7 +559,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
               >
                 {participant.imageUploading ? (
                   <View className="items-center">
-                    <ActivityIndicator size="small" color="#ffffff" />
+                    <ActivityIndicator color="#9EDD45" />
                     <Text className="text-white text-xs mt-2">Uploading...</Text>
                   </View>
                 ) : (
@@ -706,7 +706,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
           <View className="bg-[#1A2432] rounded-t-3xl p-6">
             <Text className="text-white text-xl font-semibold mb-4">Select Category</Text>
             {categoriesLoading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator color="#9EDD45" />
             ) : (
               <ScrollView className="max-h-96">
                 {categories.map((category: any) => (
@@ -737,7 +737,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
           <View className="bg-[#1A2432] rounded-t-3xl p-6">
             <Text className="text-white text-xl font-semibold mb-4">Select Country</Text>
             {countryLoading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator color="#9EDD45" />
             ) : (
               <ScrollView className="max-h-96">
                 {countries.map((country: any) => (
@@ -770,7 +770,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
           <View className="bg-[#1A2432] rounded-t-3xl p-6">
             <Text className="text-white text-xl font-semibold mb-4">Select State</Text>
             {stateLoading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator color="#9EDD45" />
             ) : (
               <ScrollView className="max-h-96">
                 {states.map((state: any) => (

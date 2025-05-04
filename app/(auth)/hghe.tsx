@@ -110,7 +110,7 @@ export default function Login() {
 
           <TouchableOpacity className="bg-primary rounded-lg py-4" onPress={handleSignIn} disabled={loading}>
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#9EDD45" />
             ) : (
               <Text className="text-background text-center font-semibold">Login</Text>
             )}

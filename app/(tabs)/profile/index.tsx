@@ -72,7 +72,7 @@ export default function ProfileScreen() {
     <View className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+        <TouchableOpacity onPress={() => router.replace('/home/home1')} className="mr-4 bg-[#1A2432] p-2 rounded-full">
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Settings</Text>
@@ -90,7 +90,7 @@ export default function ProfileScreen() {
       {/* Loading State */}
       {isFetchingProfile ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#9EDD45" />
+          <ActivityIndicator color="#9EDD45" />
         </View>
       ) : (
         <>

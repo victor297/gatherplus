@@ -36,8 +36,10 @@ export default function UpdateEventScreen() {
   const [isLoadingData, setIsLoadingData] = useState(true);
 
 
-  const { data: event, isLoading: eventLoading, error: eventError } = useGetEventQuery({ id: eventId },  { refetchOnMountOrArgChange: true,
-    refetchOnFocus: true,}
+  const { data: event, isLoading: eventLoading, error: eventError } = useGetEventQuery({ id: eventId }, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  }
   );
   const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useGetcategoriesQuery({});
   const { data: countryData, isLoading: countryLoading, error: countryError } = useGetCountriesQuery({});
@@ -103,7 +105,7 @@ export default function UpdateEventScreen() {
       if (country) {
         setSelectedCountry(country);
       }
-  
+
       // Initialize form data
       setFormData({
         title: eventData.title,
@@ -128,11 +130,11 @@ export default function UpdateEventScreen() {
         absorb_fee: eventData.absorb_fee,
         ticketed: eventData.ticketed,
         tickets: eventData.tickets.map((ticket: any) => ({
-          name:ticket?.name,
-          price:ticket?.price,
-          quantity:ticket?.quantity,
-          seat_type:ticket?.seat_type,
-          no_per_seat_type:ticket?.no_per_seat_type
+          name: ticket?.name,
+          price: ticket?.price,
+          quantity: ticket?.quantity,
+          seat_type: ticket?.seat_type,
+          no_per_seat_type: ticket?.no_per_seat_type
         })),
       });
 
@@ -226,13 +228,13 @@ export default function UpdateEventScreen() {
     });
     setSessions(newSessions);
   };
-  
+
   const removeParticipant = (sessionIndex: number, participantIndex: number) => {
     const newSessions = [...sessions];
     newSessions[sessionIndex].participants.splice(participantIndex, 1);
     setSessions(newSessions);
   };
-  
+
   const updateParticipant = (sessionIndex: number, participantIndex: number, field: keyof Participant, value: string) => {
     const newSessions = [...sessions];
     newSessions[sessionIndex].participants[participantIndex][field] = value;
@@ -243,17 +245,17 @@ export default function UpdateEventScreen() {
     newSessions[sessionIndex].participants[participantIndex].imageUploading = true;
     newSessions[sessionIndex].participants[participantIndex].imageError = undefined;
     setSessions(newSessions);
-  
+
     const formDataUpload = new FormData();
     const fileName = imageUri.split('/').pop();
     const fileType = fileName?.split('.').pop();
-  
+
     formDataUpload.append('files', {
       uri: imageUri,
       name: fileName,
       type: `image/${fileType}`,
     } as any);
-  
+
     try {
       const response = await fetch('https://gather-plus-backend-core.onrender.com/api/v1/file', {
         method: 'POST',
@@ -262,9 +264,9 @@ export default function UpdateEventScreen() {
           'Content-Type': 'multipart/form-data',
         },
       });
-  
+
       const data = await response.json();
-      
+
       if (response.ok) {
         const updatedSessions = [...sessions];
         updatedSessions[sessionIndex].participants[participantIndex].image = data.body[0].url;
@@ -274,28 +276,28 @@ export default function UpdateEventScreen() {
         throw new Error(data?.message || 'Failed to upload image');
       }
     } catch (error) {
-      const errorSessions:any = [...sessions];
+      const errorSessions: any = [...sessions];
       errorSessions[sessionIndex].participants[participantIndex].imageUploading = false;
       errorSessions[sessionIndex].participants[participantIndex].imageError = error?.message;
       setSessions(errorSessions);
       console.error('Image upload error:', error);
     }
   };
-  
+
   const pickImage = async (sessionIndex: number, participantIndex: number) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission required', 'We need camera roll permissions to upload images');
       return;
     }
-  
+
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
-  
+
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const imageUri = result.assets[0].uri;
       await uploadParticipantImage(sessionIndex, participantIndex, imageUri);
@@ -325,7 +327,7 @@ export default function UpdateEventScreen() {
 
   const handleSaveAndContinue = () => {
     if (!isFormValid) return;
-  
+
     router.push({
       pathname: `/(tabs)/home/event/${eventId}/update/updatebanner` as RelativePathString,
       params: {
@@ -361,8 +363,7 @@ export default function UpdateEventScreen() {
   if (isLoadingData || !formData) {
     return (
       <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" color="#ffffff" />
-        <Text className="text-white mt-4">Loading event data...</Text>
+        <ActivityIndicator color="#9EDD45" />
       </View>
     );
   }
@@ -371,8 +372,8 @@ export default function UpdateEventScreen() {
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.replace(`/(tabs)/profile/${eventId}/myeventdetails`)} className="mr-4 bg-[#1A2432] p-2 rounded-full">
-                    <ArrowLeft color="white" size={24} />
-                  </TouchableOpacity>
+          <ArrowLeft color="white" size={24} />
+        </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Update Event</Text>
       </View>
       <ProgressSteps currentStep={0} />
@@ -531,116 +532,115 @@ export default function UpdateEventScreen() {
                 </View>
 
                 <View className="mt-4">
-      <Text className="text-white text-lg font-bold mb-3">Participants</Text>
-      
-      {session.participants.map((participant: any, participantIndex: number) => (
-        <View key={participantIndex} className="bg-[#1A2432] p-4 rounded-lg mb-4 border border-gray-700">
-          {/* Participant Header */}
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-white font-bold">Participant {participantIndex + 1}</Text>
-            <TouchableOpacity 
-              onPress={() => removeParticipant(sessionIndex, participantIndex)}
-              className="bg-red-500/20 px-2 py-1 rounded-lg border border-red-500"
-            >
-              <Text className="text-red-500 text-xs">Remove</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Participant Fields */}
-          <TextInput
-            className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-3"
-            placeholder="Role (e.g., Keynote Speaker)"
-            placeholderTextColor="#6B7280"
-            value={participant.label}
-            onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'label', text)}
-          />
-          
-          <TextInput
-            className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-3"
-            placeholder="Participant Name"
-            placeholderTextColor="#6B7280"
-            value={participant.name}
-            onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'name', text)}
-          />
-          
-          <TextInput
-            className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-3"
-            placeholder="Presentation Title"
-            placeholderTextColor="#6B7280"
-            value={participant.title}
-            onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'title', text)}
-          />
-          
-          <TextInput
-            className="bg-[#111823] rounded-lg px-4 py-3 text-white h-20 mb-3"
-            placeholder="Description"
-            placeholderTextColor="#6B7280"
-            multiline
-            textAlignVertical="top"
-            value={participant.description}
-            onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'description', text)}
-          />
-          
-          {/* Image Upload Section */}
-          <View className="mt-3">
-            <Text className="text-white mb-2">Participant Image</Text>
-            
-            {participant.image ? (
-              <View className="items-center">
-                <View className="relative">
-                  <Image 
-                    source={{ uri: participant.image }} 
-                    className="w-24 h-24 rounded-full mb-2 border-2 border-primary"
-                  />
-                  {participant.imageUploading && (
-                    <View className="absolute inset-0 bg-black/50 rounded-full justify-center items-center">
-                      <ActivityIndicator size="small" color="#ffffff" />
+                  <Text className="text-white text-lg font-bold mb-3">Participants</Text>
+
+                  {session.participants.map((participant: any, participantIndex: number) => (
+                    <View key={participantIndex} className="bg-[#1A2432] p-4 rounded-lg mb-4 border border-gray-700">
+                      {/* Participant Header */}
+                      <View className="flex-row justify-between items-center mb-3">
+                        <Text className="text-white font-bold">Participant {participantIndex + 1}</Text>
+                        <TouchableOpacity
+                          onPress={() => removeParticipant(sessionIndex, participantIndex)}
+                          className="bg-red-500/20 px-2 py-1 rounded-lg border border-red-500"
+                        >
+                          <Text className="text-red-500 text-xs">Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Participant Fields */}
+                      <TextInput
+                        className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-3"
+                        placeholder="Role (e.g., Keynote Speaker)"
+                        placeholderTextColor="#6B7280"
+                        value={participant.label}
+                        onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'label', text)}
+                      />
+
+                      <TextInput
+                        className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-3"
+                        placeholder="Participant Name"
+                        placeholderTextColor="#6B7280"
+                        value={participant.name}
+                        onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'name', text)}
+                      />
+
+                      <TextInput
+                        className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-3"
+                        placeholder="Presentation Title"
+                        placeholderTextColor="#6B7280"
+                        value={participant.title}
+                        onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'title', text)}
+                      />
+
+                      <TextInput
+                        className="bg-[#111823] rounded-lg px-4 py-3 text-white h-20 mb-3"
+                        placeholder="Description"
+                        placeholderTextColor="#6B7280"
+                        multiline
+                        textAlignVertical="top"
+                        value={participant.description}
+                        onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'description', text)}
+                      />
+
+                      {/* Image Upload Section */}
+                      <View className="mt-3">
+                        <Text className="text-white mb-2">Participant Image</Text>
+
+                        {participant.image ? (
+                          <View className="items-center">
+                            <View className="relative">
+                              <Image
+                                source={{ uri: participant.image }}
+                                className="w-24 h-24 rounded-full mb-2 border-2 border-primary"
+                              />
+                              {participant.imageUploading && (
+                                <View className="absolute inset-0 bg-black/50 rounded-full justify-center items-center">
+                                  <ActivityIndicator color="#9EDD45" />
+                                </View>
+                              )}
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => pickImage(sessionIndex, participantIndex)}
+                              className="bg-primary/20 px-3 py-1 rounded-lg border border-primary"
+                            >
+                              <Text className="text-primary">Change Image</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => pickImage(sessionIndex, participantIndex)}
+                            className="border-2 border-dashed border-gray-500 rounded-lg p-6 items-center justify-center bg-[#111823]"
+                          >
+                            {participant.imageUploading ? (
+                              <View className="items-center">
+                                <ActivityIndicator color="#9EDD45" />
+                              </View>
+                            ) : (
+                              <>
+                                <Text className="text-white">Tap to upload image</Text>
+                                <Text className="text-gray-400 text-xs mt-1">Recommended: 500x500px</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        )}
+
+                        {participant.imageError && (
+                          <Text className="text-red-500 text-xs mt-1">{participant.imageError}</Text>
+                        )}
+                      </View>
                     </View>
-                  )}
+                  ))}
+
+                  {/* Add Participant Button */}
+                  <TouchableOpacity
+                    onPress={() => addParticipant(sessionIndex)}
+                    className="flex-row items-center justify-center bg-[#1A2432] p-3 rounded-lg border border-primary/50 mb-4"
+                  >
+                    <Text className="text-primary font-bold">+ Add Participant</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity 
-                  onPress={() => pickImage(sessionIndex, participantIndex)}
-                  className="bg-primary/20 px-3 py-1 rounded-lg border border-primary"
-                >
-                  <Text className="text-primary">Change Image</Text>
-                </TouchableOpacity>
               </View>
-            ) : (
-              <TouchableOpacity 
-                onPress={() => pickImage(sessionIndex, participantIndex)}
-                className="border-2 border-dashed border-gray-500 rounded-lg p-6 items-center justify-center bg-[#111823]"
-              >
-                {participant.imageUploading ? (
-                  <View className="items-center">
-                    <ActivityIndicator size="small" color="#ffffff" />
-                    <Text className="text-white text-xs mt-2">Uploading...</Text>
-                  </View>
-                ) : (
-                  <>
-                    <Text className="text-white">Tap to upload image</Text>
-                    <Text className="text-gray-400 text-xs mt-1">Recommended: 500x500px</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-            
-            {participant.imageError && (
-              <Text className="text-red-500 text-xs mt-1">{participant.imageError}</Text>
-            )}
-          </View>
-        </View>
-      ))}
-      
-      {/* Add Participant Button */}
-      <TouchableOpacity 
-        onPress={() => addParticipant(sessionIndex)} 
-        className="flex-row items-center justify-center bg-[#1A2432] p-3 rounded-lg border border-primary/50 mb-4"
-      >
-        <Text className="text-primary font-bold">+ Add Participant</Text>
-      </TouchableOpacity>
-    </View>
-              </View>
-              
+
             ))}
 
             {formData.sessionType === 'multiple' && (
@@ -759,9 +759,7 @@ export default function UpdateEventScreen() {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-[#1A2432] rounded-t-3xl p-6">
             <Text className="text-white text-xl font-semibold mb-4">Select Category</Text>
-            {categoriesLoading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
+            {categoriesLoading ?<ActivityIndicator color="#9EDD45" />: (
               <ScrollView className="max-h-96">
                 {categories.map((category: any) => (
                   <TouchableOpacity
@@ -790,28 +788,26 @@ export default function UpdateEventScreen() {
         >
           <View className="bg-[#1A2432] rounded-t-3xl p-6">
             <Text className="text-white text-xl font-semibold mb-4">Select Country</Text>
-            {countryLoading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
+            {countryLoading ?<ActivityIndicator color="#9EDD45" />: (
               <ScrollView className="max-h-96">
                 {countries.map((country: any) => (
                   <TouchableOpacity
-                  key={country.code2}
-                  className="py-4 border-b border-gray-700"
-                  onPress={() => {
-                    setSelectedCountry(country);
-                    setFormData({
-                      ...formData,
-                      country_code: country.code2, // Update the form data
-                      state_id: 0, // Reset state when country changes
-                    });
-                    setSelectedState(null); // Reset selected state
-                    setShowCountryModal(false);
-                    setShowStateModal(true);
-                  }}
-                >
-                  <Text className="text-white">{country.name}</Text>
-                </TouchableOpacity>
+                    key={country.code2}
+                    className="py-4 border-b border-gray-700"
+                    onPress={() => {
+                      setSelectedCountry(country);
+                      setFormData({
+                        ...formData,
+                        country_code: country.code2, // Update the form data
+                        state_id: 0, // Reset state when country changes
+                      });
+                      setSelectedState(null); // Reset selected state
+                      setShowCountryModal(false);
+                      setShowStateModal(true);
+                    }}
+                  >
+                    <Text className="text-white">{country.name}</Text>
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
@@ -828,25 +824,23 @@ export default function UpdateEventScreen() {
         >
           <View className="bg-[#1A2432] rounded-t-3xl p-6">
             <Text className="text-white text-xl font-semibold mb-4">Select State</Text>
-            {stateLoading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
+            {stateLoading ? <ActivityIndicator color="#9EDD45" /> : (
               <ScrollView className="max-h-96">
                 {states.map((state: any) => (
                   <TouchableOpacity
-                  key={state.id}
-                  className="py-4 border-b border-gray-700"
-                  onPress={() => {
-                    setFormData({
-                      ...formData,
-                      state_id: state.id,
-                    });
-                    setSelectedState(state);
-                    setShowStateModal(false);
-                  }}
-                >
-                  <Text className="text-white">{state.name}</Text>
-                </TouchableOpacity>
+                    key={state.id}
+                    className="py-4 border-b border-gray-700"
+                    onPress={() => {
+                      setFormData({
+                        ...formData,
+                        state_id: state.id,
+                      });
+                      setSelectedState(state);
+                      setShowStateModal(false);
+                    }}
+                  >
+                    <Text className="text-white">{state.name}</Text>
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
             )}

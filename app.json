@@ -4,6 +4,7 @@
     "slug": "gatherPlus",
     "version": "1.0.0",
     "orientation": "portrait",
+    "owner": "gatherplus",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
@@ -13,14 +14,15 @@
       "bundleIdentifier": "com.anonymous.gatherPlus",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show your position on the map.",
-        "NSLocationAlwaysUsageDescription": "This app needs access to your location even when in the background."
+        "NSLocationAlwaysUsageDescription": "This app needs access to your location even when in the background.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos and save tickets from the app",
+        "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your library"
       },
       "splash": {
         "image": "./assets/images/splash-icon.png",
         "resizeMode": "contain",
-          "backgroundColor": "#020E1E"
-      
-   }
+        "backgroundColor": "#020E1E"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,9 +32,8 @@
       "splash": {
         "image": "./assets/images/splash-icon.png",
         "resizeMode": "contain",
-          "backgroundColor": "#020E1E"
-      
-   },
+        "backgroundColor": "#020E1E"
+      },
       "package": "com.anonymous.gatherPlus"
     },
     "web": {
@@ -60,7 +61,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "1818ba35-ae94-410a-8976-79c7585a3f7a"
+        "projectId": "cfaa89b5-aa1c-4210-94e3-bc27c9abb039"
       }
     }
   }

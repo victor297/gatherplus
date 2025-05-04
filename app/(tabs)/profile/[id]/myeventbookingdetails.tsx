@@ -66,16 +66,14 @@ const MyEventTicketScreen = () => {
     if (!isFetching) return null;
     return (
       <View className="py-4">
-        <ActivityIndicator size="small" color="#fff" />
-      </View>
+<ActivityIndicator color="#9EDD45" />      </View>
     );
   };
 
   if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center bg-black">
-        <ActivityIndicator size="large" color="#fff" />
-      </View>
+<ActivityIndicator color="#9EDD45" />      </View>
     );
   }
 

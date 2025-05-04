@@ -9,7 +9,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { data: userProfile, isLoading: isFetchingProfile, refetch } = useGetProfileQuery(null); // Fetch user profile data
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
-
+const [uploading,setUploading]=useState(null)
   const [profileData, setProfileData] = useState({
     firstname: '',
     lastname: '',
@@ -58,6 +58,7 @@ export default function EditProfileScreen() {
     } as any);
 
     try {
+      setUploading(true)
       const response = await fetch('https://gather-plus-backend-core.onrender.com/api/v1/file', {
         method: 'POST',
         body: formDataUpload,
@@ -73,12 +74,19 @@ export default function EditProfileScreen() {
           ...prevData,
           image_url: data.body[0].secure_url,
         }));
+        setUploading(false)
       } else {
         Alert.alert('Upload Failed', 'Could not upload the image.');
+        setUploading(false)
+
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong during upload.');
+      setUploading(false)
+
     }
+    setUploading(false)
+
   };
 
   const handleSave = async () => {
@@ -102,14 +110,13 @@ export default function EditProfileScreen() {
           <Text className="text-white text-xl font-semibold">Account Info</Text>
         </View>
         <TouchableOpacity onPress={handleSave} disabled={isLoading}>
-          {isLoading ? <ActivityIndicator color="#9EDD45" /> : <Check color="#9EDD45" size={24} />}
+          {isLoading ? <ActivityIndicator color="white" /> : <Check color="#9EDD45" size={24} />}
         </TouchableOpacity>
       </View>
 
       <ScrollView className="flex-1 px-4">
         {isFetchingProfile ? (
-          <ActivityIndicator color="white" size="large" className="mt-10" />
-        ) : (
+          <ActivityIndicator color="#9EDD45" />) : (
           <>
             <View className="items-center mt-8 mb-8">
               <View className="relative">
@@ -119,12 +126,12 @@ export default function EditProfileScreen() {
                   }}
                   className="w-24 h-24 rounded-full"
                 />
-                <TouchableOpacity
+               {uploading? <ActivityIndicator color="white" />:<TouchableOpacity
                   onPress={handleImageUpload}
                   className="absolute bottom-0 right-0 bg-primary p-2 rounded-full"
                 >
                   <Camera size={20} color="#020E1E" />
-                </TouchableOpacity>
+                </TouchableOpacity>}
               </View>
             </View>
 
@@ -183,14 +190,14 @@ export default function EditProfileScreen() {
           </>
         )}
 
-<View className="p-4 mt-4 border-t border-[#1A2432]">
-        <TouchableOpacity className="bg-primary rounded-lg py-4" onPress={handleSave} disabled={isLoading}>
-          {isLoading ? <ActivityIndicator color="white" /> : <Text className="text-background text-center font-semibold">Save</Text>}
-        </TouchableOpacity>
-      </View>
+        <View className="p-4 mt-4 border-t border-[#1A2432]">
+          <TouchableOpacity className="bg-primary rounded-lg py-4" onPress={handleSave} disabled={isLoading}>
+            {isLoading ? <ActivityIndicator color="white" /> : <Text className="text-background text-center font-semibold">Save</Text>}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
-   
+
     </View>
   );
 }

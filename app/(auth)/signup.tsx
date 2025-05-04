@@ -135,7 +135,7 @@ export default function SignupScreen() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="white" />
           ) : (
             <View className='flex-row items-center gap-2 justify-center'>
                                          <Text className="text-background  text-center text-lg font-bold">Create Account </Text>

@@ -10,7 +10,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function AccountInfoScreen() {
   const router = useRouter();
-  const dispatch:any = useDispatch();
+  const dispatch: any = useDispatch();
   const [profileData, setProfileData] = useState({
     firstname: '',
     lastname: '',
@@ -27,7 +27,7 @@ export default function AccountInfoScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: userProfile, isLoading: isFetchingProfile, error: profileError } = useGetProfileQuery(null);
-  const [deleteProfile, {isLoading: isDeletingProfile, error: deleteError}] = useDeleteProfileMutation();
+  const [deleteProfile, { isLoading: isDeletingProfile, error: deleteError }] = useDeleteProfileMutation();
 
   useEffect(() => {
     if (isFetchingProfile) {
@@ -54,7 +54,7 @@ export default function AccountInfoScreen() {
     setShowDeleteModal(true);
     setDeleteCountdown(30);
     setIsDeleteEnabled(false);
-    
+
     if (deleteTimer) {
       clearInterval(deleteTimer);
     }
@@ -84,11 +84,11 @@ export default function AccountInfoScreen() {
 
   const confirmDelete = async () => {
     if (!isDeleteEnabled) return;
-    
+
     try {
       await deleteProfile(null).unwrap();
-        await dispatch(logout());
-      
+      await dispatch(logout());
+
       router.replace('/auth/sign-in');
 
     } catch (err) {
@@ -123,7 +123,7 @@ export default function AccountInfoScreen() {
       {/* Loading State */}
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#9EDD45" />
+          <ActivityIndicator color="white" />
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center">
@@ -138,9 +138,9 @@ export default function AccountInfoScreen() {
                 source={{ uri: profileData.image_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde' }}
                 className="w-24 h-24 rounded-full"
               />
-              <TouchableOpacity className="absolute bottom-0 right-0 bg-primary p-2 rounded-full">
+              {/* <TouchableOpacity className="absolute bottom-0 right-0 bg-primary p-2 rounded-full">
                 <Camera size={20} color="#020E1E" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
             <Text className="text-white text-xl mt-4">{fullName || 'N/A'}</Text>
             <Text className="text-gray-400">{profileData.email || 'No email available'}</Text>
@@ -187,16 +187,15 @@ export default function AccountInfoScreen() {
 
             {/* Action Buttons */}
             <View className="flex-row justify-between">
-              <TouchableOpacity 
-                className='bg-red-500 flex-row items-center py-1 px-3 rounded-lg' 
+              <TouchableOpacity
+                className='bg-red-500 flex-row items-center py-1 px-3 rounded-lg'
                 onPress={startDeleteCountdown}
                 disabled={isDeletingProfile}
               >
-                {isDeletingProfile ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className='text-white text-xl mr-2'>Delete Account</Text>
-                )}
+                {isDeletingProfile ?
+                  <ActivityIndicator color="#9EDD45" /> : (
+                    <Text className='text-white text-xl mr-2'>Delete Account</Text>
+                  )}
               </TouchableOpacity>
               <TouchableOpacity className='bg-[#9EDD45] flex-row items-center py-1 px-3 rounded-lg' onPress={() => router.push('/profile/edit-profile')}>
                 <Text className='text-[#1A2432] text-xl mr-2'>Edit</Text>
@@ -214,19 +213,19 @@ export default function AccountInfoScreen() {
           <View className="bg-[#1A2432] p-6 rounded-lg w-5/6 mx-4">
             <Text className="text-white text-lg font-bold mb-4">Delete Account</Text>
             <Text className="text-gray-300 mb-6">
-              {isDeleteEnabled 
+              {isDeleteEnabled
                 ? "Are you sure you want to permanently delete your account? This action cannot be undone."
                 : `For security reasons, the delete option will be available in ${deleteCountdown} seconds.`
               }
             </Text>
             <View className="flex-row justify-end space-x-3">
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="px-4 py-2 rounded"
                 onPress={cancelDelete}
               >
                 <Text className="text-gray-300">Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 className={`px-4 py-2 rounded ${isDeleteEnabled ? 'bg-[#9EDD45]' : 'bg-gray-500'}`}
                 onPress={confirmDelete}
                 disabled={!isDeleteEnabled}

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'reac
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { useUpdatePasswordMutation } from '@/redux/api/usersApiSlice';
+import { Alert } from 'react-native';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -27,7 +28,8 @@ export default function ChangePasswordScreen() {
       await updatePassword(passwords).unwrap();
       router.back();
     } catch (err) {
-      console.error('Failed to update password:', err);
+                  Alert.alert("Try Again", err?.data?.body|| "Failed update password");
+      
     }
   };
 

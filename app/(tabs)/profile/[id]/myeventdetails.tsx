@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking, Modal, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, EllipsisVerticalIcon, UserIcon } from 'lucide-react-native';
-import {useDeleteEventMutation, useGetEventQuery } from '@/redux/api/eventsApiSlice';
+import { useDeleteEventMutation, useGetEventQuery } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
 import { useSelector } from 'react-redux';
 import MapView, { Marker } from 'react-native-maps';
@@ -18,10 +18,10 @@ export default function EventDetailsScreen() {
 
   const handleDeleteEvent = async () => {
     try {
-     const res = await deleteEvent(id).unwrap();
+      const res = await deleteEvent(id).unwrap();
       Alert.alert('Success', 'Event deleted successfully');
 
-      console.log(res,id,"resresresres")
+      console.log(res, id, "resresresres")
       router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to delete event');
@@ -52,7 +52,7 @@ export default function EventDetailsScreen() {
     setShowOptions(false);
     switch (option) {
       case 'edit':
-        router.push(`/home/event/${id}/update/updatecreate`);        
+        router.push(`/home/event/${id}/update/updatecreate`);
         break;
       case 'share':
         Alert.alert('Share', 'Share functionality would go here');
@@ -64,14 +64,14 @@ export default function EventDetailsScreen() {
   };
 
   const getTotalSalesAmount = () => {
-    return event?.body?.tickets?.reduce((total:any, ticket:any) => {
+    return event?.body?.tickets?.reduce((total: any, ticket: any) => {
       return total + ticket.price * ticket.totalSold;
     }, 0);
   };
   const getTotalTicketsSold = () => {
-    return event?.body?.tickets?.reduce((total:any, ticket:any) => total + ticket.totalSold, 0);
+    return event?.body?.tickets?.reduce((total: any, ticket: any) => total + ticket.totalSold, 0);
   };
-  
+
   const openMaps = () => {
     const address = encodeURIComponent(`${event?.body?.address}, ${event?.body?.city}, ${event?.body?.country?.name}`);
     const url = `https://www.google.com/maps/search/?api=1&query=${address}`;
@@ -80,7 +80,7 @@ export default function EventDetailsScreen() {
 
   return (
     <>
-      {isLoading ? <View className="text-white flex-1 bg-background flex justify-center items-center py-4"><ActivityIndicator /></View>
+      {isLoading ? <View className="text-white flex-1 bg-background flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
         : error ?
           <View className="flex-1 bg-background justify-center items-center">
             <Text className="text-red-500">Failed to load data. Please try again.</Text>
@@ -92,39 +92,39 @@ export default function EventDetailsScreen() {
                   <ArrowLeft color="white" size={24} />
                 </TouchableOpacity>
                 <Modal
-                    transparent={true}
-                    visible={showOptions}
-                    onRequestClose={() => setShowOptions(false)}
+                  transparent={true}
+                  visible={showOptions}
+                  onRequestClose={() => setShowOptions(false)}
+                >
+                  <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowOptions(false)}
                   >
-                    <TouchableOpacity 
-                      style={styles.modalOverlay}
-                      activeOpacity={1}
-                      onPress={() => setShowOptions(false)}
-                    >
-                      <View style={styles.optionsContainer}>
-                        <TouchableOpacity 
-                          style={styles.optionButton}
-                          onPress={() => handleOptionPress('edit')}
-                          disabled={Boolean(getTotalTicketsSold())}
-                        >
-                        {  Boolean(getTotalTicketsSold())?<Text style={styles.optionText}>Can't Edit</Text>:
+                    <View style={styles.optionsContainer}>
+                      <TouchableOpacity
+                        style={styles.optionButton}
+                        onPress={() => handleOptionPress('edit')}
+                        disabled={Boolean(getTotalTicketsSold())}
+                      >
+                        {Boolean(getTotalTicketsSold()) ? <Text style={styles.optionText}>Can't Edit</Text> :
                           <Text style={styles.optionText}>Edit</Text>}
-                        </TouchableOpacity>
-                        {/* <TouchableOpacity 
+                      </TouchableOpacity>
+                      {/* <TouchableOpacity 
                           style={styles.optionButton}
                           onPress={() => handleOptionPress('share')}
                         >
                           <Text style={styles.optionText}>Share</Text>
                         </TouchableOpacity> */}
-                        <TouchableOpacity 
-                          style={styles.optionButton}
-                          onPress={() => handleOptionPress('delete')}
-                        >
-                          <Text style={[styles.optionText, styles.deleteText]}>Delete</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </TouchableOpacity>
-                  </Modal>
+                      <TouchableOpacity
+                        style={styles.optionButton}
+                        onPress={() => handleOptionPress('delete')}
+                      >
+                        <Text style={[styles.optionText, styles.deleteText]}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
                 <Text className="text-white font-semibold text-xl">
                   {new Date().toLocaleDateString('en-GB', {
                     day: 'numeric',
@@ -132,12 +132,12 @@ export default function EventDetailsScreen() {
                     year: 'numeric',
                   })}
                 </Text>
-                <TouchableOpacity 
-                    className='bg-[#1A2432] p-2 rounded-full'
-                    onPress={() => setShowOptions(!showOptions)}
-                  >
-                    <EllipsisVerticalIcon color="white" size={24} />
-                  </TouchableOpacity>
+                <TouchableOpacity
+                  className='bg-[#1A2432] p-2 rounded-full'
+                  onPress={() => setShowOptions(!showOptions)}
+                >
+                  <EllipsisVerticalIcon color="white" size={24} />
+                </TouchableOpacity>
               </View>
               <Image
                 source={{ uri: event?.body?.images?.[0] }}
@@ -237,7 +237,7 @@ export default function EventDetailsScreen() {
             </ScrollView>
 
             <View className="p-4 border-t mb-3 flex flex-row justify-between border-[#1A2432]">
-              <TouchableOpacity className="border border-gray-500 w-[49%] rounded-lg py-3"  onPress={() => router.push(`/profile/${event?.body?.id}/myeventbookingdetails`)}>
+              <TouchableOpacity className="border border-gray-500 w-[49%] rounded-lg py-3" onPress={() => router.push(`/profile/${event?.body?.id}/myeventbookingdetails`)}>
                 <Text className="text-white text-center  text-xl font-bolsemiboldd">View Participants</Text>
               </TouchableOpacity>
               <TouchableOpacity className="border-gray-400 w-[49%]  bg-primary rounded-lg py-3" onPress={() => router.back()}>

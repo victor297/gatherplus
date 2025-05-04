@@ -233,7 +233,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
                   {showCountryDropdown && (
                     <View className="mt-2 bg-[#2A3647] rounded-lg max-h-40">
                       {isCountriesLoading ? (
-                        <ActivityIndicator className="py-2" />
+                        <ActivityIndicator color="#9EDD45" className="py-2" />
                       ) : (
                         <FlatList
                           data={countries}
@@ -272,7 +272,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
                     {showStateDropdown && (
                       <View className="mt-2 bg-[#2A3647] rounded-lg max-h-40">
                         {isStatesLoading ? (
-                          <ActivityIndicator className="py-2" />
+                         <ActivityIndicator color="#9EDD45" className="py-2" />
                         ) : (
                           <FlatList
                             data={states}
@@ -416,7 +416,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 h-12 mb-2">
         {isCategoriesLoading ? (
-          <View className="text-white flex justify-center items-center py-4"><ActivityIndicator /></View>
+          <View className="text-white flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
         ) : upcomingError ? (
           <Text className="text-red-500 text-center py-4">Failed to load data. Please try again.</Text>
         ) : (
@@ -452,7 +452,9 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
   ListEmptyComponent={() => (
     <View className="flex-1 bg-background justify-center items-center py-8">
       <Text className="text-gray-400 text-lg">
-        {isUpcomingLoading ? 'Loading events...' : 
+        {isUpcomingLoading ? <View className="py-4 flex justify-center items-center">
+                      <ActivityIndicator color="#9EDD45" />
+                    </View>  : 
          upcoming?.body?.events?.result?.length === 0 ? 'No events found matching your criteria' : 
          'No events available'}
       </Text>
@@ -461,7 +463,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
   ListFooterComponent={() =>
     isFetching && page > 1 ? (
       <View className="py-4 flex justify-center items-center">
-        <ActivityIndicator />
+        <ActivityIndicator color="#9EDD45" />
       </View>
     ) : null
   }
