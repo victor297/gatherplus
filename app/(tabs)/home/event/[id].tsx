@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
-import { ArrowLeft, Share2, MapPin, Calendar, Clock, Plus, Minus, ChevronDown, BookmarkIcon, BookmarkCheck } from 'lucide-react-native';
-import { useBookmarkeventMutation, useDeleteBookmarkMutation, useGetEventQuery } from '@/redux/api/eventsApiSlice';
+import { ArrowLeft, Share2, MapPin, Calendar, Clock, Plus, Minus, ChevronDown, BookmarkIcon, BookmarkCheck, HeartIcon, MessageSquareIcon, Share2Icon } from 'lucide-react-native';
+import { useBookmarkeventMutation, useDeleteBookmarkMutation, useGetEventQuery, useLikeEventMutation } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
 import { useSelector } from 'react-redux';
 import MapView, { Marker } from 'react-native-maps';
+import { useFollowEventCreatorMutation } from '@/redux/api/usersApiSlice';
+import CommentModal from '@/app/components/CommentModat';
 
 
 
@@ -19,6 +21,8 @@ export default function EventDetailsScreen() {
   const { id } = useLocalSearchParams();
 
   const { userInfo } = useSelector((state: any) => state.auth);
+  const [isLiked, setIsLiked]=useState<boolean>(false)
+  const [isFollow, setIsFollowed]=useState<boolean>(false)
   const { data: event, isLoading, error, refetch } = useGetEventQuery({ id, user_id: userInfo?.sub });
   const [ticketSelections, setTicketSelections] = useState<Record<number, TicketSelection>>({});
   const updateSession = (ticketId: number, newSessionId: number) => {
@@ -28,11 +32,14 @@ export default function EventDetailsScreen() {
         ...prev[ticketId],
         sessionId: newSessionId
       }
-    }));
+    }));   
   };
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+
   const [bookmarkevent, { isLoading: isBookmarkLoading }] = useBookmarkeventMutation();
   const [deleteBookmark, { isLoading: isRemovingBookmarkLoading, isSuccess, isError }] = useDeleteBookmarkMutation();
-console.log(event,"eventevent")
+  const [likeEvent, { isLoading: isLikeLoading,  }] = useLikeEventMutation();
+  const [followEventCreator, { isLoading: isfollowLoading,  }] = useFollowEventCreatorMutation();
   const addTicket = (ticketId: number) => {
     const ticket = event?.body?.tickets.find((t:any) => t.id === ticketId);
     if (!ticket) return;
@@ -146,13 +153,34 @@ console.log(event,"eventevent")
       console.log(err,"errrrrrrrrr")
     }
   }
+  const handleLike = async () => {
+    try {
+      const res = await likeEvent(Number(id)).unwrap();
+      setIsLiked(true)
+      refetch()
+    } catch (err) {
+      console.log(err,"errrrrrrrrr")
+            alert("Error Liking")
+
+    }
+  }
+  const handleFollowed = async (creatorid:any) => {
+    try {
+      const res = await followEventCreator(Number(creatorid)).unwrap();
+      setIsFollowed(true)
+      refetch()
+    } catch (err) {
+      console.log(err,"errrrrrrrrr")
+            alert("Error Following try again")
+
+    }
+  }
   const openMaps = () => {
     const address = encodeURIComponent(`${event?.body?.address}, ${event?.body?.city}, ${event?.body?.country?.name}`);
     const url = `https://www.google.com/maps/search/?api=1&query=${address}`;
     Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
   };
 
-  console.log(event?.body?.sessions, "event")
   return (
     <>
       {isLoading ? <View className="text-white flex-1 bg-background flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
@@ -180,9 +208,52 @@ console.log(event,"eventevent")
               <View className="px-4 pt-4">
                 <Text className="text-white text-2xl font-bold mb-2">{event?.body?.title}</Text>
                 <View className='flex-row justify-between '>
-                  <Text className="text-gray-400 mb-6 flex flex-wrap w-64">{event?.body?.address}</Text>
+                  <Text className="text-gray-400 mb-2 flex flex-wrap w-64">{event?.body?.address}</Text>
                   <Text className='text-white'>{formatDate(event?.body?.start_date)}</Text>
                   </View>
+
+                    {/* Creator section */}
+      <View className=" rounded-b-lg px-2 bords mb-6 border-gray-700">
+       
+      <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center space-x-2">
+            <Image
+              source={{ uri: event?.body?.user?.profile?.image_url || 'https://via.placeholder.com/40' }}
+              className="w-10 h-10 bg-primary border border-gray-100 rounded-full"
+            />
+            <View>
+              <Text className="text-white font-medium">{event?.body?.user?.profile?.name || 'Anonymous'}</Text>
+              <Text className="text-gray-400 text-xs">{event?.body?.user?._count?.follower || '0'} followers</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={()=>handleFollowed(event?.body?.user?.profile?.user_id)} className="bg-primary px-4 py-2 rounded-full">
+           { isfollowLoading?<ActivityIndicator/>:<Text className="text-white font-medium">{isFollow?'Following':'Follow'}</Text>}
+          </TouchableOpacity>
+        </View>
+        {/* Like and comment section */}
+        <View className="flex-row justify-between my-2">
+          <TouchableOpacity onPress={handleLike} className="flex-row items-center space-x-2">
+           { isLikeLoading?<ActivityIndicator/>: !isLiked?<HeartIcon className="text-gray-400" size={20} />:<HeartIcon className="text-red-400" fill={"red"} size={20} />}
+            <Text className="text-gray-400">{event?.body?._count?.eventLikes || 0}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={() => setCommentModalVisible(true)} className="flex-row items-center space-x-2">
+            <MessageSquareIcon className="text-gray-400" size={20} />
+            <Text className="text-gray-400">{event?.comments || 0}</Text>
+          </TouchableOpacity>
+          <CommentModal
+        visible={commentModalVisible}
+        onClose={() => setCommentModalVisible(false)}
+        eventId={Number(id)}
+        userId={userInfo?.sub}
+      />
+          <TouchableOpacity className="flex-row items-center space-x-2">
+            <Share2Icon className="text-gray-400" size={20} />
+            <Text className="text-gray-400">Share</Text>
+          </TouchableOpacity>
+        </View>
+        
+      </View>
                 <View className='bg-gray-800 rounded-lg p-3 mb-2'>
                   <Text className="text-white text-xl font-semibold mb-4">About Event</Text>
                   <Text className="text-gray-400 mb-6">

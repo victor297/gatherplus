@@ -107,6 +107,14 @@ export const userApiSlice = apiSlice.injectEndpoints({
             method: 'DELETE',
           }),
         }),
+        followEventCreator: builder.mutation({     
+          query: (id) => ({
+            url: `${PROFILE_URL}/follow/${id}`,
+            method: "GET",
+    
+          }),
+       
+        }),
     }),
  
 });
@@ -124,5 +132,6 @@ export const {
   useUpdateEmailMutation,
   useUpdatePasswordMutation,
   useDeleteProfileMutation,
+  useFollowEventCreatorMutation,
   
 } = userApiSlice;

@@ -67,7 +67,6 @@ export default function ForgotPassword() {
           {isLoading ? (
             <ActivityIndicator color="white" />
           ) : (
-           
                <View className='flex-row items-center gap-2 justify-center'>
                                           <Text className="text-background  text-center text-lg font-bold"> Recover Account
                                           </Text>

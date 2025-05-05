@@ -127,6 +127,14 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
    
     }),
+    LikeEvent: builder.mutation({     
+      query: (id) => ({
+        url: `${BASE_URL}/event/${id}/like`,
+        method: "GET",
+
+      }),
+   
+    }),
     getMyEvents: builder.query<any,any>({
       query: ({ category_id, state_id, city, type, search, sortBy, sortDirection,page,size } = {}) => {
         const params = new URLSearchParams();
@@ -145,6 +153,32 @@ export const userApiSlice = apiSlice.injectEndpoints({
         };
       },
       
+    }),
+
+    createComment: builder.mutation<any,any>({
+      query: ({data,user_id}) => ({
+        url: `${BASE_URL}/event/${user_id}/comment`,
+        method: "PATCH",
+        body: data,
+      }),
+    }),
+    likeComment: builder.mutation<any,any>({
+      query: ({data,user_id}) => ({
+        url: `${BASE_URL}/event/${user_id}/comment`,
+        method: "PATCH",
+        body: data,
+      }),
+    }),
+
+    getComments: builder.query({
+      query: (event_id) => ({
+        url: `${BASE_URL}/event/${event_id}/comment`,
+      }),
+    }),
+    getReplies: builder.query({
+      query: ({event_id,parent_id}) => ({
+        url: `${BASE_URL}/event/${event_id}/comment/${parent_id}`,
+      }),
     }),
   }),
 
@@ -167,4 +201,6 @@ useGetcategoriesQuery,
   useGetBookingDetailsQuery,
   useDeleteEventMutation,
   useGetMyEventBookingsQuery,
+  useLikeEventMutation,useCreateCommentMutation,useGetCommentsQuery,useGetRepliesQuery,useLikeCommentMutation
+
 } = userApiSlice;

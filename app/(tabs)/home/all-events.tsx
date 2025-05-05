@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, TextInput, Modal, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Search, Bell, Filter, Calendar as CalendarIcon, TimerReset, MapPin, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, Search, Bell, Filter, Calendar as CalendarIcon, TimerReset, MapPin, ChevronDown, Share2Icon, HeartIcon, MessageSquareIcon } from 'lucide-react-native';
 import { useGetcategoriesQuery, useGetEventsQuery, useGetCountriesQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -469,58 +469,62 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
   }
   onEndReached={handleLoadMore}
   onEndReachedThreshold={0.5}
-        renderItem={({ item: event }) => (
-          <TouchableOpacity
-            key={event.id}
-            className="bg-[#1A2432] rounded-lg mb-4"
-            onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
-          >
-            <Image
-              source={{ uri: event?.images?.[0] }}
-              className="w-full h-48 rounded-lg"
-              resizeMode="cover"
-            />
-            <View className="p-4">
-              <View className="flex-row justify-between">
-                <Text className="text-white text-lg font-bold mb-2">
-                  {event?.title}
+  renderItem={({ item: event }) => (
+    <View className="mb-4">
+      <TouchableOpacity
+        key={event.id}
+        className="bg-[#1A2432] rounded-lg"
+        onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
+      >
+        <Image
+          source={{ uri: event?.images?.[0] }}
+          className="w-full h-48 rounded-t-lg"
+          resizeMode="cover"
+        />
+        <View className="p-4">
+          <View className="flex-row justify-between">
+            <Text className="text-white text-lg font-bold mb-2">
+              {event?.title}
+            </Text>
+            <View className="flex-row items-center">
+              <Text className="text-amber-400 mr-2">★</Text>
+              <Text className="text-gray-400 font-semibold">
+                {event?.likes} interested
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row items-center justify-between">
+            <View className="flex-col">
+              <View className="flex flex-row gap-2 items-center">
+                <CalendarIcon className="text-gray-400" size={20} />
+                <Text className="text-gray-400 text-sm">
+                  {formatDate(event?.start_date).toString()}
                 </Text>
-                <View className="flex-row items-center">
-                  <Text className="text-amber-400 mr-2">★</Text>
-                  <Text className="text-gray-400 font-semibold">
-                    {event?.likes} interested
-                  </Text>
-                </View>
               </View>
-
-              <View className="flex-row items-center justify-between">
-                <View className="flex-col">
-                  <View className="flex flex-row gap-2 items-center">
-                    <CalendarIcon className="text-gray-400" size={20} />
-                    <Text className="text-gray-400 text-sm">
-                      {formatDate(event?.start_date).toString()}
-                    </Text>
-                  </View>
-                  <View className="flex flex-row gap-2 mt-1 items-center">
-                    <TimerReset className="text-gray-400" size={24} />
-                    <Text className="text-gray-400 text-sm">{event?.time}</Text>
-                  </View>
-                </View>
-
-                <View className="mt-2">
-                  {event?.is_free ? (
-                    <Text className="text-primary text-lg font-semibold">Free</Text>
-                  ) : (
-                    <Text className="text-primary text-lg font-semibold">
-                      {event?.currency?.split(' - ')[0] || '₦'} {event?.price}
-                    </Text>
-                  )}
-                </View>
+              <View className="flex flex-row gap-2 mt-1 items-center">
+                <TimerReset className="text-gray-400" size={24} />
+                <Text className="text-gray-400 text-sm">{event?.time}</Text>
               </View>
             </View>
-          </TouchableOpacity>
-        )}
-      />
+
+            <View className="mt-2">
+              {event?.is_free ? (
+                <Text className="text-primary text-lg font-semibold">Free</Text>
+              ) : (
+                <Text className="text-primary text-lg font-semibold">
+                  {event?.currency?.split(' - ')[0] || '₦'} {event?.price}
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+    
+    </View>
+  )}
+/>
     </View>
   );
 }
