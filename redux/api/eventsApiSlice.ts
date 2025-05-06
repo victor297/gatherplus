@@ -158,7 +158,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
     createComment: builder.mutation<any,any>({
       query: ({data,user_id}) => ({
         url: `${BASE_URL}/event/${user_id}/comment`,
-        method: "PATCH",
+        method: "POST",
         body: data,
       }),
     }),

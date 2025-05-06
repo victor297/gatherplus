@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Alert, Modal, FlatList, Pressable, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Alert, Modal, FlatList, Pressable, Switch, Platform, KeyboardAvoidingView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, X } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
@@ -56,19 +56,27 @@ export default function TicketingScreen() {
 
   // Function to validate the form
   const validateForm = () => {
-    if (eventType === 'free') {
+    if (eventType === 'ticketed') {
       // For free events, we just need at least one ticket with a name and quantity
       let isValid = true;
       
       if (tickets.length === 0) {
         isValid = false;
       }
-      
+      if (!currency) {
+        isValid = false;
+      }
       tickets.forEach(ticket => {
         if (!ticket.name || !ticket.quantity) {
           isValid = false;
         }
       });
+      tickets.forEach(ticket => {
+        if (!ticket.name || !ticket.price || !ticket.quantity || !ticket.seat_type) {
+          isValid = false;
+        }
+      });
+  
       
       setIsFormValid(isValid);
       return;
@@ -78,22 +86,15 @@ export default function TicketingScreen() {
     let isValid = true;
 
     // Check currency is selected
-    if (!currency) {
-      isValid = false;
-    }
+  
 
     // Check at least one ticket exists
-    if (tickets.length === 0) {
-      isValid = false;
-    }
+    // if (tickets.length === 0) {
+    //   isValid = false;
+    // }
 
     // Check each ticket has required fields
-    tickets.forEach(ticket => {
-      if (!ticket.name || !ticket.price || !ticket.quantity || !ticket.seat_type) {
-        isValid = false;
-      }
-    });
-
+  
     setIsFormValid(isValid);
   };
 
@@ -172,7 +173,8 @@ export default function TicketingScreen() {
   };
 
   return (
-    <View className="flex-1 bg-background">
+           <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
             <ArrowLeft color="white" size={24} />
@@ -474,6 +476,6 @@ export default function TicketingScreen() {
           <Text className="text-background text-center font-semibold">Save and Continue</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

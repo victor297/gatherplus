@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, ActivityIndicator, Image, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, ChevronDown } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
 import { useGetcategoriesQuery, useGetCountriesQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 
 interface Participant {
   label: string;
@@ -289,7 +290,8 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
   }
 
   return (
-    <View className="flex-1 bg-background">
+    <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.replace('/home/home1')} className="mr-4 bg-[#1A2432] p-2 rounded-full">
             <ArrowLeft color="white" size={24} />
@@ -478,7 +480,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
 
     {/* Participants Section */}
     <View className="mt-4">
-      <Text className="text-white text-lg font-bold mb-3">Participants</Text>
+      <Text className="text-white text-lg font-bold mb-3">Presenter/Host</Text>
       
       {session.participants.map((participant: any, participantIndex: number) => (
         <View key={participantIndex} className="bg-[#1A2432] p-4 rounded-lg mb-4 border border-gray-700">
@@ -504,7 +506,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
           
           <TextInput
             className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-3"
-            placeholder="Participant Name"
+            placeholder="Presenter Name"
             placeholderTextColor="#6B7280"
             value={participant.name}
             onChangeText={(text) => updateParticipant(sessionIndex, participantIndex, 'name', text)}
@@ -530,7 +532,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
           
           {/* Image Upload Section */}
           <View className="mt-3">
-            <Text className="text-white mb-2">Participant Image</Text>
+            <Text className="text-white mb-2">Presenter Image</Text>
             
             {participant.image ? (
               <View className="items-center">
@@ -583,7 +585,7 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
         onPress={() => addParticipant(sessionIndex)} 
         className="flex-row items-center justify-center bg-[#1A2432] p-3 rounded-lg border border-primary/50 mb-4"
       >
-        <Text className="text-primary font-bold">+ Add Participant</Text>
+        <Text className="text-primary font-bold">+ Add Presenter</Text>
       </TouchableOpacity>
     </View>
   </View>
@@ -878,6 +880,6 @@ const pickImage = async (sessionIndex: number, participantIndex: number) => {
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

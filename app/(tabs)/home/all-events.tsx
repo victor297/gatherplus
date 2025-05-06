@@ -213,7 +213,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
               </TouchableOpacity>
             </View>
 
-            <ScrollView>
+            <ScrollView nestedScrollEnabled={true} >
               {/* Location Filters */}
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Location</Text>
@@ -238,6 +238,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
                         <FlatList
                           data={countries}
                           keyExtractor={(item) => item.code2}
+                          nestedScrollEnabled={true} 
                           renderItem={({ item }) => (
                             <TouchableOpacity
                               className="p-3 border-b border-[#1A2432]"
@@ -276,6 +277,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
                         ) : (
                           <FlatList
                             data={states}
+                            nestedScrollEnabled={true} 
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={({ item }) => (
                               <TouchableOpacity
@@ -414,7 +416,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 h-12 mb-2">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled={true}  className="px-4 h-12 mb-2">
         {isCategoriesLoading ? (
           <View className="text-white flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
         ) : upcomingError ? (
@@ -447,6 +449,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
       {/* Events List */}
       <FlatList
   data={allEvents}
+  nestedScrollEnabled={true} 
   keyExtractor={(item,index) => index.toString()}
   contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
   ListEmptyComponent={() => (

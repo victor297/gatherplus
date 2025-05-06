@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, ActivityIndicator, Image, KeyboardAvoidingView } from 'react-native';
 import { useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, ChevronDown } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
 import { useGetcategoriesQuery, useGetCountriesQuery, useGetStatesQuery, useGetEventQuery } from '@/redux/api/eventsApiSlice';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { useSelector } from 'react-redux';
+import { Platform } from 'react-native';
 
 interface Participant {
   id?: string;
@@ -34,9 +36,10 @@ export default function UpdateEventScreen() {
   const [selectedState, setSelectedState] = useState<any>(null);
   const [isFormValid, setIsFormValid] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const { userInfo } = useSelector((state: any) => state.auth);
 
 
-  const { data: event, isLoading: eventLoading, error: eventError } = useGetEventQuery({ id: eventId }, {
+  const { data: event, isLoading: eventLoading, error: eventError } = useGetEventQuery({ id: eventId,user_id:userInfo?.sub }, {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
   }
@@ -359,7 +362,7 @@ export default function UpdateEventScreen() {
       Alert.alert('Error', 'Failed to fetch required data. Please try again.');
     }
   }, [categoriesError, countryError, stateError]);
-
+console.log(event,"eventevent")
   if (isLoadingData || !formData) {
     return (
       <View className="flex-1 bg-background justify-center items-center">
@@ -369,7 +372,8 @@ export default function UpdateEventScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background">
+       <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity onPress={() => router.replace(`/(tabs)/profile/${eventId}/myeventdetails`)} className="mr-4 bg-[#1A2432] p-2 rounded-full">
           <ArrowLeft color="white" size={24} />
@@ -532,7 +536,7 @@ export default function UpdateEventScreen() {
                 </View>
 
                 <View className="mt-4">
-                  <Text className="text-white text-lg font-bold mb-3">Participants</Text>
+                  <Text className="text-white text-lg font-bold mb-3">Presenter/Host</Text>
 
                   {session.participants.map((participant: any, participantIndex: number) => (
                     <View key={participantIndex} className="bg-[#1A2432] p-4 rounded-lg mb-4 border border-gray-700">
@@ -584,7 +588,7 @@ export default function UpdateEventScreen() {
 
                       {/* Image Upload Section */}
                       <View className="mt-3">
-                        <Text className="text-white mb-2">Participant Image</Text>
+                        <Text className="text-white mb-2">Presenter Image</Text>
 
                         {participant.image ? (
                           <View className="items-center">
@@ -636,7 +640,7 @@ export default function UpdateEventScreen() {
                     onPress={() => addParticipant(sessionIndex)}
                     className="flex-row items-center justify-center bg-[#1A2432] p-3 rounded-lg border border-primary/50 mb-4"
                   >
-                    <Text className="text-primary font-bold">+ Add Participant</Text>
+                    <Text className="text-primary font-bold">+ Add Presenter</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -934,6 +938,6 @@ export default function UpdateEventScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

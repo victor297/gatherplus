@@ -198,7 +198,7 @@ export default function ExploreScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView>
+            <ScrollView nestedScrollEnabled={true} >
               {/* Location Filters */}
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Location</Text>
@@ -222,6 +222,7 @@ export default function ExploreScreen() {
                       ) : (
                         <FlatList
                           data={countries}
+                          nestedScrollEnabled={true} 
                           keyExtractor={(item) => item.code2}
                           renderItem={({ item }) => (
                             <TouchableOpacity
@@ -261,6 +262,7 @@ export default function ExploreScreen() {
                         ) : (
                           <FlatList
                             data={states}
+                            nestedScrollEnabled={true} 
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={({ item }) => (
                               <TouchableOpacity
@@ -399,7 +401,7 @@ export default function ExploreScreen() {
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 h-12 mb-2">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled={true}  className="px-4 h-12 mb-2">
         {isUpcomingLoading || isFetching ? (
           <View className="text-white flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
         ) : upcomingError ? (
@@ -431,6 +433,7 @@ export default function ExploreScreen() {
       {/* Events List */}
       <FlatList
         data={allEvents}
+        nestedScrollEnabled={true} 
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
         ListEmptyComponent={() => (
