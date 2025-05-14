@@ -13,10 +13,10 @@ import { useSelector } from 'react-redux';
 export default function OrderSummaryScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
-  const bookingData = JSON.parse(data as string);
+  const bookingData = JSON.parse(data as string); 
     const { userInfo } = useSelector((state: any) => state.auth);
   const [createBooking, { isLoading: isBookmarkLoading }] = useCreateBookingMutation();
-  console.log(bookingData,"bookingData")
+  console.log(bookingData,"bookingData1s")
   // Payment states
   const [paymentResponse, setPaymentResponse] = useState<any>(null);
   const [selectedChannel, setSelectedChannel] = useState<"Stripe" | "PayStack" | null>(null);
@@ -68,6 +68,7 @@ export default function OrderSummaryScreen() {
     // If total is zero, skip payment gateway and directly submit
     if (total === 0) {
       try {
+        console.log(bookingData,"booking")
         const response = await createBooking({
           ...bookingData,
           channel: "Free",    user_id: userInfo?.sub
@@ -194,7 +195,7 @@ export default function OrderSummaryScreen() {
                     <Text className="text-sm text-gray-500">{booking.email}</Text>
                   </View>
                   <Text className="text-white font-bold text-sm bg-blue-600 p-1 rounded-full">
-                    {booking?.price == 0 ? 'Free' : `${bookingData?.currency?.split(' - ')[0]} ${booking.price.toLocaleString()}`}
+                    {booking?.price == 0 ? 'Free' : `${bookingData?.currency?.split(' - ')[0]} ${booking?.price?.toLocaleString()}`}
                   </Text>
                 </View>
               </View>

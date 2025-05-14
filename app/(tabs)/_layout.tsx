@@ -17,16 +17,19 @@ export default function TabLayout() {
   return (
     <Tabs
       initialRouteName="home"
+      
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-backgroundColor: '#020E1E',
-
+          backgroundColor: '#020E1E',
           borderTopColor: '#1A2432',
-          height: 52, 
+          height: 55, 
           paddingBottom: 28,
-          borderTopWidth:0
+          borderTopWidth:0,
+          ...(pathname === "/create" ? {display:"none"} : {display:"flex"}),
+          
         },
+  
         tabBarActiveTintColor: '#9EDD45',
         tabBarInactiveTintColor: '#6B7280',
       }}

@@ -1,11 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, TextInput, Modal, FlatList } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Search, Bell, Filter, Calendar as CalendarIcon, TimerReset, MapPin, ChevronDown } from 'lucide-react-native';
-import { useGetcategoriesQuery, useGetEventsQuery, useGetCountriesQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
-import { formatDate } from '@/utils/formatDate';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import * as Location from 'expo-location';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  TextInput,
+  Modal,
+  FlatList,
+} from "react-native";
+import { useRouter } from "expo-router";
+import {
+  ArrowLeft,
+  Search,
+  Bell,
+  Filter,
+  Calendar as CalendarIcon,
+  TimerReset,
+  MapPin,
+  ChevronDown,
+} from "lucide-react-native";
+import {
+  useGetcategoriesQuery,
+  useGetEventsQuery,
+  useGetCountriesQuery,
+  useGetStatesQuery,
+} from "@/redux/api/eventsApiSlice";
+import { formatDate } from "@/utils/formatDate";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Location from "expo-location";
 
 interface Country {
   code2: string;
@@ -29,7 +53,7 @@ export default function ExploreScreen() {
   const [allEvents, setAllEvents] = useState<any>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -40,14 +64,21 @@ export default function ExploreScreen() {
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [showStateDropdown, setShowStateDropdown] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationDetermined, setLocationDetermined] = useState(false);
 
   // API Queries
-  const { data: categories, isLoading: isCategoriesLoading } = useGetcategoriesQuery({});
-  const { data: countriesResponse, isLoading: isCountriesLoading } = useGetCountriesQuery({});
-  const { data: statesResponse, isLoading: isStatesLoading } = useGetStatesQuery(selectedCountry?.code2 || '', {
-    skip: !selectedCountry?.code2
-  });
-  console.log(allEvents?.[0]?.id, "allEvents")
+  const {
+    data: categories,
+    isLoading: isCategoriesLoading,
+    error: catError,
+  } = useGetcategoriesQuery({});
+  const { data: countriesResponse, isLoading: isCountriesLoading } =
+    useGetCountriesQuery({});
+  const { data: statesResponse, isLoading: isStatesLoading } =
+    useGetStatesQuery(selectedCountry?.code2 || "", {
+      skip: !selectedCountry?.code2,
+    });
+  console.log(allEvents?.[0]?.id, "allEvents");
   const countries = countriesResponse?.body || [];
   const states = statesResponse?.body || [];
 
@@ -56,64 +87,81 @@ export default function ExploreScreen() {
     error: upcomingError,
     isLoading: isUpcomingLoading,
     isFetching,
-    refetch: refetchUpcoming
+    refetch: refetchUpcoming,
   } = useGetEventsQuery({
     city: city || null,
     country_code: selectedCountry?.code2 || null,
     state_id: selectedState?.id || null,
-    type: "LIVE",  
+    type: "LIVE",
     category_id: selectedCategory,
     search: searchTerm,
     page,
     size,
     sortBy,
     sortDirection,
-    start_date: startDate?.toISOString().split('T')[0],
-    end_date: endDate?.toISOString().split('T')[0],
+    start_date: startDate?.toISOString().split("T")[0],
+    end_date: endDate?.toISOString().split("T")[0],
   });
 
   // Get user's current location on mount
-  useEffect(() => {
-    const getLocation = async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setLocationError('Permission denied. Enable location services in settings.');
-          return;
-        }
+  // useEffect(() => {
+  //   const getLocation = async () => {
+  //     try {
+  //       let { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== "granted") {
+  //         setLocationError(
+  //           "Permission denied. Enable location services in settings."
+  //         );
+  //         setLocationDetermined(true); // Mark as determined even if failed
+  //         return;
+  //       }
 
-        let loc = await Location.getCurrentPositionAsync({});
-        let reverseGeocode = await Location.reverseGeocodeAsync(loc.coords);
+  //       let loc = await Location.getCurrentPositionAsync({});
+  //       let reverseGeocode = await Location.reverseGeocodeAsync(loc.coords);
 
-        if (reverseGeocode.length > 0) {
-          const { city: geoCity, country, isoCountryCode } = reverseGeocode[0];
-          setCity(geoCity || "");
+  //       if (reverseGeocode.length > 0) {
+  //         const { city: geoCity, country, isoCountryCode } = reverseGeocode[0];
+  //         setCity(geoCity || "");
 
-          // Find matching country in our list
-          const matchedCountry = countries.find((c: Country) =>
-            c.code2 === isoCountryCode || c.name === country
-          );
+  //         // Find matching country in our list
+  //         const matchedCountry = countries.find(
+  //           (c: Country) => c.code2 === isoCountryCode || c.name === country
+  //         );
 
-          if (matchedCountry) {
-            setSelectedCountry(matchedCountry);
-          }
-        }
-      } catch (error) {
-        console.error("Location error:", error);
-        setLocationError('Failed to get location. You can set location manually.');
-      }
-    };
+  //         if (matchedCountry) {
+  //           setSelectedCountry(matchedCountry);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("Location error:", error);
+  //       setLocationError(
+  //         "Failed to get location. You can set location manually."
+  //       );
+  //     } finally {
+  //       setLocationDetermined(true); // Mark as determined whether success or fail
+  //     }
+  //   };
 
-    if (countries.length > 0) {
-      getLocation();
-    }
-  }, [countries]);
+  //   if (countries.length > 0) {
+  //     getLocation();
+  //   }
+  // }, [countries]);
 
   // Reset page and clear events when filters change
   useEffect(() => {
     setPage(1);
     setAllEvents([]);
-  }, [selectedCategory, searchTerm, sortBy, sortDirection, startDate, endDate, city, selectedCountry, selectedState]);
+  }, [
+    selectedCategory,
+    searchTerm,
+    sortBy,
+    sortDirection,
+    startDate,
+    endDate,
+    city,
+    selectedCountry,
+    selectedState,
+  ]);
 
   // Append new events when data is loaded
   useEffect(() => {
@@ -121,7 +169,10 @@ export default function ExploreScreen() {
       if (page === 1) {
         setAllEvents(upcoming?.body?.events?.result);
       } else {
-        setAllEvents((prev: any) => [...prev, ...upcoming?.body?.events?.result]);
+        setAllEvents((prev: any) => [
+          ...prev,
+          ...upcoming?.body?.events?.result,
+        ]);
       }
     }
   }, [upcoming]);
@@ -133,21 +184,21 @@ export default function ExploreScreen() {
   };
 
   const toggleSortDirection = () => {
-    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
   const handleSortByPrice = () => {
-    if (sortBy === 'price') {
+    if (sortBy === "price") {
       toggleSortDirection();
     } else {
-      setSortBy('price');
-      setSortDirection('asc');
+      setSortBy("price");
+      setSortDirection("asc");
     }
   };
 
   const clearFilters = () => {
     setSortBy(null);
-    setSortDirection('asc');
+    setSortDirection("asc");
     setStartDate(null);
     setEndDate(null);
     setSelectedCountry(null);
@@ -167,7 +218,10 @@ export default function ExploreScreen() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-12 pb-4">
         <View className="flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="mr-4 bg-[#1A2432] p-2 rounded-full"
+          >
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
           <Text className="text-white text-xl font-semibold">Explore</Text>
@@ -198,7 +252,7 @@ export default function ExploreScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView nestedScrollEnabled={true} >
+            <ScrollView nestedScrollEnabled={true}>
               {/* Location Filters */}
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Location</Text>
@@ -210,7 +264,7 @@ export default function ExploreScreen() {
                     onPress={() => setShowCountryDropdown(!showCountryDropdown)}
                   >
                     <Text className="text-white">
-                      {selectedCountry?.name || 'Select Country'}
+                      {selectedCountry?.name || "Select Country"}
                     </Text>
                     <ChevronDown color="#6B7280" size={20} />
                   </TouchableOpacity>
@@ -218,11 +272,11 @@ export default function ExploreScreen() {
                   {showCountryDropdown && (
                     <View className="mt-2 bg-[#2A3647] rounded-lg max-h-40">
                       {isCountriesLoading ? (
-                        <ActivityIndicator color="#9EDD45"  className="py-2" />
+                        <ActivityIndicator color="#9EDD45" className="py-2" />
                       ) : (
                         <FlatList
                           data={countries}
-                          nestedScrollEnabled={true} 
+                          nestedScrollEnabled={true}
                           keyExtractor={(item) => item.code2}
                           renderItem={({ item }) => (
                             <TouchableOpacity
@@ -250,7 +304,7 @@ export default function ExploreScreen() {
                       onPress={() => setShowStateDropdown(!showStateDropdown)}
                     >
                       <Text className="text-white">
-                        {selectedState?.name || 'Select State'}
+                        {selectedState?.name || "Select State"}
                       </Text>
                       <ChevronDown color="#6B7280" size={20} />
                     </TouchableOpacity>
@@ -262,7 +316,7 @@ export default function ExploreScreen() {
                         ) : (
                           <FlatList
                             data={states}
-                            nestedScrollEnabled={true} 
+                            nestedScrollEnabled={true}
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={({ item }) => (
                               <TouchableOpacity
@@ -295,7 +349,9 @@ export default function ExploreScreen() {
                 </View>
 
                 {locationError && (
-                  <Text className="text-red-500 text-sm mb-2">{locationError}</Text>
+                  <Text className="text-red-500 text-sm mb-2">
+                    {locationError}
+                  </Text>
                 )}
               </View>
 
@@ -307,9 +363,9 @@ export default function ExploreScreen() {
                   onPress={handleSortByPrice}
                 >
                   <Text className="text-white">Price</Text>
-                  {sortBy === 'price' && (
+                  {sortBy === "price" && (
                     <Text className="text-primary">
-                      {sortDirection === 'asc' ? 'Low to High' : 'High to Low'}
+                      {sortDirection === "asc" ? "Low to High" : "High to Low"}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -324,7 +380,7 @@ export default function ExploreScreen() {
                   onPress={() => setShowStartDatePicker(true)}
                 >
                   <Text className="text-white">
-                    {startDate ? formatDate(startDate) : 'Start Date'}
+                    {startDate ? formatDate(startDate) : "Start Date"}
                   </Text>
                   <CalendarIcon color="#6B7280" size={20} />
                 </TouchableOpacity>
@@ -334,7 +390,7 @@ export default function ExploreScreen() {
                   onPress={() => setShowEndDatePicker(true)}
                 >
                   <Text className="text-white">
-                    {endDate ? formatDate(endDate) : 'End Date'}
+                    {endDate ? formatDate(endDate) : "End Date"}
                   </Text>
                   <CalendarIcon color="#6B7280" size={20} />
                 </TouchableOpacity>
@@ -401,22 +457,36 @@ export default function ExploreScreen() {
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled={true}  className="px-4 h-12 mb-2">
-        {isUpcomingLoading || isFetching ? (
-          <View className="text-white flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
-        ) : upcomingError ? (
-          <Text className="text-red-500 text-center py-4">Failed to load data. Please try again.</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        className="px-4 h-12 mb-2"
+      >
+        {isCategoriesLoading ? (
+          <View className="text-white mx-auto flex justify-center items-center py-4">
+            <ActivityIndicator color="#9EDD45" />
+          </View>
+        ) : catError ? (
+          <Text className="text-red-500 text-center py-4">
+            Failed to load data. Please try again.
+          </Text>
         ) : (
-          [{ id: null, name: "All" }, ...(categories?.body || [])].map((category) => (
-            <TouchableOpacity
-              key={category.id || 'all'}
-              onPress={() => setSelectedCategory(category.id)}
-              className={`max-h-8 px-6 py-2 rounded-full mr-3 ${selectedCategory === category.id ? 'bg-primary' : 'bg-[#1A2432]'
+          [{ id: null, name: "All" }, ...(categories?.body || [])].map(
+            (category) => (
+              <TouchableOpacity
+                key={category.id || "all"}
+                onPress={() => setSelectedCategory(category.id)}
+                className={`max-h-8 px-6 py-2 rounded-full mr-3 ${
+                  selectedCategory === category.id
+                    ? "bg-primary"
+                    : "bg-[#1A2432]"
                 }`}
-            >
-              <Text className="text-white">{category.name}</Text>
-            </TouchableOpacity>
-          ))
+              >
+                <Text className="text-white">{category.name}</Text>
+              </TouchableOpacity>
+            )
+          )
         )}
       </ScrollView>
 
@@ -425,7 +495,9 @@ export default function ExploreScreen() {
         <View className="px-4 mb-2 flex-row flex  justify-center items-center">
           <MapPin size={16} color="#6B7280" />
           <Text className="text-gray-400 ml-1">
-            {[city, selectedState?.name, selectedCountry?.name].filter(Boolean).join(', ')}
+            {[city, selectedState?.name, selectedCountry?.name]
+              .filter(Boolean)
+              .join(", ")}
           </Text>
         </View>
       )}
@@ -433,16 +505,20 @@ export default function ExploreScreen() {
       {/* Events List */}
       <FlatList
         data={allEvents}
-        nestedScrollEnabled={true} 
+        nestedScrollEnabled={true}
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
         ListEmptyComponent={() => (
           <View className="flex-1 bg-background justify-center items-center py-8">
-            <Text className="text-gray-400 text-lg">
-              {isUpcomingLoading ? <View className="py-4 flex justify-center items-center">
-              <ActivityIndicator color="#9EDD45" />
-            </View> : 'No events found'}
-            </Text>
+            {isUpcomingLoading ? (
+              <View className="py-4 flex justify-center items-center">
+                <ActivityIndicator color="#9EDD45" />
+              </View>
+            ) : allEvents.length === 0 ? (
+              <Text className="text-gray-400 text-lg">
+                No events found for location. Kindly adjust filter
+              </Text>
+            ) : null}
           </View>
         )}
         ListFooterComponent={() =>
@@ -466,7 +542,9 @@ export default function ExploreScreen() {
               resizeMode="cover"
             />
             <View className="p-4">
-              <Text className="text-white text-xl font-semibold">{event.title}</Text>
+              <Text className="text-white text-xl font-semibold">
+                {event.title}
+              </Text>
               <Text className="text-gray-400 mb-4">
                 {event?.address?.length > 25
                   ? `${event.address.slice(0, 25)}...`
@@ -477,13 +555,17 @@ export default function ExploreScreen() {
                   {[1, 2, 3].map((avatar) => (
                     <Image
                       key={`avatar-${avatar}`}
-                      source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde' }}
+                      source={{
+                        uri: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+                      }}
                       className="w-8 h-8 rounded-full border-2 border-[#1A2432] -ml-2 first:ml-0"
                     />
                   ))}
                 </View>
                 <TouchableOpacity className="bg-primary px-6 py-2 rounded-full">
-                  <Text className="text-background font-semibold">Join now</Text>
+                  <Text className="text-background font-semibold">
+                    Join now
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

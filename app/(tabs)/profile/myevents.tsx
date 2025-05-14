@@ -80,9 +80,9 @@ console.log(upcoming,"upcoming")
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 h-12 mb-2">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 mx-auto h-12 mb-2">
         {isupcomingLoading||isLoading ? (
-          <View className="text-white flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
+          <View className="text-white flex justify-center mx-auto items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
         ) : upcomingError ? (
           <Text className="text-red-500 text-center py-4">Failed to load data. Please try again. {upcomingError?.data?.message}</Text>
         ) : [{ id: null, name: "All" }, ...(categories?.body || [])].map((category, index) => (
@@ -101,13 +101,18 @@ console.log(upcoming,"upcoming")
   keyExtractor={(item,index) => index.toString()}
   contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
   ListEmptyComponent={() => (
-    <View className="flex-1 bg-background justify-center items-center py-8">
-      <Text className="text-gray-400 text-lg">No event under selected category</Text>
-    </View>
+   
+     <View className="flex-1 bg-background justify-center items-center py-8">
+                    <Text className="text-gray-400 text-lg">
+                      {isupcomingLoading || !allEvents? <View className="py-4 flex justify-center items-center">
+                      <ActivityIndicator color="#9EDD45" />
+                    </View> : 'No event under selected category'}
+                    </Text>
+                  </View>
   )}
   ListFooterComponent={() =>
     isFetching && page > 1 ? (
-      <View className="py-4 flex justify-center items-center">
+      <View className="py-4 flex justify-center mx-auto items-center">
         <ActivityIndicator color="#9EDD45" />
         </View>
     ) : null

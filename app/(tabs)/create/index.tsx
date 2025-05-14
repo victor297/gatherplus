@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, ActivityIndicator, Image, KeyboardAvoidingView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, ChevronDown } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
 import { useGetcategoriesQuery, useGetCountriesQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
@@ -55,7 +55,8 @@ export default function CreateEventScreen() {
     ticketed: true,
     tickets: [],
   });
-
+  const pathname = usePathname();
+console.log(pathname,"path")
   const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useGetcategoriesQuery({});
   const { data: countryData, isLoading: countryLoading, error: countryError } = useGetCountriesQuery({});
   const { data: stateData, isLoading: stateLoading, error: stateError } = useGetStatesQuery(selectedCountry?.code2, {

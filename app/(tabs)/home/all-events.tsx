@@ -1,11 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, TextInput, Modal, FlatList } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Search, Bell, Filter, Calendar as CalendarIcon, TimerReset, MapPin, ChevronDown, Share2Icon, HeartIcon, MessageSquareIcon } from 'lucide-react-native';
-import { useGetcategoriesQuery, useGetEventsQuery, useGetCountriesQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
-import { formatDate } from '@/utils/formatDate';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import * as Location from 'expo-location';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  TextInput,
+  Modal,
+  FlatList,
+} from "react-native";
+import { useRouter } from "expo-router";
+import {
+  ArrowLeft,
+  Search,
+  Bell,
+  Filter,
+  Calendar as CalendarIcon,
+  TimerReset,
+  MapPin,
+  ChevronDown,
+  Share2Icon,
+  HeartIcon,
+  MessageSquareIcon,
+} from "lucide-react-native";
+import {
+  useGetcategoriesQuery,
+  useGetEventsQuery,
+  useGetCountriesQuery,
+  useGetStatesQuery,
+} from "@/redux/api/eventsApiSlice";
+import { formatDate } from "@/utils/formatDate";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Location from "expo-location";
 
 interface Country {
   code2: string;
@@ -27,7 +54,7 @@ export default function ExploreScreen() {
   const [allEvents, setAllEvents] = useState<any>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -40,78 +67,98 @@ export default function ExploreScreen() {
   const [locationError, setLocationError] = useState<string | null>(null);
 
   // API Queries
-  const { data: categories, isLoading: isCategoriesLoading } = useGetcategoriesQuery({});
-  const { data: countriesResponse, isLoading: isCountriesLoading } = useGetCountriesQuery({});
-  const { data: statesResponse, isLoading: isStatesLoading } = useGetStatesQuery(selectedCountry?.code2 || '', {
-    skip: !selectedCountry?.code2
-  });
+  const {
+    data: categories,
+    isLoading: isCategoriesLoading,
+    error: catError,
+  } = useGetcategoriesQuery({});
+  const { data: countriesResponse, isLoading: isCountriesLoading } =
+    useGetCountriesQuery({});
+  const { data: statesResponse, isLoading: isStatesLoading } =
+    useGetStatesQuery(selectedCountry?.code2 || "", {
+      skip: !selectedCountry?.code2,
+    });
 
   const countries = countriesResponse?.body || [];
   const states = statesResponse?.body || [];
 
-  const { 
-    data: upcoming, 
-    error: upcomingError, 
-    isLoading: isUpcomingLoading, 
-    isFetching, 
-    refetch: refetchUpcoming 
+  const {
+    data: upcoming,
+    error: upcomingError,
+    isLoading: isUpcomingLoading,
+    isFetching,
+    refetch: refetchUpcoming,
   } = useGetEventsQuery({
     city: city || null,
     country_code: selectedCountry?.code2 || null,
     state_id: selectedState?.id || null,
-    type: "UPCOMING",  
+    type: "UPCOMING",
     category_id: selectedCategory,
     search: searchTerm,
     page,
     size,
     sortBy,
     sortDirection,
-    start_date: startDate?.toISOString().split('T')[0],
-    end_date: endDate?.toISOString().split('T')[0],
+    start_date: startDate?.toISOString().split("T")[0],
+    end_date: endDate?.toISOString().split("T")[0],
   });
-console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
+  console.log(selectedCountry?.code2, allEvents, "selectedCountry?.code2");
   // Get user's current location on mount
-  useEffect(() => {
-    const getLocation = async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setLocationError('Permission denied. Enable location services in settings.');
-          return;
-        }
+  // useEffect(() => {
+  //   const getLocation = async () => {
+  //     try {
+  //       let { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== "granted") {
+  //         setLocationError(
+  //           "Permission denied. Enable location services in settings."
+  //         );
+  //         return;
+  //       }
 
-        let loc = await Location.getCurrentPositionAsync({});
-        let reverseGeocode = await Location.reverseGeocodeAsync(loc.coords);
-        
-        if (reverseGeocode.length > 0) {
-          const { city: geoCity, country, isoCountryCode } = reverseGeocode[0];
-          setCity(geoCity || "");
-          
-          // Find matching country in our list
-          const matchedCountry = countries.find((c: Country) => 
-            c.code2 === isoCountryCode || c.name === country
-          );
-          
-          if (matchedCountry) {
-            setSelectedCountry(matchedCountry);
-          }
-        }
-      } catch (error) {
-        console.error("Location error:", error);
-        setLocationError('Failed to get location. You can set location manually.');
-      }
-    };
+  //       let loc = await Location.getCurrentPositionAsync({});
+  //       let reverseGeocode = await Location.reverseGeocodeAsync(loc.coords);
 
-    if (countries.length > 0) {
-      getLocation();
-    }
-  }, [countries]);
+  //       if (reverseGeocode.length > 0) {
+  //         const { city: geoCity, country, isoCountryCode } = reverseGeocode[0];
+  //         setCity(geoCity || "");
+
+  //         // Find matching country in our list
+  //         const matchedCountry = countries.find(
+  //           (c: Country) => c.code2 === isoCountryCode || c.name === country
+  //         );
+
+  //         if (matchedCountry) {
+  //           setSelectedCountry(matchedCountry);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("Location error:", error);
+  //       setLocationError(
+  //         "Failed to get location. You can set location manually."
+  //       );
+  //     }
+  //   };
+
+  //   if (countries.length > 0) {
+  //     getLocation();
+  //   }
+  // }, [countries]);
 
   // Reset page and clear events when filters change
   useEffect(() => {
     setPage(1);
     setAllEvents([]);
-  }, [selectedCategory, searchTerm, sortBy, sortDirection, startDate, endDate, city, selectedCountry, selectedState]);
+  }, [
+    selectedCategory,
+    searchTerm,
+    sortBy,
+    sortDirection,
+    startDate,
+    endDate,
+    city,
+    selectedCountry,
+    selectedState,
+  ]);
 
   // Append new events when data is loaded
   useEffect(() => {
@@ -129,9 +176,11 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
         setAllEvents(upcoming.body.events.result);
       } else {
         // Only append new events if they don't already exist
-        setAllEvents((prev:any) => {
-          const existingIds = new Set(prev.map((event:any) => event.id));
-          const newEvents = upcoming.body.events.result.filter((event:any) => !existingIds.has(event.id));
+        setAllEvents((prev: any) => {
+          const existingIds = new Set(prev.map((event: any) => event.id));
+          const newEvents = upcoming.body.events.result.filter(
+            (event: any) => !existingIds.has(event.id)
+          );
           return [...prev, ...newEvents];
         });
       }
@@ -148,21 +197,21 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
   };
 
   const toggleSortDirection = () => {
-    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
   const handleSortByPrice = () => {
-    if (sortBy === 'price') {
+    if (sortBy === "price") {
       toggleSortDirection();
     } else {
-      setSortBy('price');
-      setSortDirection('asc');
+      setSortBy("price");
+      setSortDirection("asc");
     }
   };
 
   const clearFilters = () => {
     setSortBy(null);
-    setSortDirection('asc');
+    setSortDirection("asc");
     setStartDate(null);
     setEndDate(null);
     setSelectedCountry(null);
@@ -182,10 +231,15 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-12 pb-4">
         <View className="flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
-                    <ArrowLeft color="white" size={24} />
-                  </TouchableOpacity>
-          <Text className="text-white text-xl font-semibold">Upcoming Events</Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="mr-4 bg-[#1A2432] p-2 rounded-full"
+          >
+            <ArrowLeft color="white" size={24} />
+          </TouchableOpacity>
+          <Text className="text-white text-xl font-semibold">
+            Upcoming Events
+          </Text>
         </View>
         <View className="flex-row items-center space-x-4">
           <TouchableOpacity onPress={() => setShowFilters(true)}>
@@ -213,23 +267,23 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
               </TouchableOpacity>
             </View>
 
-            <ScrollView nestedScrollEnabled={true} >
+            <ScrollView nestedScrollEnabled={true}>
               {/* Location Filters */}
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Location</Text>
-                
+
                 {/* Country Dropdown */}
                 <View className="mb-3">
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     className="flex-row items-center justify-between p-3 bg-[#2A3647] rounded-lg"
                     onPress={() => setShowCountryDropdown(!showCountryDropdown)}
                   >
                     <Text className="text-white">
-                      {selectedCountry?.name || 'Select Country'}
+                      {selectedCountry?.name || "Select Country"}
                     </Text>
                     <ChevronDown color="#6B7280" size={20} />
                   </TouchableOpacity>
-                  
+
                   {showCountryDropdown && (
                     <View className="mt-2 bg-[#2A3647] rounded-lg max-h-40">
                       {isCountriesLoading ? (
@@ -238,7 +292,7 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
                         <FlatList
                           data={countries}
                           keyExtractor={(item) => item.code2}
-                          nestedScrollEnabled={true} 
+                          nestedScrollEnabled={true}
                           renderItem={({ item }) => (
                             <TouchableOpacity
                               className="p-3 border-b border-[#1A2432]"
@@ -260,24 +314,24 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
                 {/* State Dropdown */}
                 {selectedCountry && (
                   <View className="mb-3">
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       className="flex-row items-center justify-between p-3 bg-[#2A3647] rounded-lg"
                       onPress={() => setShowStateDropdown(!showStateDropdown)}
                     >
                       <Text className="text-white">
-                        {selectedState?.name || 'Select State'}
+                        {selectedState?.name || "Select State"}
                       </Text>
                       <ChevronDown color="#6B7280" size={20} />
                     </TouchableOpacity>
-                    
+
                     {showStateDropdown && (
                       <View className="mt-2 bg-[#2A3647] rounded-lg max-h-40">
                         {isStatesLoading ? (
-                         <ActivityIndicator color="#9EDD45" className="py-2" />
+                          <ActivityIndicator color="#9EDD45" className="py-2" />
                         ) : (
                           <FlatList
                             data={states}
-                            nestedScrollEnabled={true} 
+                            nestedScrollEnabled={true}
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={({ item }) => (
                               <TouchableOpacity
@@ -310,21 +364,23 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
                 </View>
 
                 {locationError && (
-                  <Text className="text-red-500 text-sm mb-2">{locationError}</Text>
+                  <Text className="text-red-500 text-sm mb-2">
+                    {locationError}
+                  </Text>
                 )}
               </View>
 
               {/* Sort by Price */}
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Sort By</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   className="flex-row items-center justify-between p-3 bg-[#2A3647] rounded-lg"
                   onPress={handleSortByPrice}
                 >
                   <Text className="text-white">Price</Text>
-                  {sortBy === 'price' && (
+                  {sortBy === "price" && (
                     <Text className="text-primary">
-                      {sortDirection === 'asc' ? 'Low to High' : 'High to Low'}
+                      {sortDirection === "asc" ? "Low to High" : "High to Low"}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -333,23 +389,23 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
               {/* Date Range */}
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Date Range</Text>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   className="flex-row items-center justify-between p-3 bg-[#2A3647] rounded-lg mb-3"
                   onPress={() => setShowStartDatePicker(true)}
                 >
                   <Text className="text-white">
-                    {startDate ? formatDate(startDate) : 'Start Date'}
+                    {startDate ? formatDate(startDate) : "Start Date"}
                   </Text>
                   <CalendarIcon color="#6B7280" size={20} />
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   className="flex-row items-center justify-between p-3 bg-[#2A3647] rounded-lg"
                   onPress={() => setShowEndDatePicker(true)}
                 >
                   <Text className="text-white">
-                    {endDate ? formatDate(endDate) : 'End Date'}
+                    {endDate ? formatDate(endDate) : "End Date"}
                   </Text>
                   <CalendarIcon color="#6B7280" size={20} />
                 </TouchableOpacity>
@@ -387,13 +443,13 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
 
             {/* Action Buttons */}
             <View className="flex-row justify-between mt-4">
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="px-6 py-3 border border-primary rounded-lg"
                 onPress={clearFilters}
               >
                 <Text className="text-primary">Clear All</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="px-6 py-3 bg-primary rounded-lg"
                 onPress={applyFilters}
               >
@@ -416,23 +472,36 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled={true}  className="px-4 h-12 mb-2">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        className="px-4 h-12 mb-2"
+      >
         {isCategoriesLoading ? (
-          <View className="text-white flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
-        ) : upcomingError ? (
-          <Text className="text-red-500 text-center py-4">Failed to load data. Please try again.</Text>
+          <View className="text-white mx-auto flex justify-center items-center py-4">
+            <ActivityIndicator color="#9EDD45" />
+          </View>
+        ) : catError ? (
+          <Text className="text-red-500 text-center py-4">
+            Failed to load data. Please try again.
+          </Text>
         ) : (
-          [{ id: null, name: "All" }, ...(categories?.body || [])].map((category) => (
-            <TouchableOpacity
-              key={category.id || 'all'}
-              onPress={() => setSelectedCategory(category.id)}
-              className={`max-h-8 px-6 py-2 rounded-full mr-3 ${
-                selectedCategory === category.id ? 'bg-primary' : 'bg-[#1A2432]'
-              }`}
-            >
-              <Text className="text-white">{category.name}</Text>
-            </TouchableOpacity>
-          ))
+          [{ id: null, name: "All" }, ...(categories?.body || [])].map(
+            (category) => (
+              <TouchableOpacity
+                key={category.id || "all"}
+                onPress={() => setSelectedCategory(category.id)}
+                className={`max-h-8 px-6 py-2 rounded-full mr-3 ${
+                  selectedCategory === category.id
+                    ? "bg-primary"
+                    : "bg-[#1A2432]"
+                }`}
+              >
+                <Text className="text-white">{category.name}</Text>
+              </TouchableOpacity>
+            )
+          )
         )}
       </ScrollView>
 
@@ -441,93 +510,108 @@ console.log(selectedCountry?.code2,allEvents,"selectedCountry?.code2")
         <View className="px-4 mb-2 flex-row flex  justify-center items-center">
           <MapPin size={16} color="#6B7280" />
           <Text className="text-gray-400 ">
-            {[city, selectedState?.name, selectedCountry?.name].filter(Boolean).join(', ')}
+            {[city, selectedState?.name, selectedCountry?.name]
+              .filter(Boolean)
+              .join(", ")}
           </Text>
         </View>
       )}
 
       {/* Events List */}
       <FlatList
-  data={allEvents}
-  nestedScrollEnabled={true} 
-  keyExtractor={(item,index) => index.toString()}
-  contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
-  ListEmptyComponent={() => (
-    <View className="flex-1 bg-background justify-center items-center py-8">
-      <Text className="text-gray-400 text-lg">
-        {isUpcomingLoading ? <View className="py-4 flex justify-center items-center">
-                      <ActivityIndicator color="#9EDD45" />
-                    </View>  : 
-         upcoming?.body?.events?.result?.length === 0 ? 'No events found matching your criteria' : 
-         'No events available'}
-      </Text>
-    </View>
-  )}
-  ListFooterComponent={() =>
-    isFetching && page > 1 ? (
-      <View className="py-4 flex justify-center items-center">
-        <ActivityIndicator color="#9EDD45" />
-      </View>
-    ) : null
-  }
-  onEndReached={handleLoadMore}
-  onEndReachedThreshold={0.5}
-  renderItem={({ item: event }) => (
-    <View className="mb-4">
-      <TouchableOpacity
-        key={event.id}
-        className="bg-[#1A2432] rounded-lg"
-        onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
-      >
-        <Image
-          source={{ uri: event?.images?.[0] }}
-          className="w-full h-48 rounded-t-lg"
-          resizeMode="cover"
-        />
-        <View className="p-4">
-          <View className="flex-row justify-between">
-            <Text className="text-white text-lg font-bold mb-2">
-              {event?.title}
-            </Text>
-            <View className="flex-row items-center">
-              <Text className="text-amber-400 mr-2">★</Text>
-              <Text className="text-gray-400 font-semibold">
-                {event?.likes} interested
+        data={allEvents}
+        nestedScrollEnabled={true}
+        keyExtractor={(item, index) => index.toString()}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+        ListEmptyComponent={() => (
+          // <View className="flex-1 bg-background justify-center items-center py-8">
+          //   <Text className="text-gray-400 text-lg">
+          //     {isUpcomingLoading ? <View className="py-4 flex mx-auto justify-center items-center">
+          //                   <ActivityIndicator color="#9EDD45" />
+          //                 </View>  :
+          //      upcoming?.body?.events?.result?.length === 0 ? 'No events found matching your criteria' :
+          //      'No events available'}
+          //   </Text>
+          // </View>
+          <View className="flex-1 bg-background justify-center items-center py-8">
+            {isUpcomingLoading ? (
+              <View className="py-4 flex justify-center items-center">
+                <ActivityIndicator color="#9EDD45" />
+              </View>
+            ) : allEvents.length === 0 ? (
+              <Text className="text-gray-400 text-lg">
+                No events found for location. Kindly adjust filter
               </Text>
-            </View>
+            ) : null}
           </View>
-
-          <View className="flex-row items-center justify-between">
-            <View className="flex-col">
-              <View className="flex flex-row gap-2 items-center">
-                <CalendarIcon className="text-gray-400" size={20} />
-                <Text className="text-gray-400 text-sm">
-                  {formatDate(event?.start_date).toString()}
-                </Text>
-              </View>
-              <View className="flex flex-row gap-2 mt-1 items-center">
-                <TimerReset className="text-gray-400" size={24} />
-                <Text className="text-gray-400 text-sm">{event?.time}</Text>
-              </View>
+        )}
+        ListFooterComponent={() =>
+          isFetching && page > 1 ? (
+            <View className="py-4 flex justify-center items-center">
+              <ActivityIndicator color="#9EDD45" />
             </View>
+          ) : null
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        renderItem={({ item: event }) => (
+          <View className="mb-4">
+            <TouchableOpacity
+              key={event.id}
+              className="bg-[#1A2432] rounded-lg"
+              onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
+            >
+              <Image
+                source={{ uri: event?.images?.[0] }}
+                className="w-full h-48 rounded-t-lg"
+                resizeMode="cover"
+              />
+              <View className="p-4">
+                <View className="flex-row justify-between">
+                  <Text className="text-white text-lg font-bold mb-2">
+                    {event?.title}
+                  </Text>
+                  <View className="flex-row items-center">
+                    <Text className="text-amber-400 mr-2">★</Text>
+                    <Text className="text-gray-400 font-semibold">
+                      {event?.likes} interested
+                    </Text>
+                  </View>
+                </View>
 
-            <View className="mt-2">
-              {event?.is_free ? (
-                <Text className="text-primary text-lg font-semibold">Free</Text>
-              ) : (
-                <Text className="text-primary text-lg font-semibold">
-                  {event?.currency?.split(' - ')[0] || '₦'} {event?.price}
-                </Text>
-              )}
-            </View>
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-col">
+                    <View className="flex flex-row gap-2 items-center">
+                      <CalendarIcon className="text-gray-400" size={20} />
+                      <Text className="text-gray-400 text-sm">
+                        {formatDate(event?.start_date).toString()}
+                      </Text>
+                    </View>
+                    <View className="flex flex-row gap-2 mt-1 items-center">
+                      <TimerReset className="text-gray-400" size={24} />
+                      <Text className="text-gray-400 text-sm">
+                        {event?.time}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="mt-2">
+                    {event?.is_free ? (
+                      <Text className="text-primary text-lg font-semibold">
+                        Free
+                      </Text>
+                    ) : (
+                      <Text className="text-primary text-lg font-semibold">
+                        {event?.currency?.split(" - ")[0] || "₦"} {event?.price}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
           </View>
-        </View>
-      </TouchableOpacity>
-
-    
-    </View>
-  )}
-/>
+        )}
+      />
     </View>
   );
 }
