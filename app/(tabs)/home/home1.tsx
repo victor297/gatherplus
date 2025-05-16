@@ -280,35 +280,43 @@ export default function HomeScreen() {
                   <Text className="text-primary">See All</Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="pl-4"
-              >
-                {upcoming?.body?.events?.result?.map((event: any) => (
-                  <TouchableOpacity
-                    key={event.id}
-                    onPress={() =>
-                      router.push(`/(tabs)/home/event/${event.id}`)
-                    }
-                    className="bg-[#1A2432] rounded-lg overflow-hidden mr-4 w-48"
-                  >
-                    <Image
-                      source={{ uri: event?.images?.[0] }}
-                      className="w-full h-32"
-                      resizeMode="cover"
-                    />
-                    <View className="p-3">
-                      <Text className="text-white font-semibold mb-1">
-                        {event?.title}
-                      </Text>
-                      <Text className="text-gray-400 text-sm">
-                        {formatDate(event?.start_date)}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              {isupcomingLoading ? (
+                <ActivityIndicator />
+              ) : upcoming?.body?.events?.result <= 0 ? (
+                <Text className="text-primary text-bold text-center">
+                  No event found
+                </Text>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="pl-4"
+                >
+                  {upcoming?.body?.events?.result?.map((event: any) => (
+                    <TouchableOpacity
+                      key={event.id}
+                      onPress={() =>
+                        router.push(`/(tabs)/home/event/${event.id}`)
+                      }
+                      className="bg-[#1A2432] rounded-lg overflow-hidden mr-4 w-48"
+                    >
+                      <Image
+                        source={{ uri: event?.images?.[0] }}
+                        className="w-full h-32"
+                        resizeMode="cover"
+                      />
+                      <View className="p-3">
+                        <Text className="text-white font-semibold mb-1">
+                          {event?.title}
+                        </Text>
+                        <Text className="text-gray-400 text-sm">
+                          {formatDate(event?.start_date)}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
             </View>
 
             {/* Live Events */}
@@ -324,57 +332,65 @@ export default function HomeScreen() {
                   <Text className="text-primary">Show All</Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="pl-4"
-              >
-                <View className="px-4 flex-row gap-4">
-                  {live?.body?.events?.result?.map((event: any) => (
-                    <TouchableOpacity
-                      key={event.id}
-                      onPress={() =>
-                        router.push(`/(tabs)/home/event/${event.id}`)
-                      }
-                      className="bg-[#1A2432] w-48 rounded-lg overflow-hidden mb-4"
-                    >
-                      <Image
-                        source={{ uri: event?.images?.[0] }}
-                        className="w-full h-32"
-                        resizeMode="cover"
-                      />
-                      <View className="p-4">
-                        <Text className="text-white text-xl font-semibold">
-                          {event?.title}
-                        </Text>
-                        <Text className="text-gray-400 mb-4">
-                          {event?.address?.length > 25
-                            ? `${event.address.slice(0, 25)}...`
-                            : event?.address}
-                        </Text>
-                        <View className="flex-row items-center justify-between">
-                          <View className="flex-row">
-                            {[1, 2, 3].map((avatar) => (
-                              <Image
-                                key={avatar}
-                                source={{
-                                  uri: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-                                }}
-                                className="w-8 h-8 rounded-full border-2 border-[#1A2432] -ml-2 first:ml-0"
-                              />
-                            ))}
+              {isliveLoading ? (
+                <ActivityIndicator />
+              ) : live?.body?.events?.result <= 0 ? (
+                <Text className="text-primary text-bold text-center">
+                  No event found
+                </Text>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="pl-4"
+                >
+                  <View className="px-4 flex-row gap-4">
+                    {live?.body?.events?.result?.map((event: any) => (
+                      <TouchableOpacity
+                        key={event.id}
+                        onPress={() =>
+                          router.push(`/(tabs)/home/event/${event.id}`)
+                        }
+                        className="bg-[#1A2432] w-48 rounded-lg overflow-hidden mb-4"
+                      >
+                        <Image
+                          source={{ uri: event?.images?.[0] }}
+                          className="w-full h-32"
+                          resizeMode="cover"
+                        />
+                        <View className="p-4">
+                          <Text className="text-white text-xl font-semibold">
+                            {event?.title}
+                          </Text>
+                          <Text className="text-gray-400 mb-4">
+                            {event?.address?.length > 25
+                              ? `${event.address.slice(0, 25)}...`
+                              : event?.address}
+                          </Text>
+                          <View className="flex-row items-center justify-between">
+                            <View className="flex-row">
+                              {[1, 2, 3].map((avatar) => (
+                                <Image
+                                  key={avatar}
+                                  source={{
+                                    uri: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+                                  }}
+                                  className="w-8 h-8 rounded-full border-2 border-[#1A2432] -ml-2 first:ml-0"
+                                />
+                              ))}
+                            </View>
+                            <TouchableOpacity className="bg-primary px-6 py-2 rounded-full">
+                              <Text className="text-background font-semibold">
+                                Join now
+                              </Text>
+                            </TouchableOpacity>
                           </View>
-                          <TouchableOpacity className="bg-primary px-6 py-2 rounded-full">
-                            <Text className="text-background font-semibold">
-                              Join now
-                            </Text>
-                          </TouchableOpacity>
                         </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
             </View>
           </>
         )}

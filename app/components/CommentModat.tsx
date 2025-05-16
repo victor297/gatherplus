@@ -1,27 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-    View,
-    Text,
-    TouchableOpacity,
-    Modal,
-    TextInput,
-    FlatList,
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Image,
-} from 'react-native';
-import { 
-    MessageSquareIcon, 
-    HeartIcon, 
-    ChevronDownIcon, 
-    SendIcon, 
-    ChevronRightIcon,
-    ChevronLeftIcon,
-    XIcon
-} from 'lucide-react-native';
-import { useGetCommentsQuery, useGetRepliesQuery, useCreateCommentMutation, useLikeCommentMutation } from '@/redux/api/eventsApiSlice';
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  FlatList,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Image,
+} from "react-native";
+import {
+  MessageSquareIcon,
+  HeartIcon,
+  ChevronDownIcon,
+  SendIcon,
+  ChevronRightIcon,
+  ChevronLeftIcon,
+  XIcon,
+} from "lucide-react-native";
+import {
+  useGetCommentsQuery,
+  useGetRepliesQuery,
+  useCreateCommentMutation,
+  useLikeCommentMutation,
+} from "@/redux/api/eventsApiSlice";
 
 interface Comment {
   id: number;
@@ -59,27 +64,39 @@ const CommentModal: React.FC<CommentModalProps> = ({
   userId,
   parentComment = null,
   level = 0,
-  navigationTitle = 'Comments',
+  navigationTitle = "Comments",
 }) => {
-  const [commentText, setCommentText] = useState('');
+  const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [currentReplies, setCurrentReplies] = useState<Comment | null>(null);
-  
+
   // Fetch comments or replies based on whether it's a parent comment or reply
   const {
     data: commentsData,
     isLoading: commentsLoading,
     isError: commentsError,
     refetch: refetchComments,
-  } = currentReplies 
-    ? useGetRepliesQuery({ event_id: eventId, parent_id: currentReplies.id })
-    : parentComment 
-      ? useGetRepliesQuery({ event_id: eventId, parent_id: parentComment.id })
-      : useGetCommentsQuery(eventId);
-  
+  } = currentReplies
+    ? useGetRepliesQuery(
+        { event_id: eventId, parent_id: currentReplies.id },
+        {
+          refetchOnMountOrArgChange: true,
+          refetchOnFocus: true,
+        }
+      )
+    : parentComment
+    ? useGetRepliesQuery(
+        { event_id: eventId, parent_id: parentComment.id },
+        {
+          refetchOnMountOrArgChange: true,
+          refetchOnFocus: true,
+        }
+      )
+    : useGetCommentsQuery(eventId);
+
   const [createComment, { isLoading: isCreating }] = useCreateCommentMutation();
   const [likeComment] = useLikeCommentMutation();
-  
+
   const comments = commentsData?.body || [];
 
   const navigateToReplies = (comment: Comment) => {
@@ -96,51 +113,53 @@ const CommentModal: React.FC<CommentModalProps> = ({
 
   const handleSendComment = async () => {
     if (!commentText.trim()) return;
-    
+
     try {
       const payload = {
         content: commentText,
-        ...(replyingTo ? { parent_id: replyingTo.id } : { event_id: eventId })
+        ...(replyingTo ? { parent_id: replyingTo.id } : { event_id: eventId }),
       };
-      
+
       await createComment({ data: payload, user_id: userId }).unwrap();
-      setCommentText('');
+      setCommentText("");
       setReplyingTo(null);
       refetchComments();
     } catch (error) {
-      console.error('Error creating comment:', error);
+      console.error("Error creating comment:", error);
     }
   };
 
   const handleLikeComment = async (commentId: number) => {
     try {
-      await likeComment({ 
-        data: { comment_id: commentId }, 
-        user_id: userId 
+      await likeComment({
+        data: { comment_id: commentId },
+        user_id: userId,
       }).unwrap();
       refetchComments();
     } catch (error) {
-      console.error('Error liking comment:', error);
+      console.error("Error liking comment:", error);
     }
   };
 
   const renderComment = ({ item }: { item: Comment }) => (
-    <View className={`p-4 ${level > 0 ? 'pl-6' : ''}`}>
+    <View className={`p-4 ${level > 0 ? "pl-6" : ""}`}>
       <View className="flex-row items-start space-x-3">
         <View className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden">
           {item.user.profile.image_url && (
-            <Image 
-              source={{ uri: item.user.profile.image_url }} 
+            <Image
+              source={{ uri: item.user.profile.image_url }}
               className="w-full h-full"
             />
           )}
         </View>
         <View className="flex-1">
-          <Text className="font-semibold text-white">{item.user.profile.name}</Text>
+          <Text className="font-semibold text-white">
+            {item.user.profile.name}
+          </Text>
           <Text className="text-gray-300 mt-1">{item.content}</Text>
-          
+
           <View className="flex-row items-center mt-2 space-x-4">
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => handleLikeComment(item.id)}
               className="flex-row items-center p-1 space-x-1"
             >
@@ -149,28 +168,27 @@ const CommentModal: React.FC<CommentModalProps> = ({
                 {item._count.comment_like}
               </Text>
             </TouchableOpacity>
-            
+
             {level < MAX_NESTING_LEVEL - 1 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   setReplyingTo(item);
                 }}
                 className="flex-row p-1 items-center space-x-1"
               >
                 <MessageSquareIcon size={16} className="text-primary" />
-                <Text className="text-primary text-xs">
-                  Reply
-                </Text>
+                <Text className="text-primary text-xs">Reply</Text>
               </TouchableOpacity>
             )}
-            
+
             {item._count.replies > 0 && level < MAX_NESTING_LEVEL - 1 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => navigateToReplies(item)}
                 className="flex-row items-center space-x-1 p-1"
               >
                 <Text className="text-primary text-xs">
-                  {item._count.replies} {item._count.replies === 1 ? 'reply' : 'replies'}
+                  {item._count.replies}{" "}
+                  {item._count.replies === 1 ? "reply" : "replies"}
                 </Text>
                 <ChevronRightIcon size={16} className="text-primary" />
               </TouchableOpacity>
@@ -189,48 +207,49 @@ const CommentModal: React.FC<CommentModalProps> = ({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-<View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(55, 53, 53, 0.74)' }}>
-          <View className={`bg-background rounded-t-3xl ${level === 0 ? 'max-h-[85%]' : 'h-[85%]'}`}>
+        <View
+          className="flex-1 justify-end"
+          style={{ backgroundColor: "rgba(55, 53, 53, 0.74)" }}
+        >
+          <View
+            className={`bg-background rounded-t-3xl ${
+              level === 0 ? "max-h-[85%]" : "h-[85%]"
+            }`}
+          >
             {/* Header */}
             <View className="p-4 border-b border-gray-800 flex-row justify-between items-center">
-              <TouchableOpacity 
-                onPress={navigateBack}
-                className="p-1"
-              >
+              <TouchableOpacity onPress={navigateBack} className="p-1">
                 {level > 0 || currentReplies ? (
                   <ChevronLeftIcon size={24} className="text-primary" />
                 ) : (
                   <ChevronDownIcon size={24} className="text-background" />
                 )}
               </TouchableOpacity>
-              
+
               <Text className="font-bold text-lg text-white">
-                {currentReplies 
-                  ? 'Replies' 
-                  : level > 0 
-                    ? navigationTitle 
-                    : 'Comments'}
+                {currentReplies
+                  ? "Replies"
+                  : level > 0
+                  ? navigationTitle
+                  : "Comments"}
               </Text>
-              
-              <TouchableOpacity 
-                onPress={onClose}
-                className="p-1"
-              >
+
+              <TouchableOpacity onPress={onClose} className="p-1">
                 <XIcon size={24} className="text-primary" />
               </TouchableOpacity>
             </View>
-            
+
             {/* Current comment context when viewing replies */}
             {currentReplies && (
               <View className="p-4 border-b border-gray-800 bg-gray-900">
                 <View className="flex-row items-start space-x-3">
                   <View className="w-8 h-8 rounded-full bg-gray-700 overflow-hidden">
                     {currentReplies.user.profile.image_url && (
-                      <Image 
-                        source={{ uri: currentReplies.user.profile.image_url }} 
+                      <Image
+                        source={{ uri: currentReplies.user.profile.image_url }}
                         className="w-full h-full"
                       />
                     )}
@@ -246,7 +265,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                 </View>
               </View>
             )}
-            
+
             {/* Comments List */}
             {commentsLoading ? (
               <View className="flex-1 justify-center items-center p-8">
@@ -269,7 +288,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                 }
               />
             )}
-            
+
             {/* Input Area */}
             {level < MAX_NESTING_LEVEL - 1 && (
               <View className="p-4 border-t border-gray-800">
@@ -278,7 +297,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                     <Text className="text-sm text-blue-400 mr-1">
                       Replying to {replyingTo.user.profile.name}
                     </Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setReplyingTo(null)}
                       className="p-1"
                     >
@@ -286,11 +305,13 @@ const CommentModal: React.FC<CommentModalProps> = ({
                     </TouchableOpacity>
                   </View>
                 )}
-                
+
                 <View className="flex-row items-center space-x-2">
                   <TextInput
                     className="flex-1 border border-gray-700 rounded-full px-4 py-2 bg-gray-800 text-white"
-                    placeholder={replyingTo ? "Write a reply..." : "Write a comment..."}
+                    placeholder={
+                      replyingTo ? "Write a reply..." : "Write a comment..."
+                    }
                     placeholderTextColor="#6b7280"
                     value={commentText}
                     onChangeText={setCommentText}
@@ -319,7 +340,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
 
 const styles = StyleSheet.create({
   commentsContainer: {
-    paddingBottom: Platform.OS === 'ios' ? 80 : 60,
+    paddingBottom: Platform.OS === "ios" ? 80 : 60,
   },
 });
 

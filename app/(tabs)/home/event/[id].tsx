@@ -32,6 +32,7 @@ import {
 import {
   useBookmarkeventMutation,
   useDeleteBookmarkMutation,
+  useGetCommentsQuery,
   useGetEventQuery,
   useLikeEventMutation,
 } from "@/redux/api/eventsApiSlice";
@@ -72,6 +73,15 @@ export default function EventDetailsScreen() {
     }));
   };
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const {
+    data: commentsData,
+    isLoading: commentsLoading,
+    isError: commentsError,
+    refetch: refetchComments,
+  } = useGetCommentsQuery(id, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  });
 
   const [bookmarkevent, { isLoading: isBookmarkLoading }] =
     useBookmarkeventMutation();
@@ -104,7 +114,7 @@ export default function EventDetailsScreen() {
       };
     });
   };
-
+  console.log(commentsData?.body?.length || 0, "commentsDatacommentsData");
   const removeTicket = (ticketId: number) => {
     setTicketSelections((prev) => {
       const current = prev[ticketId];
@@ -356,7 +366,7 @@ export default function EventDetailsScreen() {
                   >
                     <MessageSquareIcon className="text-gray-400" size={20} />
                     <Text className="text-gray-400">
-                      {event?.comments || 0}
+                      {commentsData?.body?.length || 0}
                     </Text>
                   </TouchableOpacity>
                   <CommentModal

@@ -11,6 +11,8 @@ import {
   FlatList,
   Pressable,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, X } from "lucide-react-native";
@@ -210,7 +212,11 @@ export default function TicketingScreen() {
   };
 
   return (
-    <View className="flex-1 bg-background">
+    <KeyboardAvoidingView
+      className="flex-1 bg-background"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -359,7 +365,7 @@ export default function TicketingScreen() {
         )}
 
         {/* Ticketing Section - Shows for both free and paid events */}
-        <View className="mt-2">
+        <KeyboardAvoidingView className="mt-2">
           {/* Identity Requirement Checkbox */}
           <View className="bg-[#111823] p-3 rounded-lg my-2">
             <View className="flex-row items-center justify-between">
@@ -537,7 +543,7 @@ export default function TicketingScreen() {
                       updateTicket(
                         index,
                         "no_per_seat_type",
-                        parseInt(text) || 0
+                        parseInt(text) || 1
                       )
                     }
                   />
@@ -584,7 +590,7 @@ export default function TicketingScreen() {
               />
             </View>
           </View> */}
-        </View>
+        </KeyboardAvoidingView>
       </ScrollView>
 
       {/* Save and Continue Button */}
@@ -601,6 +607,6 @@ export default function TicketingScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
