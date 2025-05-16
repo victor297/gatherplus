@@ -1,26 +1,50 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Image, ActivityIndicator, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Calendar, TimerReset, Search } from 'lucide-react-native';
-import { useGetBookingsQuery, useGetBookmarksQuery } from '@/redux/api/eventsApiSlice';
-import { formatDate } from '@/utils/formatDate';
-import { debounce } from 'lodash';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  ActivityIndicator,
+  TextInput,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { ArrowLeft, Calendar, TimerReset, Search } from "lucide-react-native";
+import {
+  useGetBookingsQuery,
+  useGetBookmarksQuery,
+} from "@/redux/api/eventsApiSlice";
+import { formatDate } from "@/utils/formatDate";
+import { debounce } from "lodash";
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'UPCOMING' | 'PAST' | null>('UPCOMING');
+  const [activeTab, setActiveTab] = useState<"UPCOMING" | "PAST" | null>(
+    "UPCOMING"
+  );
   const [page, setPage] = useState(1);
   const [size] = useState(10);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [allBookings, setAllBookings] = useState([]);
 
-  const { data: bookings, isLoading, error, isFetching } = useGetBookingsQuery({
-    type: activeTab,
-    page,
-    size,
-    search: debouncedSearchQuery,
-  });
+  const {
+    data: bookings,
+    isLoading,
+    error,
+    isFetching,
+  } = useGetBookingsQuery(
+    {
+      type: activeTab,
+      page,
+      size,
+      search: debouncedSearchQuery,
+    },
+    {
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+    }
+  );
 
   // Debounce search input
   const debouncedSearch = useCallback(
@@ -42,14 +66,14 @@ export default function BookingsScreen() {
       if (page === 1) {
         setAllBookings(bookings.body);
       } else {
-        setAllBookings(prev => [...prev, ...bookings.body]);
+        setAllBookings((prev) => [...prev, ...bookings.body]);
       }
     }
   }, [bookings]);
 
   const loadMore = () => {
     if (!isFetching && bookings?.body?.length === size) {
-      setPage(prev => prev + 1);
+      setPage((prev) => prev + 1);
     }
   };
 
@@ -93,9 +117,7 @@ export default function BookingsScreen() {
             </View>
             <View className="flex-row items-center gap-2">
               <TimerReset color="#6B7280" size={18} />
-              <Text className="text-gray-400 text-sm">
-                {item?.time}
-              </Text>
+              <Text className="text-gray-400 text-sm">{item?.time}</Text>
             </View>
           </View>
 
@@ -103,7 +125,7 @@ export default function BookingsScreen() {
             <Text className="text-primary text-lg font-semibold">free</Text>
           ) : (
             <Text className="text-primary text-lg font-semibold">
-              {item?.currency?.split(' - ')[0] || '₦'} {item?.price}
+              {item?.currency?.split(" - ")[0] || "₦"} {item?.price}
             </Text>
           )}
         </View>
@@ -123,7 +145,10 @@ export default function BookingsScreen() {
   return (
     <View className="flex-1 bg-background">
       <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4 bg-[#1A2432] p-2 rounded-full">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="mr-4 bg-[#1A2432] p-2 rounded-full"
+        >
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">My Bookings</Text>
@@ -131,10 +156,10 @@ export default function BookingsScreen() {
 
       {/* Search Bar */}
       <View className="px-4 pb-4">
-        <View className="flex-row items-center bg-[#1A2432] rounded-lg px-3 py-2">
+        <View className="flex-row items-center justify-center  bg-[#1A2432] rounded-lg px-3">
           <Search color="#6B7280" size={20} />
           <TextInput
-            className="flex-1 text-white ml-2"
+            className="flex-1 text-white ml-2 py-2 my-auto"
             placeholder="Search bookings..."
             placeholderTextColor="#6B7280"
             value={searchQuery}
@@ -145,18 +170,28 @@ export default function BookingsScreen() {
 
       <View className="flex-row px-4 border-b border-[#1A2432]">
         <TouchableOpacity
-          className={`py-4 px-6 ${activeTab === 'UPCOMING' ? 'border-b-2 border-primary' : ''}`}
-          onPress={() => handleTabChange('UPCOMING')}
+          className={`py-4 px-6 ${
+            activeTab === "UPCOMING" ? "border-b-2 border-primary" : ""
+          }`}
+          onPress={() => handleTabChange("UPCOMING")}
         >
-          <Text className={activeTab === 'UPCOMING' ? 'text-primary' : 'text-gray-400'}>
+          <Text
+            className={
+              activeTab === "UPCOMING" ? "text-primary" : "text-gray-400"
+            }
+          >
             Upcoming
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          className={`py-4 px-6 ${activeTab === 'PAST' ? 'border-b-2 border-primary' : ''}`}
-          onPress={() => handleTabChange('PAST')}
+          className={`py-4 px-6 ${
+            activeTab === "PAST" ? "border-b-2 border-primary" : ""
+          }`}
+          onPress={() => handleTabChange("PAST")}
         >
-          <Text className={activeTab === 'PAST' ? 'text-primary' : 'text-gray-400'}>
+          <Text
+            className={activeTab === "PAST" ? "text-primary" : "text-gray-400"}
+          >
             Past Events
           </Text>
         </TouchableOpacity>

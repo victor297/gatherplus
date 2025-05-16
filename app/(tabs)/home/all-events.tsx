@@ -102,7 +102,6 @@ export default function ExploreScreen() {
     start_date: startDate?.toISOString().split("T")[0],
     end_date: endDate?.toISOString().split("T")[0],
   });
-  console.log(selectedCountry?.code2, allEvents, "selectedCountry?.code2");
   // Get user's current location on mount
   // useEffect(() => {
   //   const getLocation = async () => {

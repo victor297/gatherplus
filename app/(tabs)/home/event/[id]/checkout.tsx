@@ -55,7 +55,6 @@ export default function CheckoutScreen() {
       ...(event?.body?.age_restriction && { dob: "" }),
     })
   );
-  console.log(useCommonDetails, commonDetails, ticketData, "checkout");
   // Validate form whenever details change
   useEffect(() => {
     validateForm();

@@ -78,7 +78,6 @@ export default function ExploreScreen() {
     useGetStatesQuery(selectedCountry?.code2 || "", {
       skip: !selectedCountry?.code2,
     });
-  console.log(allEvents?.[0]?.id, "allEvents");
   const countries = countriesResponse?.body || [];
   const states = statesResponse?.body || [];
 
