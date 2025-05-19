@@ -25,7 +25,7 @@ export default function BannerScreen() {
       return {};
     }
   });
-
+  console.log(formData, "formData");
   // Track the uploaded banner image separately
   const [bannerImage, setBannerImage] = useState<string | null>(
     // First check if we have a bannerImage in formData

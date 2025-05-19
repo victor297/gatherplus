@@ -65,7 +65,8 @@ export default function ExploreScreen() {
   const [showStateDropdown, setShowStateDropdown] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationDetermined, setLocationDetermined] = useState(false);
-
+  const [countrySearchQuery, setCountrySearchQuery] = useState("");
+  const [stateSearchQuery, setStateSearchQuery] = useState("");
   // API Queries
   const {
     data: categories,
@@ -256,11 +257,14 @@ export default function ExploreScreen() {
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Location</Text>
 
-                {/* Country Dropdown */}
+                {/* Country Dropdown with Search */}
                 <View className="mb-3">
                   <TouchableOpacity
                     className="flex-row items-center justify-between p-3 bg-[#2A3647] rounded-lg"
-                    onPress={() => setShowCountryDropdown(!showCountryDropdown)}
+                    onPress={() => {
+                      setShowCountryDropdown(!showCountryDropdown);
+                      setCountrySearchQuery("");
+                    }}
                   >
                     <Text className="text-white">
                       {selectedCountry?.name || "Select Country"}
@@ -269,14 +273,31 @@ export default function ExploreScreen() {
                   </TouchableOpacity>
 
                   {showCountryDropdown && (
-                    <View className="mt-2 bg-[#2A3647] rounded-lg max-h-40">
+                    <View className="mt-2 bg-[#2A3647] rounded-lg max-h-60">
+                      {/* Country Search Input */}
+                      <View className="p-2 border-b border-[#1A2432]">
+                        <TextInput
+                          className="bg-[#1A2432] text-white p-2 rounded"
+                          placeholder="Search countries..."
+                          placeholderTextColor="#6B7280"
+                          value={countrySearchQuery}
+                          onChangeText={(text) => setCountrySearchQuery(text)}
+                          autoFocus={true}
+                        />
+                      </View>
+
                       {isCountriesLoading ? (
                         <ActivityIndicator color="#9EDD45" className="py-2" />
                       ) : (
                         <FlatList
-                          data={countries}
-                          nestedScrollEnabled={true}
+                          data={countries.filter((country) =>
+                            country.name
+                              .toLowerCase()
+                              .includes(countrySearchQuery.toLowerCase())
+                          )}
                           keyExtractor={(item) => item.code2}
+                          nestedScrollEnabled={true}
+                          keyboardShouldPersistTaps="handled"
                           renderItem={({ item }) => (
                             <TouchableOpacity
                               className="p-3 border-b border-[#1A2432]"
@@ -289,18 +310,26 @@ export default function ExploreScreen() {
                               <Text className="text-white">{item.name}</Text>
                             </TouchableOpacity>
                           )}
+                          ListEmptyComponent={
+                            <Text className="text-white p-3 text-center">
+                              No countries found
+                            </Text>
+                          }
                         />
                       )}
                     </View>
                   )}
                 </View>
 
-                {/* State Dropdown */}
+                {/* State Dropdown with Search */}
                 {selectedCountry && (
                   <View className="mb-3">
                     <TouchableOpacity
                       className="flex-row items-center justify-between p-3 bg-[#2A3647] rounded-lg"
-                      onPress={() => setShowStateDropdown(!showStateDropdown)}
+                      onPress={() => {
+                        setShowStateDropdown(!showStateDropdown);
+                        setStateSearchQuery("");
+                      }}
                     >
                       <Text className="text-white">
                         {selectedState?.name || "Select State"}
@@ -309,13 +338,30 @@ export default function ExploreScreen() {
                     </TouchableOpacity>
 
                     {showStateDropdown && (
-                      <View className="mt-2 bg-[#2A3647] rounded-lg max-h-40">
+                      <View className="mt-2 bg-[#2A3647] rounded-lg max-h-60">
+                        {/* State Search Input */}
+                        <View className="p-2 border-b border-[#1A2432]">
+                          <TextInput
+                            className="bg-[#1A2432] text-white p-2 rounded"
+                            placeholder="Search states..."
+                            placeholderTextColor="#6B7280"
+                            value={stateSearchQuery}
+                            onChangeText={(text) => setStateSearchQuery(text)}
+                            autoFocus={true}
+                          />
+                        </View>
+
                         {isStatesLoading ? (
                           <ActivityIndicator color="#9EDD45" className="py-2" />
                         ) : (
                           <FlatList
-                            data={states}
+                            data={states.filter((state) =>
+                              state.name
+                                .toLowerCase()
+                                .includes(stateSearchQuery.toLowerCase())
+                            )}
                             nestedScrollEnabled={true}
+                            keyboardShouldPersistTaps="handled"
                             keyExtractor={(item) => item.id.toString()}
                             renderItem={({ item }) => (
                               <TouchableOpacity
@@ -328,6 +374,11 @@ export default function ExploreScreen() {
                                 <Text className="text-white">{item.name}</Text>
                               </TouchableOpacity>
                             )}
+                            ListEmptyComponent={
+                              <Text className="text-white p-3 text-center">
+                                No states found
+                              </Text>
+                            }
                           />
                         )}
                       </View>
@@ -354,6 +405,7 @@ export default function ExploreScreen() {
                 )}
               </View>
 
+              {/* Rest of your existing filters... */}
               {/* Sort by Price */}
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Sort By</Text>
@@ -443,7 +495,6 @@ export default function ExploreScreen() {
           </View>
         </View>
       </Modal>
-
       {/* Search and Category Selection */}
       <View className="flex-row mx-4 items-center bg-[#1A2432] rounded-lg px-4 mb-6">
         <Search size={20} color="#6B7280" />

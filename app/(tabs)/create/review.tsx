@@ -73,9 +73,9 @@ export default function ReviewScreen() {
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Create Event</Text>
-        <TouchableOpacity onPress={handleEdit} className="ml-auto">
+        {/* <TouchableOpacity onPress={handleEdit} className="ml-auto">
           <Edit2 color="white" size={20} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <ProgressSteps currentStep={3} />

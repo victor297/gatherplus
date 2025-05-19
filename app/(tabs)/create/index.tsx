@@ -35,6 +35,7 @@ interface Participant {
 interface Session {
   name: string;
   startDate: string;
+  endDate?: string;
   startTime: string;
   endTime: string;
   participants: Participant[];
@@ -50,7 +51,7 @@ export default function CreateEventScreen() {
     title: "",
     eventCategory: "",
     category_id: "",
-    sessionType: "",
+    sessionType: "single",
     state_id: 2,
     city: "",
     country_code: "NG",
@@ -92,6 +93,7 @@ export default function CreateEventScreen() {
     {
       name: "",
       startDate: "",
+      endDate: "",
       startTime: "",
       endTime: "",
       participants: [],
@@ -107,7 +109,7 @@ export default function CreateEventScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [activeTimeField, setActiveTimeField] = useState<{
     sessionIndex: number;
-    field: "startTime" | "endTime" | "startDate";
+    field: "startTime" | "endTime" | "startDate" | "endDate";
   } | null>(null);
   const [showAgeRestrictionModal, setShowAgeRestrictionModal] = useState(false);
 
@@ -141,6 +143,7 @@ export default function CreateEventScreen() {
     sessions.forEach((session: any) => {
       if (!session.name.trim()) isValid = false;
       if (!session.startDate) isValid = false;
+      if (!session.endDate) isValid = false;
       if (!session.startTime) isValid = false;
       if (!session.endTime) isValid = false;
     });
@@ -160,8 +163,10 @@ export default function CreateEventScreen() {
       {
         name: "",
         startDate: "",
+        endDate: "",
         startTime: "",
         endTime: "",
+        participants: [],
       },
     ]);
   };
@@ -190,11 +195,23 @@ export default function CreateEventScreen() {
   const handleConfirmDate = (date: Date) => {
     if (activeTimeField !== null) {
       const formattedDate = date.toISOString().split("T")[0];
-      updateSession(
-        activeTimeField.sessionIndex,
-        activeTimeField.field,
-        formattedDate
-      );
+      const newSessions = [...sessions];
+
+      // Update the selected field
+      newSessions[activeTimeField.sessionIndex] = {
+        ...newSessions[activeTimeField.sessionIndex],
+        [activeTimeField.field]: formattedDate,
+      };
+
+      // If we're setting the start date and end date is empty, set end date to same as start date
+      if (
+        activeTimeField.field === "startDate" &&
+        !newSessions[activeTimeField.sessionIndex].endDate
+      ) {
+        newSessions[activeTimeField.sessionIndex].endDate = formattedDate;
+      }
+
+      setSessions(newSessions);
     }
     setShowDatePicker(false);
   };
@@ -237,6 +254,7 @@ export default function CreateEventScreen() {
           sessions: sessions.map((session: any) => ({
             name: session.name,
             date: session.startDate,
+            end_date: session.endDate,
             start_time: session.startTime,
             end_time: session.endTime,
             participants: session.participants.map(
@@ -511,6 +529,7 @@ export default function CreateEventScreen() {
                       {
                         name: "",
                         startDate: "",
+                        endDate: "",
                         startTime: "",
                         endTime: "",
                         participants: [],
@@ -544,6 +563,7 @@ export default function CreateEventScreen() {
                       {
                         name: "",
                         startDate: "",
+                        endDate: "",
                         startTime: "",
                         endTime: "",
                         participants: [],
@@ -658,7 +678,30 @@ export default function CreateEventScreen() {
                     <Clock size={20} color="#6B7280" />
                   </TouchableOpacity>
                 </View>
-
+                {/* Start Date */}
+                <View>
+                  <Text className="text-white my-2">
+                    End Date<Text className="text-red-500">*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    className={`bg-[#1A2432] rounded-lg px-4 py-3 flex-row items-center justify-between border ${
+                      !session.endDate ? "border-red-500" : "border-transparent"
+                    }`}
+                    onPress={() => {
+                      setActiveTimeField({ sessionIndex, field: "endDate" });
+                      setShowDatePicker(true);
+                    }}
+                  >
+                    <Text
+                      className={
+                        session.endDate ? "text-white" : "text-gray-400"
+                      }
+                    >
+                      {session.endDate || "Select end date*"}
+                    </Text>
+                    <Calendar size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
                 {/* End Time */}
                 <View>
                   <Text className="text-white my-2">
