@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Share,
 } from "react-native";
 import {
   useRouter,
@@ -41,6 +42,8 @@ import { useSelector } from "react-redux";
 import MapView, { Marker } from "react-native-maps";
 import { useFollowEventCreatorMutation } from "@/redux/api/usersApiSlice";
 import CommentModal from "@/app/components/CommentModat";
+import * as Sharing from "expo-sharing";
+import * as ELinking from "expo-linking";
 
 interface TicketSelection {
   quantity: number;
@@ -134,6 +137,41 @@ export default function EventDetailsScreen() {
     const selection = ticketSelections[ticket.id];
     return sum + (selection?.quantity || 0) * Number(ticket.price);
   }, 0);
+
+  const shareEvent = async () => {
+    try {
+      // Create a deep link that will open your app directly to the event
+      const deepLink = ELinking.createURL(`/home/event/${id}`);
+
+      // Prepare the share content
+      const shareContent = {
+        message: `Check out this event: ${event?.body?.title}\n\n${deepLink}`,
+        title: "Share Event via", // Only used on Android
+      };
+
+      // Check if sharing is available
+      if (await Sharing.isAvailableAsync()) {
+        // Use Share API (works on both iOS and Android)
+        await Share.share(shareContent);
+      } else {
+        // Fallback for web or unsupported platforms
+        Alert.alert(
+          "Share Event",
+          `Check out this event: ${event?.body?.title}\n\n${deepLink}`,
+          [
+            { text: "OK", onPress: () => {} },
+            {
+              text: "Copy Link",
+              onPress: () => Clipboard.setStringAsync(deepLink),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Sharing failed:", error);
+      Alert.alert("Error", "Failed to share the event. Please try again.");
+    }
+  };
 
   const handleBuyTickets = () => {
     // Check if event has tickets
@@ -375,7 +413,10 @@ export default function EventDetailsScreen() {
                     eventId={Number(id)}
                     userId={userInfo?.sub}
                   />
-                  <TouchableOpacity className="flex-row items-center space-x-2">
+                  <TouchableOpacity
+                    onPress={() => shareEvent()}
+                    className="flex-row items-center space-x-2"
+                  >
                     <Share2Icon className="text-gray-400" size={20} />
                     <Text className="text-gray-400">Share</Text>
                   </TouchableOpacity>
@@ -399,21 +440,21 @@ export default function EventDetailsScreen() {
                   {event?.body?.city}
                 </Text>
                 <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
-                  {/* <MapView
-                      style={{ flex: 1 }}
-                      initialRegion={{
-                        latitude: 51.5074, // Default to London coordinates
-                        longitude: -0.1278,
-                        latitudeDelta: 0.0922,
-                        longitudeDelta: 0.0421,
-                      }}
-                    >
-                      <Marker
-                        coordinate={{ latitude: 51.5074, longitude: -0.1278 }}
-                        title={event?.body?.address}
-                        description={event?.body?.city}
-                      />
-                    </MapView> */}
+                  <MapView
+                    style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: 51.5074, // Default to London coordinates
+                      longitude: -0.1278,
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    }}
+                  >
+                    <Marker
+                      coordinate={{ latitude: 51.5074, longitude: -0.1278 }}
+                      title={event?.body?.address}
+                      description={event?.body?.city}
+                    />
+                  </MapView>
                 </View>
                 <TouchableOpacity onPress={openMaps} className="self-end">
                   <Text className="text-primary">View map</Text>

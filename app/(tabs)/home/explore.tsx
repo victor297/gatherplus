@@ -560,7 +560,7 @@ export default function ExploreScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
         ListEmptyComponent={() => (
           <View className="flex-1 bg-background justify-center items-center py-8">
-            {isUpcomingLoading ? (
+            {isUpcomingLoading || isFetching ? (
               <View className="py-4 flex justify-center items-center">
                 <ActivityIndicator color="#9EDD45" />
               </View>

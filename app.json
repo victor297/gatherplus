@@ -2,11 +2,11 @@
   "expo": {
     "name": "gatherPlus",
     "slug": "gatherPlus",
+    "scheme": "gatherplus",
     "version": "1.0.0",
     "orientation": "portrait",
     "owner": "gatherplus",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -17,7 +17,14 @@
         "NSLocationAlwaysUsageDescription": "This app needs access to your location even when in the background.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos and save tickets from the app",
         "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your library",
-        "NSCameraUsageDescription": "This app needs permission to access your camera."
+        "NSCameraUsageDescription": "This app needs permission to access your camera.",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "gatherplus"
+            ]
+          }
+        ]
       },
       "splash": {
         "image": "./assets/images/splash-icon.png",
@@ -30,12 +37,28 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "gatherplus",
+              "host": "*",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "package": "com.anonymous.gatherPlus",
       "splash": {
         "image": "./assets/images/splash-icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#020E1E"
-      },
-      "package": "com.anonymous.gatherPlus"
+      }
     },
     "web": {
       "bundler": "metro",

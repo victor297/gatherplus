@@ -200,7 +200,7 @@ export default function ExploreScreen() {
   const toggleSortDirection = () => {
     setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
   };
-
+  console.log(isFetching, isUpcomingLoading, "true false");
   const handleSortByPrice = () => {
     if (sortBy === "price") {
       toggleSortDirection();
@@ -585,11 +585,11 @@ export default function ExploreScreen() {
           //   </Text>
           // </View>
           <View className="flex-1 bg-background justify-center items-center py-8">
-            {isUpcomingLoading ? (
+            {isUpcomingLoading || isFetching ? (
               <View className="py-4 flex justify-center items-center">
                 <ActivityIndicator color="#9EDD45" />
               </View>
-            ) : allEvents.length === 0 ? (
+            ) : allEvents?.length === 0 ? (
               <Text className="text-gray-400 text-lg">
                 No events found for location. Kindly adjust filter
               </Text>
