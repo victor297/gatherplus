@@ -145,7 +145,7 @@ const TicketScreen = () => {
                         {booking.email}
                       </Text>
                       <Text className="text-sm text-gray-500">
-                        {booking?.ticket?.seat_type}{" "}
+                        {booking?.ticket?.seat_type}
                       </Text>
                     </View>
                     {/* Download Button */}

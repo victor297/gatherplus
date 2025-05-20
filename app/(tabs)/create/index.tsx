@@ -931,7 +931,7 @@ export default function CreateEventScreen() {
           <View className="bg-[#111823] p-3 rounded-lg">
             <Text className="text-white mb-4 font-bold">Location</Text>
             <Text className="text-gray-500 my-2">
-              Where will your event take place?{" "}
+              Where will your event take place?
               <Text className="text-red-500">*</Text>
             </Text>
 

@@ -115,7 +115,7 @@ export default function MyEventsScreen() {
           </View>
         ) : upcomingError ? (
           <Text className="text-red-500 text-center py-4">
-            Failed to load data. Please try again.{" "}
+            Failed to load data. Please try again.
             {upcomingError?.data?.message}
           </Text>
         ) : (

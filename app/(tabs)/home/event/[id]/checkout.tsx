@@ -120,7 +120,7 @@ export default function CheckoutScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator color="#9EDD45" />{" "}
+        <ActivityIndicator color="#9EDD45" />
         <Text className="text-white mt-4">Loading event details...</Text>
       </View>
     );
@@ -287,18 +287,17 @@ export default function CheckoutScreen() {
               <View className="bg-[#4d6382] rounded-lg p-4 mb-4">
                 <Text className="text-white">Ticket {index + 1}</Text>
                 <Text className="text-gray-400">
-                  Session:{" "}
+                  Session:
                   {
                     event?.body?.sessions.find(
                       (s) => s.id === instance.sessionId
                     )?.name
-                  }{" "}
+                  }
                   {
                     event?.body?.sessions.find(
                       (s) => s.id === instance.sessionId
                     )?.start_time
-                  }{" "}
-                  -{" "}
+                  }
                   {
                     event?.body?.sessions.find(
                       (s) => s.id === instance.sessionId

@@ -188,7 +188,7 @@ export default function ReviewScreen() {
                   <View className="flex-row items-center">
                     <Clock size={18} color="#6B7280" className="mr-2" />
                     <Text className="text-gray-400">
-                      {session.start_time || "--:--"} -{" "}
+                      {session.start_time || "--:--"} -
                       {session.end_time || "--:--"}
                     </Text>
                   </View>
@@ -227,7 +227,7 @@ export default function ReviewScreen() {
                     <View className="flex-row items-center">
                       <Ticket size={18} color="#6B7280" className="mr-3" />
                       <Text className="text-white">
-                        {ticket.name}{" "}
+                        {ticket.name}
                         {ticket.seat_type ? `(${ticket.seat_type})` : ""}
                       </Text>
                     </View>

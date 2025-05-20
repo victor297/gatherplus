@@ -226,7 +226,7 @@ export default function EventDetailsScreen() {
                 </Text>
                 <Text className="text-white mb-2">{event?.body?.address}</Text>
                 <Text className="text-gray-400 mb-4 ">
-                  {event?.body?.country?.name}, {event?.body?.state?.name},{" "}
+                  {event?.body?.country?.name}, {event?.body?.state?.name},
                   {event?.body?.city}
                 </Text>
                 <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
@@ -266,7 +266,7 @@ export default function EventDetailsScreen() {
                       <View key={index} className="flex-row items-center">
                         <Clock className="text-gray-400 mr-2" size={20} />
                         <Text className="text-gray-400">
-                          {session?.start_time} - {session?.end_time}{" "}
+                          {session?.start_time} - {session?.end_time}
                         </Text>
                         <Text className="text-primary">{`(${
                           session?.name || ""

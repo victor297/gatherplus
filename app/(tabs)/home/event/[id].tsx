@@ -140,38 +140,55 @@ export default function EventDetailsScreen() {
 
   const shareEvent = async () => {
     try {
-      // Create a deep link that will open your app directly to the event
-      const deepLink = ELinking.createURL(`/home/event/${id}`);
+      // Use your production website URL
+      const webUrl = `https://www.gatherplux.com/eventsdetails/share/${id}`;
+      const shareOptions = {
+        message: `🔥 Something big is coming!
+Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun, and epic memories!
 
-      // Prepare the share content
-      const shareContent = {
-        message: `Check out this event: ${event?.body?.title}\n\n${deepLink}`,
-        title: "Share Event via", // Only used on Android
+🎟️ Secure your spot now! Check out 👇 \n\n${webUrl}\n\n`,
+        title: "Share Event",
       };
 
-      // Check if sharing is available
-      if (await Sharing.isAvailableAsync()) {
-        // Use Share API (works on both iOS and Android)
-        await Share.share(shareContent);
-      } else {
-        // Fallback for web or unsupported platforms
-        Alert.alert(
-          "Share Event",
-          `Check out this event: ${event?.body?.title}\n\n${deepLink}`,
-          [
-            { text: "OK", onPress: () => {} },
-            {
-              text: "Copy Link",
-              onPress: () => Clipboard.setStringAsync(deepLink),
-            },
-          ]
-        );
-      }
+      await Share.share(shareOptions);
     } catch (error) {
-      console.error("Sharing failed:", error);
-      Alert.alert("Error", "Failed to share the event. Please try again.");
+      Alert.alert("Error", "Could not share. Please try again.");
     }
   };
+  // const shareEvent = async () => {
+  //   try {
+  //     // Create a deep link that will open your app directly to the event
+  //     const deepLink = ELinking.createURL(`/home/event/${id}`);
+
+  //     // Prepare the share content
+  //     const shareContent = {
+  //       message: `Check out this event: ${event?.body?.title}\n\n${deepLink}`,
+  //       title: "Share Event via", // Only used on Android
+  //     };
+
+  //     // Check if sharing is available
+  //     if (await Sharing.isAvailableAsync()) {
+  //       // Use Share API (works on both iOS and Android)
+  //       await Share.share(shareContent);
+  //     } else {
+  //       // Fallback for web or unsupported platforms
+  //       Alert.alert(
+  //         "Share Event",
+  //         `Check out this event: ${event?.body?.title}\n\n${deepLink}`,
+  //         [
+  //           { text: "OK", onPress: () => {} },
+  //           {
+  //             text: "Copy Link",
+  //             onPress: () => Clipboard.setStringAsync(deepLink),
+  //           },
+  //         ]
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("Sharing failed:", error);
+  //     Alert.alert("Error", "Failed to share the event. Please try again.");
+  //   }
+  // };
 
   const handleBuyTickets = () => {
     // Check if event has tickets
@@ -276,6 +293,7 @@ export default function EventDetailsScreen() {
       console.error("Couldn't load page", err)
     );
   };
+  console.log(error, "error");
 
   return (
     <>
@@ -284,9 +302,15 @@ export default function EventDetailsScreen() {
           <ActivityIndicator color="#9EDD45" />
         </View>
       ) : error ? (
-        <View className="flex-1 bg-background justify-center items-center">
+        <View className="flex-1 bg-background justify-center items-center gap-3">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="mr-4 bg-[#1A2432] p-2 rounded-full"
+          >
+            <ArrowLeft color="white" size={24} />
+          </TouchableOpacity>
           <Text className="text-red-500">
-            Failed to load data. Please try again.
+            {error?.data?.body} Please try again.
           </Text>
         </View>
       ) : (
@@ -436,7 +460,7 @@ export default function EventDetailsScreen() {
                 </Text>
                 <Text className="text-white mb-2">{event?.body?.address}</Text>
                 <Text className="text-gray-400 mb-4 ">
-                  {event?.body?.country?.name}, {event?.body?.state?.name},{" "}
+                  {event?.body?.country?.name}, {event?.body?.state?.name},
                   {event?.body?.city}
                 </Text>
                 <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
@@ -544,7 +568,7 @@ export default function EventDetailsScreen() {
                           <View>
                             <Text className="text-white">{ticket.name}</Text>
                             <Text className="text-primary">
-                              {event?.body?.currency?.split(" - ")[0]}{" "}
+                              {event?.body?.currency?.split(" - ")[0]}
                               {ticket.price}
                             </Text>
                             <Text className="text-gray-400 text-sm">
@@ -616,7 +640,7 @@ export default function EventDetailsScreen() {
                                     event?.body?.sessions.find(
                                       (s: any) => s.id === selection.sessionId
                                     )?.start_time
-                                  }{" "}
+                                  }
                                   -
                                   {
                                     event?.body?.sessions.find(
@@ -636,7 +660,7 @@ export default function EventDetailsScreen() {
 
                 <View className="mt-4 mb-4">
                   <Text className="text-gray-400">
-                    Total Tickets:{" "}
+                    Total Tickets:
                     {Object.values(ticketSelections).reduce(
                       (sum, s) => sum + s.quantity,
                       0

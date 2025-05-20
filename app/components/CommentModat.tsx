@@ -187,7 +187,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
                 className="flex-row items-center space-x-1 p-1"
               >
                 <Text className="text-primary text-xs">
-                  {item._count.replies}{" "}
+                  {item._count.replies}
                   {item._count.replies === 1 ? "reply" : "replies"}
                 </Text>
                 <ChevronRightIcon size={16} className="text-primary" />

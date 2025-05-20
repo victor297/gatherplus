@@ -233,7 +233,7 @@ export default function TicketingScreen() {
         {/* Event Type Selection */}
         <View className="bg-[#111823] p-3 rounded-lg">
           <Text className="text-white mb-4">
-            What type of event are you running?{" "}
+            What type of event are you running?
             <Text className="text-red-500">*</Text>
           </Text>
 
@@ -383,7 +383,7 @@ export default function TicketingScreen() {
 
           <View className="bg-[#111823] p-3 rounded-lg my-2">
             <Text className="text-white mb-4">
-              What tickets are you offering?{" "}
+              What tickets are you offering?
               <Text className="text-red-500">*</Text>
             </Text>
             {tickets.map((ticket: any, index: any) => (

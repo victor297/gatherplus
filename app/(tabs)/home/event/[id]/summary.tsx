@@ -273,7 +273,7 @@ export default function OrderSummaryScreen() {
               <View className="flex-row justify-between" key={name}>
                 <Text className="text-gray-400">{name}</Text>
                 <Text className="text-white">
-                  {group?.count} × {bookingData?.currency?.split(" - ")[0]}{" "}
+                  {group?.count} × {bookingData?.currency?.split(" - ")[0]}
                   {(group?.total / group?.count).toLocaleString()}
                 </Text>
               </View>
@@ -284,7 +284,7 @@ export default function OrderSummaryScreen() {
             <View className="flex-row justify-between">
               <Text className="text-gray-400">Sub-total</Text>
               <Text className="text-white">
-                {bookingData?.currency?.split(" - ")[0]}{" "}
+                {bookingData?.currency?.split(" - ")[0]}
                 {subtotal.toLocaleString()}
               </Text>
             </View>
@@ -377,14 +377,14 @@ export default function OrderSummaryScreen() {
               startInLoadingState={true}
               renderLoading={() => (
                 <View className="flex-1 justify-center items-center">
-                  <ActivityIndicator color="#9EDD45" />{" "}
+                  <ActivityIndicator color="#9EDD45" />
                   <Text className="mt-4">Loading payment gateway...</Text>
                 </View>
               )}
             />
           ) : (
             <View className="flex-1 justify-center items-center">
-              <ActivityIndicator color="#9EDD45" />{" "}
+              <ActivityIndicator color="#9EDD45" />
               <Text className="mt-4">Preparing payment...</Text>
             </View>
           )}
