@@ -30,6 +30,12 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
      
     }),
+    getMaxFreeTicket: builder.query({
+      query: () => ({
+        url: `${BASE_URL}/base/setting`,
+      }),
+     
+    }),
     getStates: builder.query<any,any>({
       query: (country:any) => ({
         url: `${BASE_URL}/base/country/state/${country}`,
@@ -201,6 +207,6 @@ useGetcategoriesQuery,
   useGetBookingDetailsQuery,
   useDeleteEventMutation,
   useGetMyEventBookingsQuery,
-  useLikeEventMutation,useCreateCommentMutation,useGetCommentsQuery,useGetRepliesQuery,useLikeCommentMutation
+  useLikeEventMutation,useCreateCommentMutation,useGetCommentsQuery,useGetRepliesQuery,useLikeCommentMutation,useGetMaxFreeTicketQuery
 
 } = userApiSlice;

@@ -12,7 +12,6 @@ import {
 import { MapPin, Search, Bell, ChevronDown } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
-import { Picker } from "@react-native-picker/picker";
 import {
   useGetcategoriesQuery,
   useGetCountriesQuery,
@@ -30,6 +29,7 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [city, setCity] = useState("Fetching location...");
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
@@ -71,19 +71,24 @@ export default function HomeScreen() {
     error: upcomingError,
     isLoading: isupcomingLoading,
     refetch: refetchUpcoming,
+    isFetching,
   } = useGetEventsQuery({
     city: null,
     type: "UPCOMING",
     category_id: selectedCategory,
     page: 1,
     size: 3,
+    sortDirection,
     search: searchTerm,
+    country_code: selectedCountry?.code2 || null,
+    state_id: selectedState?.id || null,
   });
 
   const {
     data: live,
     error: liveError,
     isLoading: isliveLoading,
+    isFetching: isFetchinglive,
     refetch: refetchLive,
   } = useGetEventsQuery({
     city: null,
@@ -91,6 +96,7 @@ export default function HomeScreen() {
     category_id: selectedCategory,
     page: 1,
     size: 4,
+    sortDirection,
     search: searchTerm,
   });
 
@@ -204,7 +210,7 @@ export default function HomeScreen() {
         }
       >
         {/* Loading and Error Handling */}
-        {isLoading || isupcomingLoading || isliveLoading ? (
+        {isLoading ? (
           <View className="text-white flex items-center py-4">
             <ActivityIndicator color="#9EDD45" />
           </View>
@@ -240,13 +246,11 @@ export default function HomeScreen() {
               )}
             </ScrollView>
 
-            {searchTerm?.length <= 1 && (
+            {searchTerm?.length <= 1 && !selectedCategory ? (
               <View className="px-4 mb-6">
                 <View className="bg-[#1A2432] rounded-lg overflow-hidden">
                   <Image
-                    source={{
-                      uri: "https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f",
-                    }}
+                    source={require("../../../assets/images/landing.png")}
                     className="w-full h-48"
                     resizeMode="cover"
                   />
@@ -265,7 +269,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
               </View>
-            )}
+            ) : null}
 
             {/* Upcoming Events */}
             <View className="mb-6">
@@ -280,8 +284,8 @@ export default function HomeScreen() {
                   <Text className="text-primary">See All</Text>
                 </TouchableOpacity>
               </View>
-              {isupcomingLoading ? (
-                <ActivityIndicator />
+              {isupcomingLoading || isFetching ? (
+                <ActivityIndicator color="#9EDD45" />
               ) : upcoming?.body?.events?.result <= 0 ? (
                 <Text className="text-primary text-bold text-center">
                   No event found
@@ -332,8 +336,8 @@ export default function HomeScreen() {
                   <Text className="text-primary">Show All</Text>
                 </TouchableOpacity>
               </View>
-              {isliveLoading ? (
-                <ActivityIndicator />
+              {isliveLoading || isFetchinglive ? (
+                <ActivityIndicator color="#9EDD45" />
               ) : live?.body?.events?.result <= 0 ? (
                 <Text className="text-primary text-bold text-center">
                   No event found
@@ -372,9 +376,7 @@ export default function HomeScreen() {
                               {[1, 2, 3].map((avatar) => (
                                 <Image
                                   key={avatar}
-                                  source={{
-                                    uri: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-                                  }}
+                                  source={require("../../../assets/images/thumbnail.png")}
                                   className="w-8 h-8 rounded-full border-2 border-[#1A2432] -ml-2 first:ml-0"
                                 />
                               ))}

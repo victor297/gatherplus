@@ -18,11 +18,19 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, X } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
 import { useGetCurrenciesQuery } from "@/redux/api/currencyAPI";
+import { useGetMaxFreeTicketQuery } from "@/redux/api/eventsApiSlice";
 
 export default function TicketingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { data: currencies, isLoading, error } = useGetCurrenciesQuery();
+  const [totalFreeTickets, setTotalFreeTickets] = useState(0);
+  const [freeTicketError, setFreeTicketError] = useState("");
+  const {
+    data: maxCount,
+    isLoading: isLoadingMa,
+    error: maxError,
+  } = useGetMaxFreeTicketQuery({});
   const [isFormValid, setIsFormValid] = useState(false);
 
   // Parse formData correctly
@@ -77,7 +85,32 @@ export default function TicketingScreen() {
   useEffect(() => {
     validateForm();
   }, [formData]);
+  // Add this useEffect to calculate total tickets whenever tickets change
+  useEffect(() => {
+    if (eventType === "free" && tickets.length > 0) {
+      const total = tickets.reduce(
+        (sum, ticket) => sum + parseInt(ticket.quantity) || 0,
+        0 // initial value
+      );
 
+      setTotalFreeTickets(total);
+      // Check against max free tickets if available
+      if (maxCount?.body?.max_free_event) {
+        if (total > maxCount.body.max_free_event) {
+          setIsFormValid(false);
+
+          setFreeTicketError(
+            `Total tickets cannot exceed ${maxCount.body.max_free_event.toLocaleString()} for free events`
+          );
+        } else {
+          setFreeTicketError("");
+        }
+      }
+    } else {
+      setTotalFreeTickets(0);
+      setFreeTicketError("");
+    }
+  }, [tickets, eventType, maxCount]);
   // Function to validate the form
   const validateForm = () => {
     if (eventType === "free") {
@@ -93,7 +126,13 @@ export default function TicketingScreen() {
           isValid = false;
         }
       });
-
+      // Add check for free ticket limit
+      if (
+        maxCount?.body?.max_free_event &&
+        totalFreeTickets > maxCount.body.max_free_event
+      ) {
+        isValid = false;
+      }
       setIsFormValid(isValid);
       return;
     }
@@ -210,11 +249,39 @@ export default function TicketingScreen() {
       },
     });
   };
+  const FreeTicketLimitInfo = () => {
+    if (eventType !== "free" || !maxCount?.body?.max_free_event) return null;
 
+    return (
+      <View className="bg-[#111823] p-3 rounded-lg my-2">
+        <Text className="text-white">
+          Free Event Ticket Limit:{" "}
+          <Text className="text-primary">
+            {maxCount.body.max_free_event.toLocaleString()} tickets max
+          </Text>
+        </Text>
+        <Text className="text-white mt-1">
+          Current Total:{" "}
+          <Text
+            className={
+              totalFreeTickets > maxCount.body.max_free_event
+                ? "text-red-500"
+                : "text-green-500"
+            }
+          >
+            {totalFreeTickets.toLocaleString()} tickets
+          </Text>
+        </Text>
+        {freeTicketError && (
+          <Text className="text-red-500 mt-1">{freeTicketError}</Text>
+        )}
+      </View>
+    );
+  };
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-background"
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : "padding"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <View className="flex-row items-center px-4 pt-12 pb-4">
@@ -380,6 +447,7 @@ export default function TicketingScreen() {
               />
             </View>
           </View>
+          <FreeTicketLimitInfo />
 
           <View className="bg-[#111823] p-3 rounded-lg my-2">
             <Text className="text-white mb-4">

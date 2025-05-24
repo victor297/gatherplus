@@ -17,12 +17,9 @@ import {
   Bell,
   Filter,
   Calendar as CalendarIcon,
-  TimerReset,
+  Clock,
   MapPin,
   ChevronDown,
-  Share2Icon,
-  HeartIcon,
-  MessageSquareIcon,
 } from "lucide-react-native";
 import {
   useGetcategoriesQuery,
@@ -53,6 +50,7 @@ export default function ExploreScreen() {
   const [size] = useState(10);
   const [allEvents, setAllEvents] = useState<any>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [showFiltering, setShowFiltering] = useState(false);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -219,14 +217,16 @@ export default function ExploreScreen() {
     setSelectedState(null);
     setCity("");
     setShowFilters(false);
+    setShowFiltering(false);
   };
 
   const applyFilters = () => {
     setPage(1);
-    setAllEvents([]);
+    // setAllEvents([]);
     setShowFilters(false);
+    setShowFiltering(true);
   };
-
+  console.log(allEvents);
   return (
     <View className="bg-background flex-1">
       {/* Header */}
@@ -243,8 +243,17 @@ export default function ExploreScreen() {
           </Text>
         </View>
         <View className="flex-row items-center space-x-4">
-          <TouchableOpacity onPress={() => setShowFilters(true)}>
-            <Filter color="white" size={24} />
+          <TouchableOpacity
+            onPress={() => {
+              setShowFilters(true);
+              setShowFiltering(true);
+            }}
+          >
+            {showFiltering ? (
+              <Filter className="text-primary" fill="#9edd45" size={24} />
+            ) : (
+              <Filter color="white" size={24} />
+            )}
           </TouchableOpacity>
           <TouchableOpacity>
             <Bell color="white" size={24} />
@@ -257,13 +266,21 @@ export default function ExploreScreen() {
         visible={showFilters}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowFilters(false)}
+        onRequestClose={() => {
+          setShowFilters(false);
+          setShowFiltering(false);
+        }}
       >
         <View className="flex-1 bg-black bg-opacity-50 justify-end">
           <View className="bg-[#1A2432] p-6 rounded-t-2xl max-h-[80vh]">
             <View className="flex-row justify-between items-center mb-6">
               <Text className="text-white text-xl font-bold">Filters</Text>
-              <TouchableOpacity onPress={() => setShowFilters(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowFilters(false);
+                  setShowFiltering(false);
+                }}
+              >
                 <Text className="text-primary">Close</Text>
               </TouchableOpacity>
             </View>
@@ -639,16 +656,22 @@ export default function ExploreScreen() {
                       </Text>
                     </View>
                     <View className="flex flex-row gap-2 mt-1 items-center">
-                      <TimerReset className="text-gray-400" size={24} />
+                      <Clock className="text-gray-400" size={20} />
                       <Text className="text-gray-400 text-sm">
                         {event?.time}
                       </Text>
                     </View>
                   </View>
 
-                  <View className="mt-2">
+                  <View className="mt-2 justify-end items-end">
+                    <View className="flex flex-row gap-1">
+                      <MapPin size={14} color="#9EDD45" />
+                      <Text className="text-primary text-sm">
+                        {event?.city}
+                      </Text>
+                    </View>
                     {event?.is_free ? (
-                      <Text className="text-primary text-lg font-semibold">
+                      <Text className="text-primary text-end text-lg font-semibold">
                         Free
                       </Text>
                     ) : (

@@ -52,6 +52,7 @@ export default function ExploreScreen() {
   const [size] = useState(4);
   const [allEvents, setAllEvents] = useState<any>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [showFiltering, setShowFiltering] = useState(false);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -67,7 +68,7 @@ export default function ExploreScreen() {
   const [locationDetermined, setLocationDetermined] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
   const [stateSearchQuery, setStateSearchQuery] = useState("");
-  // API Queries
+
   const {
     data: categories,
     isLoading: isCategoriesLoading,
@@ -205,12 +206,14 @@ export default function ExploreScreen() {
     setSelectedState(null);
     setCity("");
     setShowFilters(false);
+    setShowFiltering(true);
   };
 
   const applyFilters = () => {
     setPage(1);
-    setAllEvents([]);
+    // setAllEvents([]);
     setShowFilters(false);
+    setShowFiltering(true);
   };
 
   return (
@@ -227,8 +230,17 @@ export default function ExploreScreen() {
           <Text className="text-white text-xl font-semibold">Explore</Text>
         </View>
         <View className="flex-row items-center space-x-4">
-          <TouchableOpacity onPress={() => setShowFilters(true)}>
-            <Filter color="white" size={24} />
+          <TouchableOpacity
+            onPress={() => {
+              setShowFilters(false);
+              setShowFiltering(false);
+            }}
+          >
+            {showFiltering ? (
+              <Filter className="text-primary" fill="#9edd45" size={24} />
+            ) : (
+              <Filter color="white" size={24} />
+            )}
           </TouchableOpacity>
           <TouchableOpacity>
             <Bell color="white" size={24} />
@@ -241,13 +253,21 @@ export default function ExploreScreen() {
         visible={showFilters}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowFilters(false)}
+        onRequestClose={() => {
+          setShowFilters(false);
+          setShowFiltering(false);
+        }}
       >
         <View className="flex-1 bg-black bg-opacity-50 justify-end">
           <View className="bg-[#1A2432] p-6 rounded-t-2xl max-h-[80vh]">
             <View className="flex-row justify-between items-center mb-6">
               <Text className="text-white text-xl font-bold">Filters</Text>
-              <TouchableOpacity onPress={() => setShowFilters(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowFilters(false);
+                  setShowFiltering(false);
+                }}
+              >
                 <Text className="text-primary">Close</Text>
               </TouchableOpacity>
             </View>
@@ -595,24 +615,28 @@ export default function ExploreScreen() {
               <Text className="text-white text-xl font-semibold">
                 {event.title}
               </Text>
-              <Text className="text-gray-400 mb-4">
-                {event?.address?.length > 25
-                  ? `${event.address.slice(0, 25)}...`
-                  : event?.address}
-              </Text>
+              <View className="flex flex-row gap-1">
+                <MapPin className="text-primary" size={14} />
+                <Text className="text-gray-400 mb-4">
+                  {event?.address?.length > 25
+                    ? `${event.address.slice(0, 25)}...`
+                    : event?.address}
+                </Text>
+              </View>
               <View className="flex-row items-center justify-between">
                 <View className="flex-row">
                   {[1, 2, 3].map((avatar) => (
                     <Image
                       key={`avatar-${avatar}`}
-                      source={{
-                        uri: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-                      }}
+                      source={require("../../../assets/images/thumbnail.png")}
                       className="w-8 h-8 rounded-full border-2 border-[#1A2432] -ml-2 first:ml-0"
                     />
                   ))}
                 </View>
-                <TouchableOpacity className="bg-primary px-6 py-2 rounded-full">
+                <TouchableOpacity
+                  onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
+                  className="bg-primary px-6 py-2 rounded-full"
+                >
                   <Text className="text-background font-semibold">
                     Join now
                   </Text>

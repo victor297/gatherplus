@@ -178,10 +178,10 @@ export default function EventDetailsScreen() {
                 })}
               </Text>
               <TouchableOpacity
-                className="bg-[#1A2432] p-2 rounded-full"
+                className="bg-primary p-2 rounded-full"
                 onPress={() => setShowOptions(!showOptions)}
               >
-                <EllipsisVerticalIcon color="white" size={24} />
+                <EllipsisVerticalIcon color="#1A2432" size={24} />
               </TouchableOpacity>
             </View>
             <Image

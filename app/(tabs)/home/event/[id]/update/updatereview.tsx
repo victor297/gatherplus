@@ -15,7 +15,6 @@ import {
   Clock,
   Ticket,
   MapPin,
-  Edit2,
 } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
 import { useUpdateventMutation } from "@/redux/api/eventsApiSlice";
