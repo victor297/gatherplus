@@ -206,7 +206,7 @@ export default function ExploreScreen() {
     setSelectedState(null);
     setCity("");
     setShowFilters(false);
-    setShowFiltering(true);
+    setShowFiltering(false);
   };
 
   const applyFilters = () => {
@@ -232,8 +232,8 @@ export default function ExploreScreen() {
         <View className="flex-row items-center space-x-4">
           <TouchableOpacity
             onPress={() => {
-              setShowFilters(false);
-              setShowFiltering(false);
+              setShowFilters(true);
+              setShowFiltering(true);
             }}
           >
             {showFiltering ? (
