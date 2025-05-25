@@ -280,6 +280,7 @@ export default function ExploreScreen() {
                   setShowFilters(false);
                   setShowFiltering(false);
                 }}
+                className="p-2"
               >
                 <Text className="text-primary">Close</Text>
               </TouchableOpacity>

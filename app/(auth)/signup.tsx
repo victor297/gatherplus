@@ -1,23 +1,37 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import {  Eye, EyeOff, Mail, User, Lock, ArrowLeftIcon } from 'lucide-react-native';
-import { useUsersignupMutation } from '@/redux/api/usersApiSlice';
-import * as Google from 'expo-auth-session/providers/google';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
+import { Link, useRouter } from "expo-router";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  User,
+  Lock,
+  ArrowLeftIcon,
+} from "lucide-react-native";
+import { useUsersignupMutation } from "@/redux/api/usersApiSlice";
+import * as Google from "expo-auth-session/providers/google";
 
 export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string|null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const [usersignup, { isLoading }] = useUsersignupMutation();
-    const [request, response, promptAsync] = Google.useAuthRequest({
-      clientId: 'YOUR_EXPO_CLIENT_ID',
-      webClientId: 'YOUR_WEB_CLIENT_ID',
-      iosClientId: 'YOUR_IOS_CLIENT_ID',
-    });
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: "YOUR_EXPO_CLIENT_ID",
+    webClientId: "YOUR_WEB_CLIENT_ID",
+    iosClientId: "YOUR_IOS_CLIENT_ID",
+  });
 
   const handleSignup = async () => {
     if (!name.trim()) {
@@ -36,35 +50,39 @@ export default function SignupScreen() {
     try {
       const res = await usersignup({ name, email, password }).unwrap();
       router.push(`/verify?email=${email}`);
-    } catch (err:any) {
-      setError(err?.data?.body || 'Signup failed. Please try again.');
+    } catch (err: any) {
+      setError(err?.data?.body || "Signup failed. Please try again.");
     }
   };
   const handleGoogleSignIn = async () => {
     try {
       const result = await promptAsync();
-      if (result?.type === 'success') {
+      if (result?.type === "success") {
       } else {
-        setError('Google sign-in cancelled.');
+        setError("Google sign-in cancelled.");
       }
     } catch (err) {
-      setError('Google sign-in error. Please try again.');
+      setError("Google sign-in error. Please try again.");
     }
   };
   return (
     <View className="flex-1 bg-background p-6">
-     <TouchableOpacity onPress={() => router.back()} className="mt-6 flex-row items-center  justify-between">
-            <ArrowLeftIcon color="grey" size={24} />
-                 <Image 
-            source={require('../../assets/images/logo.png')}
-              style={{ width: 150, height: 50, alignSelf: 'flex-end'}} 
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-    
+      <TouchableOpacity
+        onPress={() => router.back()}
+        className="mt-6 flex-row items-center  justify-between"
+      >
+        <ArrowLeftIcon color="grey" size={24} />
+        <Image
+          source={require("../../assets/images/logo.png")}
+          style={{ width: 150, height: 50, alignSelf: "flex-end" }}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
 
       <View className="mt-4">
-        <Text className="text-white text-3xl font-bold">Nice to know you! 👋</Text>
+        <Text className="text-white text-3xl font-bold">
+          Nice to know you! 👋
+        </Text>
         <Text className="text-gray-400 mt-2">
           Sign up to discover and book amazing events!
         </Text>
@@ -79,7 +97,7 @@ export default function SignupScreen() {
                 placeholder="Enter your full name"
                 placeholderTextColor="#6B7280"
                 value={name}
-                textContentType='name'
+                textContentType="name"
                 onChangeText={setName}
               />
             </View>
@@ -127,9 +145,11 @@ export default function SignupScreen() {
           </View>
         </View>
 
-        {error && <Text className="text-red-500 text-center mt-4">{error}</Text>}
+        {error && (
+          <Text className="text-red-500 text-center mt-4">{error}</Text>
+        )}
 
-        <TouchableOpacity 
+        <TouchableOpacity
           className="bg-primary rounded-lg py-4 mt-8 flex items-center justify-center"
           onPress={handleSignup}
           disabled={isLoading}
@@ -137,31 +157,34 @@ export default function SignupScreen() {
           {isLoading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <View className='flex-row items-center gap-2 justify-center'>
-                                         <Text className="text-background  text-center text-lg font-bold">Create Account </Text>
-                                         <Image
-                         source={require('../../assets/images/send.png')}
-                         style={{ width: 24, height: 24 }}
-                                       className="mr-2"
-                                     />
-                      </View>
+            <View className="flex-row items-center gap-2 justify-center">
+              <Text className="text-background  text-center text-lg font-bold">
+                Create Account{" "}
+              </Text>
+              <Image
+                source={require("../../assets/images/send.png")}
+                style={{ width: 24, height: 24 }}
+                className="mr-2"
+              />
+            </View>
           )}
         </TouchableOpacity>
 
         <Text className="text-gray-400 text-center mt-6 mb-4">or</Text>
 
- 
-           <TouchableOpacity className="flex-row items-center justify-center bg-[#1A2432] rounded-lg py-4" onPress={handleGoogleSignIn}>
+        {/* <TouchableOpacity className="flex-row items-center justify-center bg-[#1A2432] rounded-lg py-4" onPress={handleGoogleSignIn}>
              <Image
  source={require('../../assets/images/google.png')}
  style={{ width: 24, height: 24 }}
                className="mr-2"
              />
              <Text className="text-white ">Sign up with Google</Text>
-           </TouchableOpacity>
+           </TouchableOpacity> */}
 
         <View className="flex-row justify-center mt-6">
-          <Text className="text-gray-400 text-lg">Already have an account? </Text>
+          <Text className="text-gray-400 text-lg">
+            Already have an account?{" "}
+          </Text>
           <Link href="/login" className="text-primary text-lg">
             Log In
           </Link>

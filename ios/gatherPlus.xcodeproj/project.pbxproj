@@ -8,28 +8,28 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		22FB37FECECA2F131D2EBB99 /* libPods-gatherPlus.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CA60DD28A749F52A2921FDAB /* libPods-gatherPlus.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		4EFCD5985792D4FEC1EEAD0A /* libPods-gatherPlus.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 004156A3812C5451BE6B18C8 /* libPods-gatherPlus.a */; };
+		6311FD0594B5B06740154252 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4153D0750B2D87999FC40A9D /* ExpoModulesProvider.swift */; };
+		8A15C1C22C05A539C80BEFE3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5AFC75D9C91A960386720E1A /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		DE9388AE044D7AD4088A3D64 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D525410D336511E8EA7C9589 /* ExpoModulesProvider.swift */; };
-		DF742C851BCCC1B2CA54E897 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 938554E58F7D8B74ADE248E9 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		004156A3812C5451BE6B18C8 /* libPods-gatherPlus.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-gatherPlus.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* gatherPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = gatherPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = gatherPlus/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = gatherPlus/Info.plist; sourceTree = "<group>"; };
-		938554E58F7D8B74ADE248E9 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = gatherPlus/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4153D0750B2D87999FC40A9D /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-gatherPlus/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		5AFC75D9C91A960386720E1A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = gatherPlus/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = gatherPlus/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B19ED80EB1B595E8CEA00A5F /* Pods-gatherPlus.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-gatherPlus.debug.xcconfig"; path = "Target Support Files/Pods-gatherPlus/Pods-gatherPlus.debug.xcconfig"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		CC1E95C6F7F6A8CD6E5BCAC7 /* Pods-gatherPlus.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-gatherPlus.release.xcconfig"; path = "Target Support Files/Pods-gatherPlus/Pods-gatherPlus.release.xcconfig"; sourceTree = "<group>"; };
-		D525410D336511E8EA7C9589 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-gatherPlus/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		CA60DD28A749F52A2921FDAB /* libPods-gatherPlus.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-gatherPlus.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = gatherPlus/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* gatherPlus-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "gatherPlus-Bridging-Header.h"; path = "gatherPlus/gatherPlus-Bridging-Header.h"; sourceTree = "<group>"; };
+		F701273F86F7D43EC2CB7126 /* Pods-gatherPlus.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-gatherPlus.debug.xcconfig"; path = "Target Support Files/Pods-gatherPlus/Pods-gatherPlus.debug.xcconfig"; sourceTree = "<group>"; };
+		FABCEA915005A1BD2081E8F9 /* Pods-gatherPlus.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-gatherPlus.release.xcconfig"; path = "Target Support Files/Pods-gatherPlus/Pods-gatherPlus.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4EFCD5985792D4FEC1EEAD0A /* libPods-gatherPlus.a in Frameworks */,
+				22FB37FECECA2F131D2EBB99 /* libPods-gatherPlus.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				938554E58F7D8B74ADE248E9 /* PrivacyInfo.xcprivacy */,
+				5AFC75D9C91A960386720E1A /* PrivacyInfo.xcprivacy */,
 			);
 			name = gatherPlus;
 			sourceTree = "<group>";
@@ -62,9 +62,27 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				004156A3812C5451BE6B18C8 /* libPods-gatherPlus.a */,
+				CA60DD28A749F52A2921FDAB /* libPods-gatherPlus.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		3B95B3EA8A4CBF1482F973CF /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				D8EA4DFA84702F25A4C96993 /* gatherPlus */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
+		7D9D387DD1330574EACE5224 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				F701273F86F7D43EC2CB7126 /* Pods-gatherPlus.debug.xcconfig */,
+				FABCEA915005A1BD2081E8F9 /* Pods-gatherPlus.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -81,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				A0029787EB4651EBAD05C9FF /* Pods */,
-				8FE336E95D4088ACEE29201F /* ExpoModulesProviders */,
+				7D9D387DD1330574EACE5224 /* Pods */,
+				3B95B3EA8A4CBF1482F973CF /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -97,24 +115,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		8FE336E95D4088ACEE29201F /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				F50E9F8243477C10176456F6 /* gatherPlus */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		A0029787EB4651EBAD05C9FF /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				B19ED80EB1B595E8CEA00A5F /* Pods-gatherPlus.debug.xcconfig */,
-				CC1E95C6F7F6A8CD6E5BCAC7 /* Pods-gatherPlus.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -124,10 +124,10 @@
 			path = gatherPlus/Supporting;
 			sourceTree = "<group>";
 		};
-		F50E9F8243477C10176456F6 /* gatherPlus */ = {
+		D8EA4DFA84702F25A4C96993 /* gatherPlus */ = {
 			isa = PBXGroup;
 			children = (
-				D525410D336511E8EA7C9589 /* ExpoModulesProvider.swift */,
+				4153D0750B2D87999FC40A9D /* ExpoModulesProvider.swift */,
 			);
 			name = gatherPlus;
 			sourceTree = "<group>";
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "gatherPlus" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				458866E00D7DA42E457DAC43 /* [Expo] Configure project */,
+				38EEC1C6E469E03DF9C7B976 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				E57EE5390A3855098CAAD161 /* [CP] Embed Pods Frameworks */,
+				7CE2499DD82FB87F303DB7DB /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				DF742C851BCCC1B2CA54E897 /* PrivacyInfo.xcprivacy in Resources */,
+				8A15C1C22C05A539C80BEFE3 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,7 +240,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		458866E00D7DA42E457DAC43 /* [Expo] Configure project */ = {
+		38EEC1C6E469E03DF9C7B976 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -258,6 +258,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-gatherPlus/expo-configure-project.sh\"\n";
+		};
+		7CE2499DD82FB87F303DB7DB /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-gatherPlus/Pods-gatherPlus-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-gatherPlus/Pods-gatherPlus-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -323,24 +341,6 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-gatherPlus/Pods-gatherPlus-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		E57EE5390A3855098CAAD161 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-gatherPlus/Pods-gatherPlus-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-gatherPlus/Pods-gatherPlus-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -349,7 +349,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				DE9388AE044D7AD4088A3D64 /* ExpoModulesProvider.swift in Sources */,
+				6311FD0594B5B06740154252 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -358,7 +358,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B19ED80EB1B595E8CEA00A5F /* Pods-gatherPlus.debug.xcconfig */;
+			baseConfigurationReference = F701273F86F7D43EC2CB7126 /* Pods-gatherPlus.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -394,7 +394,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CC1E95C6F7F6A8CD6E5BCAC7 /* Pods-gatherPlus.release.xcconfig */;
+			baseConfigurationReference = FABCEA915005A1BD2081E8F9 /* Pods-gatherPlus.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

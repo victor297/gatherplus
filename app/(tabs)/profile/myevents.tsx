@@ -144,7 +144,7 @@ export default function MyEventsScreen() {
         ListEmptyComponent={() => (
           <View className="flex-1 bg-background justify-center items-center py-8">
             <Text className="text-gray-400 text-lg">
-              {isupcomingLoading || !allEvents ? (
+              {isupcomingLoading || !allEvents || isFetching ? (
                 <View className="py-4 flex justify-center items-center">
                   <ActivityIndicator color="#9EDD45" />
                 </View>

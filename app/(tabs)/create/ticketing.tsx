@@ -176,7 +176,7 @@ export default function TicketingScreen() {
           price: eventType === "ticketed" ? "" : 0,
           quantity: "",
           seat_type: "SEAT",
-          no_per_seat_type: 0,
+          no_per_seat_type: 1,
         },
       ],
     }));

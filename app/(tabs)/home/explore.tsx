@@ -235,6 +235,7 @@ export default function ExploreScreen() {
               setShowFilters(true);
               setShowFiltering(true);
             }}
+            className="p-2"
           >
             {showFiltering ? (
               <Filter className="text-primary" fill="#9edd45" size={24} />
