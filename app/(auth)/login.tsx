@@ -6,11 +6,22 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
+  Platform,
 } from "react-native";
 import { Link, useFocusEffect, useRouter } from "expo-router";
 import { Eye, EyeOff, User, Lock, Mail } from "lucide-react-native";
-import * as Google from "expo-auth-session/providers/google";
-import { useLoginMutation } from "@/redux/api/usersApiSlice";
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from "expo-apple-authentication";
+import {
+  useAppleloginMutation,
+  useGoogleloginMutation,
+  useLoginMutation,
+} from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "@/redux/features/auth/authSlice";
 
@@ -20,16 +31,21 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
-  const [login] = useLoginMutation();
+  const [login, { isLoading }] = useLoginMutation();
+  const [applelogin, { isLoading: isAppleLoading }] = useAppleloginMutation();
+  const [googlelogin, { isLoading: isGoogleLoading }] =
+    useGoogleloginMutation();
   const router = useRouter();
   const dispatch = useDispatch();
 
   const { userInfo } = useSelector((state: any) => state.auth);
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "YOUR_EXPO_CLIENT_ID",
-    webClientId: "YOUR_WEB_CLIENT_ID",
-    iosClientId: "YOUR_IOS_CLIENT_ID",
+  GoogleSignin.configure({
+    webClientId:
+      "372220031134-ekkmprp00glp2s41hl2ubjet9metkm4k.apps.googleusercontent.com",
+    iosClientId:
+      "372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr.apps.googleusercontent.com",
   });
+
   useFocusEffect(() => {
     if (userInfo) {
       router.replace("/(tabs)/home/home1");
@@ -51,8 +67,8 @@ export default function Login() {
       const res: any = await login({ username, password }).unwrap();
 
       if (res.code === 200 && res.body) {
-        dispatch(setCredentials(res)); // Ensure correct payload structure
-        router.replace("/(tabs)/home/home1"); // Redirect after successful login
+        dispatch(setCredentials(res));
+        router.replace("/(tabs)/home/home1");
       } else {
         throw new Error("Invalid response format");
       }
@@ -66,19 +82,84 @@ export default function Login() {
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await promptAsync();
-      if (result?.type === "success") {
+      setLoading(true);
+      setError(null);
+
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      console.log(response, "googlelogin1");
+      if (isSuccessResponse(response)) {
+        const res: any = await googlelogin({
+          googleId: response.data.idToken,
+          email: response.data.user.email,
+          name: response.data.user.name,
+          avatar: response.data.user.photo,
+          emailVerified: true,
+          provider: "google",
+        }).unwrap();
+        if (res.code === 200 && res.body) {
+          dispatch(setCredentials(res));
+          router.replace("/(tabs)/home/home1");
+        } else {
+          setError("No ID token received from Google");
+        }
       } else {
-        setError("Google sign-in cancelled.");
+        setError("Google sign-in was cancelled");
       }
-    } catch (err) {
-      setError("Google sign-in error. Please try again.");
+    } catch (error) {
+      setLoading(false);
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            setError("Google sign-in was cancelled");
+            break;
+          case statusCodes.IN_PROGRESS:
+            setError("Google sign-in already in progress");
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            setError("Google Play services not available or outdated");
+            break;
+          default:
+            setError("Google sign-in failed. Please try again.");
+        }
+      } else {
+        setError("An unknown error occurred during Google sign-in");
+      }
+    } finally {
+      setLoading(false);
     }
   };
-  // if(userInfo){
-  //   router.push("/(tabs)/home/home"); // Redirect after successful login
 
-  // }
+  const handleAppleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const res: any = await applelogin(credential).unwrap();
+      console.log(res, "applelogin");
+      if (res.code === 200 && res.body) {
+        dispatch(setCredentials(res));
+        router.replace("/(tabs)/home/home1");
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (e: any) {
+      setLoading(false);
+      if (e.code === "ERR_CANCELED") {
+        setError("Apple sign-in cancelled.");
+      } else {
+        setError("Apple sign-in error. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View className="flex-1 bg-background p-6">
@@ -148,7 +229,7 @@ export default function Login() {
             onPress={handleSignIn}
             disabled={loading}
           >
-            {loading ? (
+            {loading || isLoading || isAppleLoading ? (
               <ActivityIndicator color="white" />
             ) : (
               <View className="flex-row items-center gap-2 justify-center">
@@ -170,17 +251,33 @@ export default function Login() {
             <View className="flex-1 h-[1px] bg-gray-700" />
           </View>
 
-          {/* <TouchableOpacity
-            className="flex-row items-center justify-center bg-[#1A2432] rounded-lg py-4"
-            onPress={handleGoogleSignIn}
-          >
-            <Image
-              source={require("../../assets/images/google.png")}
-              style={{ width: 24, height: 24 }}
-              className="mr-2"
-            />
-            <Text className="text-white">Sign up with Google</Text>
-          </TouchableOpacity> */}
+          <View className="space-y-4">
+            <TouchableOpacity
+              className="flex-row items-center justify-center bg-[#1A2432] rounded-lg py-4"
+              onPress={handleGoogleSignIn}
+            >
+              <Image
+                source={require("../../assets/images/google.png")}
+                style={{ width: 24, height: 24 }}
+                className="mr-2"
+              />
+              <Text className="text-white">Sign in with Google</Text>
+            </TouchableOpacity>
+
+            {Platform.OS === "ios" && (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={
+                  AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+                }
+                buttonStyle={
+                  AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                }
+                cornerRadius={8}
+                style={{ width: "100%", height: 50 }}
+                onPress={handleAppleSignIn}
+              />
+            )}
+          </View>
 
           <View className="flex-row justify-center">
             <Text className="text-gray-400 text-lg">

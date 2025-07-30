@@ -28,6 +28,20 @@ export const userApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
     }),
+    applelogin: builder.mutation<{ token: string }, any>({
+      query: (data) => ({
+        url: `${USER_URL}/apple`,
+        method: "POST",
+        body: data,
+      }),
+    }),
+    googlelogin: builder.mutation<{ token: string }, any>({
+      query: (data) => ({
+        url: `${USER_URL}/google`,
+        method: "POST",
+        body: data,
+      }),
+    }),
     usersignup: builder.mutation<any,any>({
       query: (data) => ({
         url: `${USER_URL}`,
@@ -121,6 +135,8 @@ export const userApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useLoginMutation,
+  useAppleloginMutation,
+  useGoogleloginMutation,
   useLogoutMutation,
   useUsersignupMutation,
   useGetUserDetailsQuery,

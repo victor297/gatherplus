@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import {
@@ -16,8 +17,20 @@ import {
   Lock,
   ArrowLeftIcon,
 } from "lucide-react-native";
-import { useUsersignupMutation } from "@/redux/api/usersApiSlice";
-import * as Google from "expo-auth-session/providers/google";
+import {
+  useAppleloginMutation,
+  useGoogleloginMutation,
+  useUsersignupMutation,
+} from "@/redux/api/usersApiSlice";
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from "expo-apple-authentication";
+import { useDispatch, useSelector } from "react-redux";
+import { setCredentials } from "@/redux/features/auth/authSlice";
 
 export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -26,11 +39,19 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
   const [usersignup, { isLoading }] = useUsersignupMutation();
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "YOUR_EXPO_CLIENT_ID",
-    webClientId: "YOUR_WEB_CLIENT_ID",
-    iosClientId: "YOUR_IOS_CLIENT_ID",
+  const [applelogin, { isLoading: isAppleLoading }] = useAppleloginMutation();
+  const [googlelogin, { isLoading: isGoogleLoading }] =
+    useGoogleloginMutation();
+
+  const { userInfo } = useSelector((state: any) => state.auth);
+  GoogleSignin.configure({
+    webClientId:
+      "372220031134-ekkmprp00glp2s41hl2ubjet9metkm4k.apps.googleusercontent.com",
+    iosClientId:
+      "372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr.apps.googleusercontent.com",
   });
 
   const handleSignup = async () => {
@@ -43,7 +64,7 @@ export default function SignupScreen() {
       return;
     }
     if (!email.trim()) {
-      setError("Password is required");
+      setError("Email is required");
       return;
     }
     setError(null);
@@ -54,22 +75,93 @@ export default function SignupScreen() {
       setError(err?.data?.body || "Signup failed. Please try again.");
     }
   };
+
   const handleGoogleSignIn = async () => {
     try {
-      const result = await promptAsync();
-      if (result?.type === "success") {
+      setLoading(true);
+      setError(null);
+
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      console.log(response, "googlelogin1");
+      if (isSuccessResponse(response)) {
+        const res: any = await googlelogin({
+          googleId: response.data.idToken,
+          email: response.data.user.email,
+          name: response.data.user.name,
+          avatar: response.data.user.photo,
+          emailVerified: true,
+          provider: "google",
+        }).unwrap();
+        if (res.code === 200 && res.body) {
+          dispatch(setCredentials(res));
+          router.replace("/(tabs)/home/home1");
+        } else {
+          setError("No ID token received from Google");
+        }
       } else {
-        setError("Google sign-in cancelled.");
+        setError("Google sign-in was cancelled");
       }
-    } catch (err) {
-      setError("Google sign-in error. Please try again.");
+    } catch (error) {
+      setLoading(false);
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            setError("Google sign-in was cancelled");
+            break;
+          case statusCodes.IN_PROGRESS:
+            setError("Google sign-in already in progress");
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            setError("Google Play services not available or outdated");
+            break;
+          default:
+            setError("Google sign-in failed. Please try again.");
+        }
+      } else {
+        setError("An unknown error occurred during Google sign-in");
+      }
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleAppleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const res: any = await applelogin(credential).unwrap();
+      console.log(res, "applelogin");
+      if (res.code === 200 && res.body) {
+        dispatch(setCredentials(res));
+        router.replace("/(tabs)/home/home1");
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (e: any) {
+      setLoading(false);
+      if (e.code === "ERR_CANCELED") {
+        setError("Apple sign-in cancelled.");
+      } else {
+        setError("Apple sign-in error. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View className="flex-1 bg-background p-6">
       <TouchableOpacity
         onPress={() => router.back()}
-        className="mt-6 flex-row items-center  justify-between"
+        className="mt-6 flex-row items-center justify-between"
       >
         <ArrowLeftIcon color="grey" size={24} />
         <Image
@@ -154,12 +246,12 @@ export default function SignupScreen() {
           onPress={handleSignup}
           disabled={isLoading}
         >
-          {isLoading ? (
+          {loading || isLoading || isAppleLoading ? (
             <ActivityIndicator color="white" />
           ) : (
             <View className="flex-row items-center gap-2 justify-center">
-              <Text className="text-background  text-center text-lg font-bold">
-                Create Account{" "}
+              <Text className="text-background text-center text-lg font-bold">
+                Create Account
               </Text>
               <Image
                 source={require("../../assets/images/send.png")}
@@ -170,16 +262,39 @@ export default function SignupScreen() {
           )}
         </TouchableOpacity>
 
-        <Text className="text-gray-400 text-center mt-6 mb-4">or</Text>
+        <View className="flex-row items-center mt-6 mb-4">
+          <View className="flex-1 h-[1px] bg-gray-700" />
+          <Text className="mx-4 text-gray-400">or</Text>
+          <View className="flex-1 h-[1px] bg-gray-700" />
+        </View>
 
-        {/* <TouchableOpacity className="flex-row items-center justify-center bg-[#1A2432] rounded-lg py-4" onPress={handleGoogleSignIn}>
-             <Image
- source={require('../../assets/images/google.png')}
- style={{ width: 24, height: 24 }}
-               className="mr-2"
-             />
-             <Text className="text-white ">Sign up with Google</Text>
-           </TouchableOpacity> */}
+        <View className="space-y-4">
+          <TouchableOpacity
+            className="flex-row items-center justify-center bg-[#1A2432] rounded-lg py-4"
+            onPress={handleGoogleSignIn}
+          >
+            <Image
+              source={require("../../assets/images/google.png")}
+              style={{ width: 24, height: 24 }}
+              className="mr-2"
+            />
+            <Text className="text-white">Sign up with Google</Text>
+          </TouchableOpacity>
+
+          {Platform.OS === "ios" && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={
+                AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP
+              }
+              buttonStyle={
+                AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+              }
+              cornerRadius={8}
+              style={{ width: "100%", height: 50 }}
+              onPress={handleAppleSignIn}
+            />
+          )}
+        </View>
 
         <View className="flex-row justify-center mt-6">
           <Text className="text-gray-400 text-lg">

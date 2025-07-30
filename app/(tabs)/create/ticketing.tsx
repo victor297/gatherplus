@@ -282,7 +282,6 @@ export default function TicketingScreen() {
     <KeyboardAvoidingView
       className="flex-1 bg-background"
       behavior={Platform.OS === "ios" ? "padding" : "padding"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity
@@ -432,7 +431,7 @@ export default function TicketingScreen() {
         )}
 
         {/* Ticketing Section - Shows for both free and paid events */}
-        <KeyboardAvoidingView className="mt-2">
+        <View className="mt-2">
           {/* Identity Requirement Checkbox */}
           <View className="bg-[#111823] p-3 rounded-lg my-2">
             <View className="flex-row items-center justify-between">
@@ -658,7 +657,7 @@ export default function TicketingScreen() {
               />
             </View>
           </View> */}
-        </KeyboardAvoidingView>
+        </View>
       </ScrollView>
 
       {/* Save and Continue Button */}

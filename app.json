@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "gatherPlus",
+    "name": "gatherplus",
     "slug": "gatherPlus",
     "scheme": "gatherplus",
     "version": "1.0.0",
@@ -12,6 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.gatherPlus",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show your position on the map.",
         "NSLocationAlwaysUsageDescription": "This app needs access to your location even when in the background.",
@@ -36,6 +37,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAzyTQfv-LirivvA9Y9hcYMx7DxBDzXwWU"
+        }
       },
       "intentFilters": [
         {
@@ -66,6 +72,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr"
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -75,6 +87,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#020E1E"
         }
+      ],
+      [
+        "expo-apple-authentication"
       ]
     ],
     "experiments": {

@@ -250,7 +250,7 @@ export default function HomeScreen() {
               <View className="px-4 mb-6">
                 <View className="bg-[#1A2432] rounded-lg overflow-hidden">
                   <Image
-                    source={require("../../../assets/images/landing.png")}
+                    source={require("../../../assets/images/landing.webp")}
                     className="w-full h-48"
                     resizeMode="cover"
                   />
