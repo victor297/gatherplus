@@ -9,7 +9,13 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
-import { MapPin, Search, Bell, ChevronDown } from "lucide-react-native";
+import {
+  MapPin,
+  Search,
+  Bell,
+  ChevronDown,
+  StarIcon,
+} from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import {
@@ -22,6 +28,8 @@ import { useCallback, useEffect, useState } from "react";
 import { formatDate } from "@/utils/formatDate";
 import { useDispatch } from "react-redux";
 import { checkTokenImmediately } from "@/redux/features/auth/authSlice";
+import { useGetprovidersQuery } from "@/redux/api/providersApiSlice";
+import { truncateAlphabet, truncateSentence } from "@/utils";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -99,10 +107,24 @@ export default function HomeScreen() {
     sortDirection,
     search: searchTerm,
   });
+  const {
+    data: providers,
+    error: providersError,
+    isLoading: isprovidersLoading,
+    isFetching: isFetchingproviders,
+    refetch: refetchproviders,
+  } = useGetprovidersQuery({
+    city: null,
+    // type: "LIVE",
+    page: 1,
+    size: 4,
+    sortDirection,
+    // search: searchTerm,
+  });
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([refetchUpcoming(), refetchLive()])
+    Promise.all([refetchUpcoming(), refetchLive(), refetchproviders()])
       .then(() => setRefreshing(false))
       .catch(() => setRefreshing(false));
   }, []);
@@ -214,7 +236,7 @@ export default function HomeScreen() {
           <View className="text-white flex items-center py-4">
             <ActivityIndicator color="#9EDD45" />
           </View>
-        ) : error || upcomingError || liveError ? (
+        ) : error || upcomingError || liveError || providersError ? (
           <Text className="text-red-500 text-center py-4">
             Failed to load data. Please try again.
           </Text>
@@ -316,6 +338,73 @@ export default function HomeScreen() {
                         <Text className="text-gray-400 text-sm">
                           {formatDate(event?.start_date)}
                         </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Providers */}
+            <View className="mb-6">
+              <View className="flex-row justify-between items-center px-4 mb-4">
+                <Text className="text-white text-xl font-bold">
+                  Featured Planners and Pros{" "}
+                </Text>
+                <TouchableOpacity
+                  className="p-2"
+                  onPress={() => router.push("/(provider)/services")}
+                >
+                  <Text className="text-primary">See All</Text>
+                </TouchableOpacity>
+              </View>
+              {isprovidersLoading || isFetchingproviders ? (
+                <ActivityIndicator color="#9EDD45" />
+              ) : providers?.body?.result <= 0 ? (
+                <Text className="text-primary text-bold text-center">
+                  No event found
+                </Text>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="pl-4"
+                >
+                  {providers?.body?.result?.map((provider: any) => (
+                    <TouchableOpacity
+                      key={provider.id}
+                      onPress={() =>
+                        router.push(`/(provider)/${provider.id}/servicedetails`)
+                      }
+                      className="bg-[#1A2432] rounded-lg overflow-hidden p-2 mr-4 w-56 flex flex-row items-center"
+                    >
+                      <Image
+                        source={{ uri: provider?.cover_image }}
+                        className="w-20 rounded-full h-20 border-2 border-primary bg-white"
+                        resizeMode="cover"
+                      />
+                      <View className="p-3">
+                        <Text className="text-white font-semibold mb-1">
+                          {provider?.business_name}
+                        </Text>
+                        <Text className="text-gray-400 text-sm">
+                          {truncateAlphabet(provider?.specialties[0])}
+                        </Text>
+                        <Text className="text-gray-400 text-sm">
+                          {truncateAlphabet(provider?.address)}
+                        </Text>
+                        <View className="flex flex-row items-center justify-between">
+                          <Text className="text-primary text-sm font-bold">
+                            {provider?.currency?.split(" - ")[0] || "₦"}{" "}
+                            {provider?.price}
+                          </Text>
+                          <View className=" flex flex-row items-center">
+                            <StarIcon color="orange" fill="orange" size={10} />
+                            <Text className="text-white ml-1">
+                              {provider?.total_reviews}
+                            </Text>
+                          </View>
+                        </View>
                       </View>
                     </TouchableOpacity>
                   ))}

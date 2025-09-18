@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -18,6 +19,9 @@ import {
   Star,
   Book,
   BookDashed,
+  RecycleIcon,
+  MessageCircleIcon,
+  Calendar1Icon,
 } from "lucide-react-native";
 import { useGetProfileQuery } from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -26,12 +30,13 @@ import {
   logout,
   startTokenExpirationCheck,
 } from "@/redux/features/auth/authSlice";
+import { useGetproviderdetailsQuery } from "@/redux/api/providersApiSlice";
+import { apiSlice } from "@/redux/api/apiSlice";
 
 export default function ProfileScreen() {
   const router: any = useRouter();
   const dispatch: any = useDispatch();
   const { userInfo } = useSelector((state: any) => state.auth); // Get auth state from Redux
-
   const {
     data: userProfile,
     isLoading: isFetchingProfile,
@@ -40,12 +45,22 @@ export default function ProfileScreen() {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
   });
-  console.log(userProfile, "userProfile");
-  // Handle manual logout
+  const {
+    data: providers,
+    error: providersError,
+    isLoading: isprovidersLoading,
+    isFetching: isFetchingproviders,
+    refetch: refetchproviders,
+  } = useGetproviderdetailsQuery(userInfo?.sub); // Handle manual logout
   const handleLogout = async () => {
     await dispatch(logout());
-
+    dispatch(apiSlice.util.resetApiState());
     router.replace("/(auth)/login"); // Redirect to login after manual logout
+  };
+  const handleNavigate = async () => {
+    providers?.body
+      ? router.push("/(provider)/profile")
+      : router.push("/(provider)/complete-profile");
   };
 
   // Start token expiration check and redirect if logged out
@@ -92,13 +107,24 @@ export default function ProfileScreen() {
       subtitle: "Bookmarks",
       route: "/profile/bookmarks",
     },
+    {
+      icon: <MessageCircleIcon size={24} color="#6B7280" />,
+      title: "Chat",
+      subtitle: "View all providers Chat",
+      route: "/(provider)/(chats)/chats",
+    },
+    {
+      icon: <Calendar1Icon size={24} color="#6B7280" />,
+      title: "Appointments",
+      subtitle: "View all your appointments",
+      route: "/(provider)/appointments",
+    },
   ];
 
-  // If userInfo is null, don't render anything (redirect will handle it)
   if (!userInfo) return null;
 
   return (
-    <View className="flex-1 bg-background">
+    <ScrollView className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center px-4 pt-12 pb-4">
         <TouchableOpacity
@@ -152,38 +178,51 @@ export default function ProfileScreen() {
             </View>
             <ChevronRight color="#6B7280" size={24} />
           </TouchableOpacity>
-
-          {/* Menu Items */}
-          <View className="mt-4">
-            {menuItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                className="flex-row items-center px-4 py-6 border-[#1A2432]"
-                onPress={() => router.push(item.route)}
-              >
-                {item.icon}
-                <View className="ml-3 flex-1">
-                  <Text className="text-white font-semibold">{item.title}</Text>
-                  <Text className="text-gray-400 text-sm">{item.subtitle}</Text>
-                </View>
-                <ChevronRight color="#6B7280" size={24} />
-              </TouchableOpacity>
-            ))}
-          </View>
         </>
       )}
+      {/* Menu Items */}
+      <View className="mt-4">
+        {menuItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            className="flex-row items-center px-4 py-6 border-[#1A2432]"
+            onPress={() => router.push(item.route)}
+          >
+            {item.icon}
+            <View className="ml-3 flex-1">
+              <Text className="text-white font-semibold">{item.title}</Text>
+              <Text className="text-gray-400 text-sm">{item.subtitle}</Text>
+            </View>
+            <ChevronRight color="#6B7280" size={24} />
+          </TouchableOpacity>
+        ))}
+      </View>
       {/* Logout Button */}
-      <TouchableOpacity
-        className="bg-primary rounded-lg py-2 w-40 mt-5 self-center"
-        onPress={handleLogout}
-      >
-        <View className="flex-row items-center gap-2 justify-center">
-          <Text className="text-white text-center text-lg font-bold">
-            LogOut
-          </Text>
-          <LogOutIcon color="white" />
-        </View>
-      </TouchableOpacity>
-    </View>
+      <View className="flex-row justify-evenly mt-2">
+        <TouchableOpacity
+          className="bg-primary rounded-lg py-2 w-40  self-center"
+          onPress={handleNavigate}
+        >
+          <View className="flex-row items-center gap-2 justify-center">
+            <Text className="text-white text-center text-lg font-bold">
+              Planner
+            </Text>
+            <RecycleIcon color="white" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="bg-primary rounded-lg py-2 w-40  self-center"
+          onPress={handleLogout}
+        >
+          <View className="flex-row items-center gap-2 justify-center">
+            <Text className="text-white text-center text-lg font-bold">
+              LogOut
+            </Text>
+            <LogOutIcon color="white" />
+          </View>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }

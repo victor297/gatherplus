@@ -129,8 +129,18 @@ export const userApiSlice = apiSlice.injectEndpoints({
           }),
        
         }),
+        uploadFile: builder.mutation<any, FormData>({
+      query: (formData) => ({
+        url: "/file",
+        method: "POST",
+            body: formData,
+       headers: {
+            "Content-Type": "multipart/form-data",
+          },
+      }),
     }),
- 
+    }),
+ overrideExisting:true
 });
 
 export const {
@@ -149,5 +159,6 @@ export const {
   useUpdatePasswordMutation,
   useDeleteProfileMutation,
   useFollowEventCreatorMutation,
+  useUploadFileMutation,
   
 } = userApiSlice;

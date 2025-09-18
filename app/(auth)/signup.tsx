@@ -22,12 +22,12 @@ import {
   useGoogleloginMutation,
   useUsersignupMutation,
 } from "@/redux/api/usersApiSlice";
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
+// import {
+//   GoogleSignin,
+//   isErrorWithCode,
+//   isSuccessResponse,
+//   statusCodes,
+// } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "@/redux/features/auth/authSlice";
@@ -47,12 +47,12 @@ export default function SignupScreen() {
     useGoogleloginMutation();
 
   const { userInfo } = useSelector((state: any) => state.auth);
-  GoogleSignin.configure({
-    webClientId:
-      "372220031134-ekkmprp00glp2s41hl2ubjet9metkm4k.apps.googleusercontent.com",
-    iosClientId:
-      "372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr.apps.googleusercontent.com",
-  });
+  // GoogleSignin.configure({
+  //   webClientId:
+  //     "372220031134-ekkmprp00glp2s41hl2ubjet9metkm4k.apps.googleusercontent.com",
+  //   iosClientId:
+  //     "372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr.apps.googleusercontent.com",
+  // });
 
   const handleSignup = async () => {
     if (!name.trim()) {
@@ -70,61 +70,61 @@ export default function SignupScreen() {
     setError(null);
     try {
       const res = await usersignup({ name, email, password }).unwrap();
-      router.push(`/verify?email=${email}`);
+      router.push(`/verify?email=${email.toString()}`);
     } catch (err: any) {
       setError(err?.data?.body || "Signup failed. Please try again.");
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // const handleGoogleSignIn = async () => {
+  //   try {
+  //     setLoading(true);
+  //     setError(null);
 
-      await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      console.log(response, "googlelogin1");
-      if (isSuccessResponse(response)) {
-        const res: any = await googlelogin({
-          googleId: response.data.idToken,
-          email: response.data.user.email,
-          name: response.data.user.name,
-          avatar: response.data.user.photo,
-          emailVerified: true,
-          provider: "google",
-        }).unwrap();
-        if (res.code === 200 && res.body) {
-          dispatch(setCredentials(res));
-          router.replace("/(tabs)/home/home1");
-        } else {
-          setError("No ID token received from Google");
-        }
-      } else {
-        setError("Google sign-in was cancelled");
-      }
-    } catch (error) {
-      setLoading(false);
-      if (isErrorWithCode(error)) {
-        switch (error.code) {
-          case statusCodes.SIGN_IN_CANCELLED:
-            setError("Google sign-in was cancelled");
-            break;
-          case statusCodes.IN_PROGRESS:
-            setError("Google sign-in already in progress");
-            break;
-          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            setError("Google Play services not available or outdated");
-            break;
-          default:
-            setError("Google sign-in failed. Please try again.");
-        }
-      } else {
-        setError("An unknown error occurred during Google sign-in");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     await GoogleSignin.hasPlayServices();
+  //     const response = await GoogleSignin.signIn();
+  //     console.log(response, "googlelogin1");
+  //     if (isSuccessResponse(response)) {
+  //       const res: any = await googlelogin({
+  //         googleId: response.data.idToken,
+  //         email: response.data.user.email,
+  //         name: response.data.user.name,
+  //         avatar: response.data.user.photo,
+  //         emailVerified: true,
+  //         provider: "google",
+  //       }).unwrap();
+  //       if (res.code === 200 && res.body) {
+  //         dispatch(setCredentials(res));
+  //         router.replace("/(tabs)/home/home1");
+  //       } else {
+  //         setError("No ID token received from Google");
+  //       }
+  //     } else {
+  //       setError("Google sign-in was cancelled");
+  //     }
+  //   } catch (error) {
+  //     setLoading(false);
+  //     if (isErrorWithCode(error)) {
+  //       switch (error.code) {
+  //         case statusCodes.SIGN_IN_CANCELLED:
+  //           setError("Google sign-in was cancelled");
+  //           break;
+  //         case statusCodes.IN_PROGRESS:
+  //           setError("Google sign-in already in progress");
+  //           break;
+  //         case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+  //           setError("Google Play services not available or outdated");
+  //           break;
+  //         default:
+  //           setError("Google sign-in failed. Please try again.");
+  //       }
+  //     } else {
+  //       setError("An unknown error occurred during Google sign-in");
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleAppleSignIn = async () => {
     try {
@@ -138,7 +138,6 @@ export default function SignupScreen() {
       });
 
       const res: any = await applelogin(credential).unwrap();
-      console.log(res, "applelogin");
       if (res.code === 200 && res.body) {
         dispatch(setCredentials(res));
         router.replace("/(tabs)/home/home1");
@@ -271,7 +270,7 @@ export default function SignupScreen() {
         <View className="space-y-4">
           <TouchableOpacity
             className="flex-row items-center justify-center bg-[#1A2432] rounded-lg py-4"
-            onPress={handleGoogleSignIn}
+            // onPress={handleGoogleSignIn}
           >
             <Image
               source={require("../../assets/images/google.png")}
