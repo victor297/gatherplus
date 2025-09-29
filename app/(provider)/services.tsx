@@ -31,6 +31,7 @@ const Services = () => {
   const [sortDirection, setSortDirection] = useState("asc");
   const [providersList, setProvidersList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const router = useRouter();
 
   // Debounce effect
@@ -38,7 +39,9 @@ const Services = () => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
       setPage(1); // Reset to first page when search term changes
-    }, 500); // 500ms delay
+      setProvidersList([]); // Clear existing data
+      setHasMore(true); // Reset hasMore when search changes
+    }, 500);
 
     return () => {
       clearTimeout(handler);
@@ -56,27 +59,40 @@ const Services = () => {
     page,
     size: 7,
     sortDirection,
-    search: debouncedSearchTerm, // Use debounced search term
+    search: debouncedSearchTerm,
   });
 
+  // Update providers list and hasMore state
   useEffect(() => {
     if (providersData?.body?.result) {
+      const newProviders = providersData.body.result;
+
       if (page === 1) {
-        setProvidersList(providersData.body.result);
+        // First page - replace the list
+        setProvidersList(newProviders);
       } else {
-        setProvidersList((prev) => [...prev, ...providersData.body.result]);
+        // Subsequent pages - append to list, avoiding duplicates
+        setProvidersList((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const uniqueNewProviders = newProviders.filter(
+            (p) => !existingIds.has(p.id)
+          );
+          return [...prev, ...uniqueNewProviders];
+        });
       }
+
+      // Update hasMore based on pagination info
+      const currentPage = providersData.body.currentPage;
+      const totalPages = providersData.body.totalPages;
+      setHasMore(currentPage < totalPages);
     }
   }, [providersData, page]);
 
   const handleLoadMore = useCallback(() => {
-    if (
-      !isFetchingproviders &&
-      providersData?.body?.currentPage < providersData?.body?.totalPages
-    ) {
+    if (!isFetchingproviders && hasMore && providersList.length > 0) {
       setPage((prev) => prev + 1);
     }
-  }, [isFetchingproviders, providersData]);
+  }, [isFetchingproviders, hasMore, providersList.length]);
 
   const handleSearch = (text) => {
     setSearchTerm(text);
@@ -85,8 +101,10 @@ const Services = () => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refetchproviders();
       setPage(1);
+      setProvidersList([]);
+      setHasMore(true);
+      await refetchproviders();
     } finally {
       setRefreshing(false);
     }
@@ -94,13 +112,22 @@ const Services = () => {
 
   const isCloseToBottom = useCallback(
     ({ layoutMeasurement, contentOffset, contentSize }) => {
-      const paddingToBottom = 20;
+      const paddingToBottom = 50; // Increased padding for better UX
       return (
         layoutMeasurement.height + contentOffset.y >=
         contentSize.height - paddingToBottom
       );
     },
     []
+  );
+
+  const handleScroll = useCallback(
+    ({ nativeEvent }) => {
+      if (isCloseToBottom(nativeEvent)) {
+        handleLoadMore();
+      }
+    },
+    [isCloseToBottom, handleLoadMore]
   );
 
   return (
@@ -144,11 +171,7 @@ const Services = () => {
         {/* Professionals List */}
         <ScrollView
           className="flex-1"
-          onScroll={({ nativeEvent }) => {
-            if (isCloseToBottom(nativeEvent)) {
-              handleLoadMore();
-            }
-          }}
+          onScroll={handleScroll}
           scrollEventThrottle={400}
           refreshControl={
             <RefreshControl
@@ -163,7 +186,7 @@ const Services = () => {
               onPress={() =>
                 router.push(`/(provider)/${provider.user_id}/servicedetails`)
               }
-              key={provider.id}
+              key={`${provider.id}-${provider.user_id}`} // More unique key
               className="flex-row bg-[#0D1A2C] rounded-2xl p-4 mb-4 items-center shadow-md"
             >
               <View className="mr-4">
@@ -206,9 +229,17 @@ const Services = () => {
             </TouchableOpacity>
           ))}
 
+          {/* Loading indicator */}
           {isFetchingproviders && (
             <View className="py-4">
               <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
+
+          {/* End of list message */}
+          {!hasMore && providersList.length > 0 && (
+            <View className="py-4 items-center">
+              <Text className="text-gray-400">No more providers to load</Text>
             </View>
           )}
 
@@ -224,11 +255,13 @@ const Services = () => {
             </View>
           )}
 
-          {!isprovidersLoading && providersList.length === 0 && (
-            <View className="py-10 items-center">
-              <Text className="text-white">No providers found</Text>
-            </View>
-          )}
+          {!isprovidersLoading &&
+            providersList.length === 0 &&
+            !isFetchingproviders && (
+              <View className="py-10 items-center">
+                <Text className="text-white">No providers found</Text>
+              </View>
+            )}
         </ScrollView>
       </View>
     </SafeAreaView>
