@@ -7,9 +7,11 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  StyleSheet,
+  StatusBar,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, X } from "lucide-react-native";
 import Svg, { Rect, Circle } from "react-native-svg";
 import QRCode from "react-native-qrcode-svg";
 import { useCreateBookingMutation } from "@/redux/api/eventsApiSlice";
@@ -17,14 +19,17 @@ import { useStripe } from "@stripe/stripe-react-native";
 import * as Linking from "expo-linking";
 import { WebView } from "react-native-webview";
 import { useSelector } from "react-redux";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
 export default function OrderSummaryScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
   const bookingData = JSON.parse(data as string);
   const { userInfo } = useSelector((state: any) => state.auth);
-  const [createBooking, { isLoading: isBookmarkLoading }] =
+  const [createBooking, { isLoading: isBookingLoading }] =
     useCreateBookingMutation();
+  const [isProcessing, setIsProcessing] = useState(false);
   console.log(bookingData, "bookingData1s");
   // Payment states
   const [paymentResponse, setPaymentResponse] = useState<any>(null);
@@ -111,6 +116,7 @@ export default function OrderSummaryScreen() {
       return;
     }
 
+    setIsProcessing(true);
     try {
       if (selectedChannel === "PayStack") {
         const res = await createBooking({
@@ -118,18 +124,34 @@ export default function OrderSummaryScreen() {
           channel: selectedChannel,
           user_id: userInfo?.sub,
         }).unwrap();
-        setPaymentResponse(res);
-        console.log(res, "res");
-        setShowPaystackWebView(true);
+        
+        console.log("Paystack Authorization URL:", res?.body?.authorization_url);
+        
+        if (res?.body?.authorization_url) {
+          setIsProcessing(false);
+          // Use WebBrowser since WebView refuses to render Paystack (white screen)
+          const result = await WebBrowser.openBrowserAsync(res.body.authorization_url);
+          
+          if (result.type === 'cancel' || result.type === 'dismiss') {
+            console.log("User returned from Paystack browser");
+            // If we didn't receive a deep link redirect, we assume they closed it.
+            // Navigate to bookings just in case they paid but the backend didn't redirect.
+            router.replace("/profile/bookings");
+          }
+        } else {
+          Alert.alert("Error", "Could not get payment link");
+          setIsProcessing(false);
+        }
       } else if (selectedChannel === "Stripe") {
         setStripeLoading(true);
         await initializePaymentSheet();
       }
     } catch (err) {
       Alert.alert("Try Again", err?.data?.body || "Failed to set up payment");
-
       console.log(err, "processssssssss");
       setStripeLoading(false);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -154,7 +176,7 @@ export default function OrderSummaryScreen() {
           console.log(error);
           Alert.alert(` ${error.code}`, error.message);
         } else {
-          router.push(`/home/event/${bookingData.event_id}/success`);
+          router.push("/profile/bookings" as any);
         }
       } else {
         Alert.alert("Error", "Failed to initialize payment sheet");
@@ -167,20 +189,51 @@ export default function OrderSummaryScreen() {
       setStripeLoading(false);
     }
   };
+useEffect(() => {
+  const sub = Linking.addEventListener("url", ({ url }) => {
+    console.log("Payment success redirect received", url);
+    if (url.includes("payment-callback")||url.includes("adtil.local")) {
+      console.log("Payment success redirect received");
+      WebBrowser.dismissBrowser();
+      router.replace("/profile/bookings");
+    }
+  });
 
+  return () => sub.remove();
+}, []);
   const handlePaystackWebViewNavigation = (navState: any) => {
     const { url } = navState;
+    console.log("WebView current URL:", url);
 
-    if (url.includes("success") || url.includes("reference=")) {
+    // Only close if it's a redirect to a success or cancel page, not the Paystack page itself
+    // Most Paystack checkout URLs contain 'reference=', so we should be careful.
+    // Usually, Paystack redirects to your callback URL which would have these keywords.
+    const isSuccess = url.includes("success") || 
+                     url.includes("successful") || 
+                     url.includes("checkout-done") ||
+                     url.includes("callback") && (url.includes("reference=") || url.includes("trxref=")) ||
+                     url.includes("payment_received") ||
+                     url.includes("status=success") ||
+                     url.includes("transaction_complete") ||
+                     url.includes("confirmed") ||
+                     url.includes("completed");
+ 
+    if (isSuccess) {
+      console.log("Success detected at URL:", url);
       setShowPaystackWebView(false);
       setPaymentResponse(null);
-      router.push(`/home/event/${bookingData.event_id}/success`);
+      // Use replace instead of push for a cleaner transition
+      router.replace("/profile/bookings" as any);
+      return;
     }
-
-    if (url.includes("close") || url.includes("cancel")) {
+ 
+    if (url.includes("close") || url.includes("cancel") || url.includes("checkout-back") || url.includes("abort") || url.includes("error")) {
+      console.log("Exit condition detected at URL:", url);
       setShowPaystackWebView(false);
       setPaymentResponse(null);
-      Alert.alert("Info", "Payment was cancelled");
+      if (url.includes("error")) {
+         Alert.alert("Error", "Something went wrong with the payment");
+      }
     }
   };
 
@@ -341,13 +394,14 @@ export default function OrderSummaryScreen() {
           className="bg-primary rounded-lg py-4"
           onPress={handleBookEvent}
           disabled={
-            isBookmarkLoading ||
+            isProcessing ||
+            isBookingLoading ||
             stripeLoading ||
             (total > 0 && !selectedChannel)
           }
         >
           <Text className="text-background text-center font-semibold">
-            {isBookmarkLoading || stripeLoading
+            {isProcessing || isBookingLoading || stripeLoading
               ? "Processing..."
               : total > 0
               ? "Proceed to Payment"
@@ -356,40 +410,7 @@ export default function OrderSummaryScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Paystack WebView Modal */}
-      <Modal
-        visible={showPaystackWebView}
-        animationType="slide"
-        onRequestClose={() => setShowPaystackWebView(false)}
-      >
-        <View className="flex-1 bg-background pt-12">
-          <TouchableOpacity
-            onPress={() => setShowPaystackWebView(false)}
-            className="absolute  left-4 z-10 bg-gray-200 p-2 rounded-full"
-          >
-            <ArrowLeft color="black" size={24} />
-          </TouchableOpacity>
 
-          {paymentResponse?.body?.authorization_url ? (
-            <WebView
-              source={{ uri: paymentResponse.body.authorization_url }}
-              onNavigationStateChange={handlePaystackWebViewNavigation}
-              startInLoadingState={true}
-              renderLoading={() => (
-                <View className="flex-1 justify-center items-center">
-                  <ActivityIndicator color="#9EDD45" />
-                  <Text className="mt-4">Loading payment gateway...</Text>
-                </View>
-              )}
-            />
-          ) : (
-            <View className="flex-1 justify-center items-center">
-              <ActivityIndicator color="#9EDD45" />
-              <Text className="mt-4">Preparing payment...</Text>
-            </View>
-          )}
-        </View>
-      </Modal>
     </View>
   );
 }

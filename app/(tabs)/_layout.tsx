@@ -8,11 +8,6 @@ export default function TabLayout() {
   const router = useRouter();
   const pathname = usePathname();
 
-  useFocusEffect(() => {
-    if (!userInfo) {
-      router.push("/(auth)/login");
-    }
-  });
 
   return (
     <Tabs

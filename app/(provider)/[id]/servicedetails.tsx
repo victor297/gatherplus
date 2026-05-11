@@ -42,6 +42,7 @@ import {
 import { formatDate, truncateSentence } from "@/utils";
 import { useSelector } from "react-redux";
 import { RefreshControl } from "react-native";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 // Custom component for a Service Card
 const ServiceCard = ({
@@ -55,17 +56,19 @@ const ServiceCard = ({
   profile,
 }) => {
   const router = useRouter();
+  const { requireAuth } = useAuthCheck();
 
   return (
     <Pressable
-      onPress={() =>
+      onPress={() => {
+        if (!requireAuth()) return;
         router.push({
           pathname: `/(provider)/${id}/make-appointment` as RelativePathString,
           params: {
             profile: JSON.stringify(profile),
           },
-        })
-      }
+        });
+      }}
       className="flex-row items-center bg-card rounded-xl p-4 mb-3 bg-lightbackground shadow-md"
     >
       {/* Service image */}
@@ -278,7 +281,7 @@ export default function ServiceDetails() {
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [message, setMessage] = useState("");
-  const { userInfo } = useSelector((state: any) => state.auth);
+  const { userInfo, requireAuth } = useAuthCheck();
 
   const { id } = useLocalSearchParams();
   const {
@@ -456,7 +459,9 @@ export default function ServiceDetails() {
               <View className="py-10 flex flex-col justify-center items-center">
                 <Text className="text-white text-center ">No reviews yet</Text>
                 <Pressable
-                  onPress={() => setReviewModalVisible(true)}
+                  onPress={() => {
+                    if (requireAuth()) setReviewModalVisible(true)
+                  }}
                   className=" py-2 px-4 rounded-xl mt-4 bg-primary"
                 >
                   <Text className="text-white text-center">+ Add Review</Text>
@@ -465,7 +470,9 @@ export default function ServiceDetails() {
             )}
 
             <Pressable
-              onPress={() => setReviewModalVisible(true)}
+              onPress={() => {
+                if (requireAuth()) setReviewModalVisible(true)
+              }}
               className="flex-row justify-end"
             >
               <View className="bg-primary p-3 rounded-full mt-6">
@@ -635,7 +642,9 @@ export default function ServiceDetails() {
             </Pressable> */}
             <Pressable
               className="bg-primary rounded-full px-6 py-3"
-              onPress={() => setContactModalVisible(true)}
+              onPress={() => {
+                if (requireAuth()) setContactModalVisible(true)
+              }}
             >
               <Text className="text-background font-bold text-base">
                 Contact

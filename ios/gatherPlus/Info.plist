@@ -35,6 +35,12 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
+          <string>gatherplus</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
           <string>exp+gatherplus</string>
         </array>
       </dict>
@@ -60,14 +66,10 @@
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>This app needs permission to access your camera.</string>
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
     <key>NSLocationAlwaysUsageDescription</key>
     <string>This app needs access to your location even when in the background.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>This app needs access to your location to show your position on the map.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>This app needs permission to save photos to your library</string>
     <key>NSPhotoLibraryUsageDescription</key>

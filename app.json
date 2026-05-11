@@ -24,6 +24,11 @@
             "CFBundleURLSchemes": [
               "gatherplus"
             ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "gatherplus"
+            ]
           }
         ]
       },
@@ -44,6 +49,20 @@
         }
       },
       "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "gatherplus",
+              "host": "*",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
         {
           "action": "VIEW",
           "data": [
@@ -102,6 +121,10 @@
       "eas": {
         "projectId": "cfaa89b5-aa1c-4210-94e3-bc27c9abb039"
       }
+    },
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/cfaa89b5-aa1c-4210-94e3-bc27c9abb039"
     }
   }
 }

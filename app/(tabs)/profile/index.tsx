@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
+  User,
   ArrowLeft,
   ChevronRight,
   Ticket,
@@ -63,18 +64,40 @@ export default function ProfileScreen() {
       : router.push("/(provider)/complete-profile");
   };
 
-  // Start token expiration check and redirect if logged out
+  // Start token expiration check
   useEffect(() => {
-    if (!userInfo) {
-      router.replace("/(auth)/login"); // Redirect if userInfo is null (logged out)
-      return;
+    if (userInfo) {
+      dispatch(checkTokenImmediately());
+      const cleanup = dispatch(startTokenExpirationCheck());
+      return cleanup;
     }
-    dispatch(checkTokenImmediately());
+  }, [dispatch, userInfo]);
 
-    // Start the expiration check
-    const cleanup = dispatch(startTokenExpirationCheck());
-    return cleanup; // Cleanup interval on unmount
-  }, [dispatch, userInfo, router]);
+  if (!userInfo) {
+    return (
+      <View className="flex-1 bg-background justify-center items-center px-6">
+        <User size={80} color="#9EDD45" />
+        <Text className="text-white text-2xl font-bold mt-6 text-center">
+          Profile Access
+        </Text>
+        <Text className="text-gray-400 text-center mt-2 mb-8">
+          Please log in or sign up to view and manage your profile settings, bookings, and more.
+        </Text>
+        <TouchableOpacity
+          className="bg-primary w-full py-4 rounded-xl items-center"
+          onPress={() => router.push("/(auth)/login")}
+        >
+          <Text className="text-background font-bold text-lg">Login / Sign Up</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="mt-4"
+          onPress={() => router.replace("/(tabs)/home/home1")}
+        >
+          <Text className="text-primary font-medium">Continue Browsing</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const menuItems = [
     {
@@ -121,8 +144,6 @@ export default function ProfileScreen() {
     },
   ];
 
-  if (!userInfo) return null;
-
   return (
     <ScrollView className="flex-1 bg-background">
       {/* Header */}
@@ -140,8 +161,9 @@ export default function ProfileScreen() {
       {profileError && (
         <View className="px-4 py-4 bg-red-500 rounded-lg mx-4">
           <Text className="text-white text-center">
-            {profileError?.data?.body ||
-              "Error fetching profile data. Please try again."}
+            {profileError?.data?.body && typeof profileError.data.body === "string"
+              ? profileError.data.body
+              : "Error fetching profile data. Please try again."}
           </Text>
         </View>
       )}
@@ -168,8 +190,8 @@ export default function ProfileScreen() {
             />
             <View className="ml-3 flex-1">
               <Text className="text-white text-lg font-semibold">
-                {userProfile
-                  ? `${userProfile.body.firstname} ${userProfile.body.lastname}`
+                {userProfile?.body
+                  ? `${userProfile.body.firstname || ""} ${userProfile.body.lastname || ""}`
                   : "User Name"}
               </Text>
               <Text className="text-gray-400">

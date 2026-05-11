@@ -40,10 +40,11 @@ export default function CheckoutScreen() {
   const [useCommonDetails, setUseCommonDetails] = useState(
     !event?.body?.each_ticket_identity
   );
+  console.log("userInfo", userInfo);
   const [commonDetails, setCommonDetails] = useState<AttendeeDetails>({
-    fullname: "",
-    email: "",
-    phone: "",
+    fullname: userInfo?.name || "David",
+    email: userInfo?.username || "[EMAIL_ADDRESS]",
+    phone: userInfo?.phone || "08098765432",
     ...(event?.body?.age_restriction && { dob: "" }),
   });
 

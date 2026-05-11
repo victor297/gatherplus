@@ -24,9 +24,6 @@ export default function Index() {
 
   if (loading) return <View className="flex-1 bg-background"></View>; // Prevent flicker before checking storage
 
-  if ( storedUser) {
-    return <Redirect href="/(tabs)/home/home1" />;
-  } else {
-    return <Redirect href="/login" />;
-  }
+  // Always redirect to home, allowing for guest browsing.
+  return <Redirect href="/(tabs)/home/home1" />;
 }

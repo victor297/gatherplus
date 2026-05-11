@@ -9,6 +9,7 @@ import {
   Alert,
   Linking,
   Share,
+  useWindowDimensions,
 } from "react-native";
 import {
   useRouter,
@@ -23,13 +24,15 @@ import {
   Clock,
   Plus,
   Minus,
-  ChevronDown,
-  BookmarkIcon,
   BookmarkCheck,
+  BookmarkIcon,
+  ChevronDown,
   HeartIcon,
   MessageSquareIcon,
   Share2Icon,
+  User,
 } from "lucide-react-native";
+import RenderHTML from "react-native-render-html";
 import {
   useBookmarkeventMutation,
   useDeleteBookmarkMutation,
@@ -44,6 +47,8 @@ import { useFollowEventCreatorMutation } from "@/redux/api/usersApiSlice";
 import CommentModal from "@/app/components/CommentModat";
 import * as Sharing from "expo-sharing";
 import * as ELinking from "expo-linking";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
+import { truncateSentence } from "@/utils";
 
 interface TicketSelection {
   quantity: number;
@@ -53,8 +58,8 @@ interface TicketSelection {
 export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-
-  const { userInfo } = useSelector((state: any) => state.auth);
+  const { width } = useWindowDimensions();
+  const { userInfo, requireAuth } = useAuthCheck();
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [isFollow, setIsFollowed] = useState<boolean>(false);
   const {
@@ -191,6 +196,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
   // };
 
   const handleBuyTickets = () => {
+    if (!requireAuth()) return;
     // Check if event has tickets
     if (!event?.body?.tickets || event.body.tickets.length === 0) {
       // Event has no tickets at all - proceed directly
@@ -246,6 +252,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
     });
   };
   const handleBookmark = async () => {
+    if (!requireAuth()) return;
     try {
       const res = await bookmarkevent({ event_id: Number(id) }).unwrap();
       // alert("Bookmarked")
@@ -256,6 +263,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
   };
 
   const handleBookmarkRemove = async () => {
+    if (!requireAuth()) return;
     try {
       const res = await deleteBookmark(Number(id)).unwrap();
       // alert("Unbookmarked")
@@ -265,6 +273,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
     }
   };
   const handleLike = async () => {
+    if (!requireAuth()) return;
     try {
       const res = await likeEvent(Number(id)).unwrap();
       setIsLiked(true);
@@ -275,6 +284,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
     }
   };
   const handleFollowed = async (creatorid: any) => {
+    if (!requireAuth()) return;
     try {
       const res = await followEventCreator(Number(creatorid)).unwrap();
       setIsFollowed(true);
@@ -450,9 +460,24 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 <Text className="text-white text-xl font-semibold mb-4">
                   About Event
                 </Text>
-                <Text className="text-gray-400 mb-6">
-                  {event?.body?.description}
-                </Text>
+                {event?.body?.description ? (
+                  <RenderHTML
+                    contentWidth={width - 40}
+                    source={{ html: event.body.description }}
+                    tagsStyles={{
+                      p: { color: "#9ca3af", marginBottom: 10, fontSize: 16 },
+                      br: { height: 10 },
+                      h1: { color: "white" },
+                      h2: { color: "white" },
+                      h3: { color: "white" },
+                      strong: { color: "white", fontWeight: "bold" },
+                      ul: { color: "#9ca3af" },
+                      li: { color: "#9ca3af" },
+                    }}
+                  />
+                ) : (
+                  <Text className="text-gray-400 mb-6">No description available.</Text>
+                )}
               </View>
               <View className="bg-[#1A2432] rounded-lg p-4 mb-6">
                 <Text className="text-white text-xl font-semibold mb-4">
@@ -484,69 +509,84 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   <Text className="text-primary">View map</Text>
                 </TouchableOpacity>
               </View>
-              <View className="bg-gray-800 rounded-lg p-3 mb-2">
-                <Text className="text-white text-xl font-semibold mb-4">
-                  Date and Time -- Presenter
+              <View className="bg-gray-800 rounded-lg p-4 mb-4">
+                <Text className="text-white text-xl font-semibold mb-2">
+                  Sessions & Presenters
                 </Text>
-                <View className="flex-row mb-6">
-                  <View className="flex-col gap-2">
-                    <View className="flex-row items-center mr-6">
-                      <Calendar className="text-gray-400 mr-2" size={20} />
-                      <Text className="text-gray-400">
-                        {formatDate(event?.body?.start_date)}
-                      </Text>
-                    </View>
-                    {event?.body?.sessions?.map(
-                      (session: any, sessionIndex: any) => (
-                        <View key={sessionIndex} className="mb-4">
-                          <View className="flex-row items-center mb-2">
-                            <Clock className="text-gray-400 mr-2" size={20} />
-                            <Text className="text-gray-400">
-                              {session?.start_time} - {session?.end_time}
-                            </Text>
-                            <Text className="text-primary ml-1">
-                              {`(${session?.name || ""})`}
-                            </Text>
-                          </View>
 
-                          {session?.participants?.map(
-                            (participant: any, participantIndex: any) => (
-                              <View
-                                key={participantIndex}
-                                className="flex-row items-start mb-3 "
-                              >
-                                {participant?.image ? (
-                                  <Image
-                                    source={{ uri: participant.image }}
-                                    className="w-10 h-10 rounded-full mr-3"
-                                    resizeMode="cover"
-                                  />
-                                ) : (
-                                  <View className="w-10 h-10 rounded-full bg-gray-200 mr-3 flex items-center justify-center">
-                                    <Text>No Image</Text>
-                                  </View>
-                                )}
-                                <View className="flex-1">
-                                  <Text className="font-bold text-primary text-lg">
-                                    {participant.name}
+                <View className="flex-row items-center mb-2">
+                  <Calendar className="text-gray-400 mr-2" size={20} />
+                  <Text className="text-gray-400 text-lg">
+                    {formatDate(event?.body?.start_date)}
+                  </Text>
+                </View>
+
+                {event?.body?.sessions?.map((session: any, sessionIndex: any) => (
+                  <View
+                    key={sessionIndex}
+                    className="mb-4 bg-[#1A2432] p-4 rounded-xl border border-gray-700"
+                  >
+                    {/* Session Header */}
+                    <View className="flex-row items-center justify-between mb-3">
+                      <View className="flex-row items-center flex-1">
+                        <Clock className="text-primary mr-2" size={18} />
+                        <Text className="text-gray-300 font-medium">
+                          {session?.start_time} - {session?.end_time}
+                        </Text>
+                      </View>
+                      <View className="bg-primary/20 px-2 py-1 rounded-md">
+                        <Text className="text-primary text-xs font-bold uppercase">
+                          Session {sessionIndex + 1}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text className="text-white text-sm font-bold mb-2">
+                      {session?.name}
+                    </Text>
+
+                    {/* Speakers for this session */}
+                    {session?.participants?.length > 0 && (
+                      <View className="space-y-4">
+                        {session?.participants?.map(
+                          (participant: any, pIndex: any) => (
+                            <View
+                              key={pIndex}
+                              className="flex-row items-center bg-gray-800/50 p-2 rounded-lg border border-gray-700/50"
+                            >
+                              {participant?.image ? (
+                                <Image
+                                  source={{ uri: participant.image }}
+                                  className="w-12 h-12 rounded-full mr-4 border-2 border-primary/30"
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <View className="w-12 h-12 rounded-full bg-gray-700 mr-4 flex items-center justify-center border-2 border-primary/30">
+                                  <User color="#9EDD45" size={24} />
+                                </View>
+                              )}
+                              <View className="flex-1">
+                                <Text className="font-bold text-primary text-lg">
+                                  {participant.name}
+                                </Text>
+                                {participant.title && (
+                                  <Text className="text-gray-400 text-sm italic">
+                                    {participant.title}
                                   </Text>
-                                  {participant.title && (
-                                    <Text className="text-primary text-sm">
-                                      {participant.title}
-                                    </Text>
-                                  )}
-                                  <Text className="text-white mt-1">
+                                )}
+                                {participant.description && (
+                                  <Text className="text-gray-300 text-xs mt-1" numberOfLines={2}>
                                     {participant.description}
                                   </Text>
-                                </View>
+                                )}
                               </View>
-                            )
-                          )}
-                        </View>
-                      )
+                            </View>
+                          )
+                        )}
+                      </View>
                     )}
                   </View>
-                </View>
+                ))}
               </View>
 
               <View className="bg-gray-800 rounded-lg p-2 mb-2">
@@ -564,9 +604,9 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
 
                     return (
                       <View key={index}>
-                        <View className="flex-row items-center justify-between bg-[#1A2432] p-4 rounded-lg">
+                        <View className=" items-center justify-between bg-[#1A2432] p-4 rounded-lg">
                           <View>
-                            <Text className="text-white">{ticket.name}</Text>
+                            <Text className="text-white">{truncateSentence(ticket.name)}</Text>
                             <Text className="text-primary">
                               {event?.body?.currency?.split(" - ")[0]}
                               {ticket.price}
@@ -575,7 +615,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                               {remainingTickets} tickets remaining
                             </Text>
                           </View>
-                          <View className="flex-row items-center space-x-4">
+                          <View className="flex-row items-center mt-2 space-x-4">
                             <TouchableOpacity
                               onPress={() => removeTicket(ticket.id)}
                               className="bg-background p-2 rounded-full"
@@ -607,12 +647,13 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                         </View>
 
                         {selection.quantity > 0 && (
-                          <View className="mt-2 mx-4">
-                            <Text className="text-white mb-2">
+                          <View className="mt-2 mx-1">
+                            <Text className="text-gray-400 my-2  px-1 text-xs uppercase font-bold">
                               Select Session for {ticket.name}
                             </Text>
                             <TouchableOpacity
-                              className="flex-row items-center justify-between bg-[#1A2432] px-3 py-2 rounded-lg"
+                              className="flex-row items-center justify-between bg-[#0e1621] px-4 py-3 rounded-xl border border-gray-700"
+                              activeOpacity={0.7}
                               onPress={() => {
                                 const currentIndex =
                                   event?.body?.sessions.findIndex(
@@ -627,29 +668,32 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                                 );
                               }}
                             >
-                              <View>
-                                <Text className="text-white">
-                                  {
-                                    event?.body?.sessions.find(
-                                      (s: any) => s.id === selection.sessionId
-                                    )?.name
-                                  }
-                                </Text>
-                                <Text className="text-gray-400">
-                                  {
-                                    event?.body?.sessions.find(
-                                      (s: any) => s.id === selection.sessionId
-                                    )?.start_time
-                                  }
-                                  -
-                                  {
-                                    event?.body?.sessions.find(
-                                      (s: any) => s.id === selection.sessionId
-                                    )?.end_time
-                                  }
-                                </Text>
+                              <View className="flex-1">
+                                <View className="flex-row items-center">
+                                  <Text className="text-white font-semibold">
+                                    {
+                                      event?.body?.sessions.find(
+                                        (s: any) => s.id === selection.sessionId
+                                      )?.name
+                                    }
+                                  </Text>
+                                </View>
+                                <View className="flex-row items-center mt-1">
+                                  <Clock size={12} color="#9ca3af" className="mr-1" />
+                                  <Text className="text-gray-400 text-xs">
+                                    {
+                                      event?.body?.sessions.find(
+                                        (s: any) => s.id === selection.sessionId
+                                      )?.start_time
+                                    } - {
+                                      event?.body?.sessions.find(
+                                        (s: any) => s.id === selection.sessionId
+                                      )?.end_time
+                                    }
+                                  </Text>
+                                </View>
                               </View>
-                              <ChevronDown size={20} color="#fff" />
+                              <ChevronDown size={20} color="#9EDD45" />
                             </TouchableOpacity>
                           </View>
                         )}

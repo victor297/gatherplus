@@ -17,9 +17,11 @@ import {
   useGetPlansQuery,
   useInitiateSubMutation,
 } from "@/redux/api/providersApiSlice";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, X as XIcon } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { RefreshControl } from "react-native";
+import { RefreshControl, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
 const Subscription = () => {
   const router = useRouter();
@@ -104,9 +106,19 @@ const Subscription = () => {
       if (response.code === 200) {
         setPaymentData(response.body);
 
-        // Handle PayStack payment
-        if (paymentMethod === "PayStack" && response.body.authorization_url) {
-          setShowWebView(true);
+        if (paymentMethod === "PayStack" && response.code === 200) {
+          console.log("Paystack Initiation successful, URL:", response.body.authorization_url);
+          setPaymentData(response.body);
+          if (response.body.authorization_url) {
+            const result = await WebBrowser.openBrowserAsync(response.body.authorization_url);
+
+            if (result.type === 'cancel' || result.type === 'dismiss') {
+              console.log("User returned from Paystack browser");
+              // If we didn't receive a deep link redirect, we assume they closed it.
+              // Navigate backwards just in case they paid but the backend didn't redirect.
+              router.replace("/profile/bookings");
+            }
+          }
         }
         // Handle Stripe payment
         else if (paymentMethod === "Stripe" && response.body.client_secret) {
@@ -154,11 +166,35 @@ const Subscription = () => {
     }
   };
 
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      console.log("Subscription success redirect received", url);
+      if (url.includes("payment-callback")||url.includes("adtil.local")) {
+        console.log("Subscription Payment success redirect received");
+        WebBrowser.dismissBrowser();
+        router.replace("/profile/bookings");
+      }
+    });
+
+    return () => sub.remove();
+  }, []);
+
   const handleWebViewNavigation = (navState) => {
     const { url } = navState;
+    console.log("Subscription WebView Navigated:", url);
 
-    // Check if the URL contains success parameters
-    if (url.includes("success") || url.includes("reference=")) {
+    const isSuccess = url.includes("success") || 
+                     url.includes("successful") || 
+                     url.includes("checkout-done") ||
+                     url.includes("callback") && (url.includes("reference=") || url.includes("trxref=")) ||
+                     url.includes("payment_received") ||
+                     url.includes("status=success") ||
+                     url.includes("transaction_complete") ||
+                     url.includes("confirmed") ||
+                     url.includes("completed");
+
+    if (isSuccess) {
+      console.log("Sub Payment successful");
       setShowWebView(false);
 
       // Extract reference from URL if available
@@ -169,12 +205,20 @@ const Subscription = () => {
       }
 
       completeSubscription(reference);
+      setTimeout(() => {
+        router.replace("/profile/bookings" as any);
+      }, 500);
+      return;
     }
 
-    // Check if the URL indicates cancellation
-    if (url.includes("close") || url.includes("cancel")) {
+    if (url.includes("close") || url.includes("cancel") || url.includes("checkout-back") || url.includes("abort") || url.includes("error")) {
+      console.log("Sub Payment cancelled or errored");
       setShowWebView(false);
-      Alert.alert("Info", "Payment was cancelled");
+      if (!url.includes("error")) {
+        Alert.alert("Info", "Payment was cancelled");
+      } else {
+        Alert.alert("Error", "Something went wrong with the payment");
+      }
     }
   };
 
@@ -506,42 +550,7 @@ const Subscription = () => {
         </ScrollView>
       )}
 
-      {/* Paystack WebView Modal */}
-      <Modal
-        visible={showWebView}
-        animationType="slide"
-        onRequestClose={() => setShowWebView(false)}
-      >
-        <View className="flex-1 bg-background pt-12">
-          <TouchableOpacity
-            onPress={() => setShowWebView(false)}
-            className="absolute top-4 left-4 z-10 bg-gray-200 p-2 rounded-full"
-          >
-            <Feather name="x" size={24} color="black" />
-          </TouchableOpacity>
 
-          {paymentData?.authorization_url ? (
-            <WebView
-              source={{ uri: paymentData.authorization_url }}
-              onNavigationStateChange={handleWebViewNavigation}
-              startInLoadingState={true}
-              renderLoading={() => (
-                <View className="flex-1 justify-center items-center">
-                  <ActivityIndicator size="large" color="#9EDD45" />
-                  <Text className="text-white mt-4">
-                    Loading payment gateway...
-                  </Text>
-                </View>
-              )}
-            />
-          ) : (
-            <View className="flex-1 justify-center items-center">
-              <ActivityIndicator size="large" color="#9EDD45" />
-              <Text className="text-white mt-4">Preparing payment...</Text>
-            </View>
-          )}
-        </View>
-      </Modal>
     </View>
   );
 };

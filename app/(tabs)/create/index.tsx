@@ -22,6 +22,8 @@ import {
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from "expo-image-picker";
 import { Platform } from "react-native";
+import { useSelector } from "react-redux";
+import { Plus } from "lucide-react-native";
 
 interface Participant {
   label: string;
@@ -42,6 +44,8 @@ interface Session {
 }
 export default function CreateEventScreen() {
   const router = useRouter();
+  const { userInfo } = useSelector((state: any) => state.auth);
+
   const [selectedCountry, setSelectedCountry] = useState<any>(null);
   const [selectedState, setSelectedState] = useState<any>(null);
   const [isFormValid, setIsFormValid] = useState(false);
@@ -377,6 +381,34 @@ export default function CreateEventScreen() {
       Alert.alert("Error", "Failed to fetch required data. Please try again.");
     }
   }, [categoriesError, countryError, stateError]);
+
+  if (!userInfo) {
+    return (
+      <View className="flex-1 bg-background justify-center items-center px-6">
+        <View className="bg-[#1A2432] p-8 rounded-full mb-6">
+          <Plus size={60} color="#9EDD45" />
+        </View>
+        <Text className="text-white text-2xl font-bold text-center">
+          Create an Event
+        </Text>
+        <Text className="text-gray-400 text-center mt-2 mb-8 text-lg">
+          Join our community to start hosting your own amazing events!
+        </Text>
+        <TouchableOpacity
+          className="bg-primary w-full py-4 rounded-xl items-center"
+          onPress={() => router.push("/(auth)/login")}
+        >
+          <Text className="text-background font-bold text-lg">Login / Sign Up</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="mt-6"
+          onPress={() => router.replace("/(tabs)/home/home1")}
+        >
+          <Text className="text-primary font-medium text-base">Explore Events Instead</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (isLoadingData) {
     return (

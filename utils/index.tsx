@@ -1,7 +1,7 @@
-export function truncateSentence(sentence) {
+export function truncateSentence(sentence, limit = 9) {
   const words = sentence?.split(" ");
-  if (words?.length <= 9) return sentence;
-  return words?.slice(0, 9)?.join(" ") + "...";
+  if (words?.length <= limit) return sentence;
+  return words?.slice(0, limit)?.join(" ") + "...";
 }
 
 export function truncateAlphabet(sentence, limit = 15) {
