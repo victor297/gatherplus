@@ -32,7 +32,10 @@ export default function RootLayout() {
     window.frameworkReady?.();
   }, []);
   return (
-      <StripeProvider merchantIdentifier="merchant.REPLACE_ME" publishableKey="pk_test_51Nk1wiFLuyhBQgukGDJJb5uq2EKd8olb2Yy6Bbm9m2GiXsObMKJEcZ4M88KKwSOYcPylFlfCz0RHwiov5U0F6ykv00TMcLXTUJ">
+      <StripeProvider
+        merchantIdentifier={process.env.EXPO_PUBLIC_STRIPE_MERCHANT_IDENTIFIER ?? "merchant.REPLACE_ME"}
+        publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""}
+      >
     <Provider store={store}>
       <RootLayoutContent />
       <StatusBar style="light" />

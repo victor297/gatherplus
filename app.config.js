@@ -1,0 +1,110 @@
+// app.config.js – Dynamic Expo config that reads environment variables.
+// This replaces static app.json for any value that needs to come from .env.
+// See: https://docs.expo.dev/versions/latest/config/app/
+
+module.exports = ({ config }) => ({
+  ...config,
+  name: "gatherplus",
+  slug: "gatherPlus",
+  scheme: "gatherplus",
+  version: "1.0.0",
+  orientation: "portrait",
+  owner: "gatherplus",
+  icon: "./assets/images/icon.png",
+  userInterfaceStyle: "automatic",
+  newArchEnabled: true,
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: "com.anonymous.gatherPlus",
+    usesAppleSignIn: true,
+    infoPlist: {
+      NSLocationWhenInUseUsageDescription:
+        "This app needs access to your location to show your position on the map.",
+      NSLocationAlwaysUsageDescription:
+        "This app needs access to your location even when in the background.",
+      NSPhotoLibraryUsageDescription:
+        "This app needs access to your photo library to select photos and save tickets from the app",
+      NSPhotoLibraryAddUsageDescription:
+        "This app needs permission to save photos to your library",
+      NSCameraUsageDescription:
+        "This app needs permission to access your camera.",
+      CFBundleURLTypes: [
+        { CFBundleURLSchemes: ["gatherplus"] },
+        { CFBundleURLSchemes: ["gatherplus"] },
+      ],
+    },
+    splash: {
+      image: "./assets/images/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#020E1E",
+    },
+  },
+  android: {
+    adaptiveIcon: {
+      foregroundImage: "./assets/images/adaptive-icon.png",
+      backgroundColor: "#ffffff",
+    },
+    config: {
+      googleMaps: {
+        // Reads from EXPO_PUBLIC_GOOGLE_MAPS_API_KEY in .env
+        apiKey:
+          process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ??
+          "AIzaSyAzyTQfv-LirivvA9Y9hcYMx7DxBDzXwWU",
+      },
+    },
+    intentFilters: [
+      {
+        action: "VIEW",
+        data: [{ scheme: "gatherplus", host: "*", pathPrefix: "/" }],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+      {
+        action: "VIEW",
+        data: [{ scheme: "gatherplus", host: "*", pathPrefix: "/" }],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+    ],
+    package: "com.anonymous.gatherPlus",
+    splash: {
+      image: "./assets/images/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#020E1E",
+    },
+  },
+  web: {
+    bundler: "metro",
+    output: "static",
+    favicon: "./assets/images/favicon.png",
+  },
+  plugins: [
+    [
+      "@react-native-google-signin/google-signin",
+      {
+        iosUrlScheme:
+          "com.googleusercontent.apps.372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr",
+      },
+    ],
+    "expo-router",
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/images/splash-icon.png",
+        imageWidth: 200,
+        resizeMode: "contain",
+        backgroundColor: "#020E1E",
+      },
+    ],
+    ["expo-apple-authentication"],
+  ],
+  experiments: {
+    typedRoutes: true,
+  },
+  extra: {
+    router: { origin: false },
+    eas: { projectId: "cfaa89b5-aa1c-4210-94e3-bc27c9abb039" },
+  },
+  runtimeVersion: "1.0.0",
+  updates: {
+    url: "https://u.expo.dev/cfaa89b5-aa1c-4210-94e3-bc27c9abb039",
+  },
+});

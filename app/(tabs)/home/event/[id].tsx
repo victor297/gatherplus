@@ -49,6 +49,7 @@ import * as Sharing from "expo-sharing";
 import * as ELinking from "expo-linking";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 import { truncateSentence } from "@/utils";
+import { WEB_URL } from "@/redux/constants";
 
 interface TicketSelection {
   quantity: number;
@@ -146,7 +147,7 @@ export default function EventDetailsScreen() {
   const shareEvent = async () => {
     try {
       // Use your production website URL
-      const webUrl = `https://www.gatherplux.com/eventsdetails/share/${id}`;
+      const webUrl = `${WEB_URL}/eventsdetails/share/${id}`;
       const shareOptions = {
         message: `🔥 Something big is coming!
 Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun, and epic memories!
@@ -320,7 +321,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
           <Text className="text-red-500">
-            {error?.data?.body} Please try again.
+            {(error as any)?.data?.body} Please try again.
           </Text>
         </View>
       ) : (

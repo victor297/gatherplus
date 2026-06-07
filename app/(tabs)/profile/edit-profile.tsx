@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Camera, Check } from 'lucide-react-native';
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/redux/api/usersApiSlice';
+import { FILE_UPLOAD_URL } from '@/redux/constants';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -59,7 +60,7 @@ const [uploading,setUploading]=useState(null)
 
     try {
       setUploading(true)
-      const response = await fetch('https://gather-plus-backend-core.onrender.com/api/v1/file', {
+      const response = await fetch(FILE_UPLOAD_URL, {
         method: 'POST',
         body: formDataUpload,
         headers: {

@@ -24,6 +24,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Platform } from "react-native";
 import { useSelector } from "react-redux";
 import { Plus } from "lucide-react-native";
+import { FILE_UPLOAD_URL } from "@/redux/constants";
 
 interface Participant {
   label: string;
@@ -316,7 +317,7 @@ export default function CreateEventScreen() {
 
     try {
       const response = await fetch(
-        "https://gather-plus-backend-core.onrender.com/api/v1/file",
+        FILE_UPLOAD_URL,
         {
           method: "POST",
           body: formDataUpload,

@@ -11,6 +11,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Upload } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
+import { FILE_UPLOAD_URL } from "@/redux/constants";
 
 export default function BannerScreen() {
   const router = useRouter();
@@ -87,7 +88,7 @@ export default function BannerScreen() {
     try {
       setLoading(true);
       const response = await fetch(
-        "https://gather-plus-backend-core.onrender.com/api/v1/file",
+        FILE_UPLOAD_URL,
         {
           method: "POST",
           body: formDataUpload,

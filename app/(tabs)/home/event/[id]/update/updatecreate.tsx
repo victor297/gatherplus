@@ -8,6 +8,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useSelector } from 'react-redux';
 import { Platform } from 'react-native';
+import { FILE_UPLOAD_URL } from '@/redux/constants';
 
 interface Participant {
   id?: string;
@@ -260,7 +261,7 @@ export default function UpdateEventScreen() {
     } as any);
 
     try {
-      const response = await fetch('https://gather-plus-backend-core.onrender.com/api/v1/file', {
+      const response = await fetch(FILE_UPLOAD_URL, {
         method: 'POST',
         body: formDataUpload,
         headers: {
