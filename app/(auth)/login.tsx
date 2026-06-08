@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,9 @@ import {
 } from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "@/redux/features/auth/authSlice";
+import RecaptchaExecutor, {
+  type RecaptchaExecutorHandle,
+} from "@/app/components/RecaptchaExecutor";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -31,6 +34,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null);
+  const recaptchaRef = useRef<RecaptchaExecutorHandle>(null);
   const [login, { isLoading }] = useLoginMutation();
   const [applelogin, { isLoading: isAppleLoading }] = useAppleloginMutation();
   const [googlelogin, { isLoading: isGoogleLoading }] =
@@ -64,7 +68,12 @@ export default function Login() {
     setLoading(true);
     setError(null);
     try {
-      const res: any = await login({ username, password }).unwrap();
+      const recaptchaToken = await recaptchaRef.current?.execute("login");
+      const res: any = await login({
+        username,
+        password,
+        ...(recaptchaToken ? { recaptcha_token: recaptchaToken } : {}),
+      }).unwrap();
 
       if (res.code === 200 && res.body) {
         dispatch(setCredentials(res));
@@ -73,8 +82,11 @@ export default function Login() {
         throw new Error("Invalid response format");
       }
     } catch (err: any) {
-      console.log(err);
-      setError(err?.data?.body || "Login failed. Please try again.");
+      setError(
+        err?.message?.includes("Security")
+          ? "Security check failed. Please retry."
+          : err?.data?.body || "Login failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -163,6 +175,7 @@ export default function Login() {
 
   return (
     <View className="flex-1 bg-background p-6">
+      <RecaptchaExecutor ref={recaptchaRef} />
       <Image
         source={require("../../assets/images/logo.png")}
         style={{
@@ -227,7 +240,7 @@ export default function Login() {
           <TouchableOpacity
             className="bg-primary rounded-lg py-4"
             onPress={handleSignIn}
-            disabled={loading}
+            disabled={loading || isLoading}
           >
             {loading || isLoading || isAppleLoading ? (
               <ActivityIndicator color="white" />
@@ -281,7 +294,7 @@ export default function Login() {
 
           <View className="flex-row justify-center">
             <Text className="text-gray-400 text-lg">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
             </Text>
             <Link href="/signup">
               <Text className="text-primary text-lg">Signup</Text>

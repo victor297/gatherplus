@@ -41,7 +41,7 @@ export default function AccountInfoScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<any>(null);
   const [deleteCountdown, setDeleteCountdown] = useState(30);
-  const [deleteTimer, setDeleteTimer] = useState<NodeJS.Timeout | null>(null);
+  const [deleteTimer, setDeleteTimer] = useState<ReturnType<typeof setInterval> | null>(null);
   const [isDeleteEnabled, setIsDeleteEnabled] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 

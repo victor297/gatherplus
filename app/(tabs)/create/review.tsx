@@ -7,6 +7,7 @@ import {
   Image,
   ActivityIndicator,
   Linking,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -18,13 +19,22 @@ import {
   Edit2,
 } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
-import { useCreateventMutation } from "@/redux/api/eventsApiSlice";
-import MapView, { Marker } from "react-native-maps";
+import {
+  useCreateNewEventMutation,
+  useUpdateNewEventMutation,
+} from "@/redux/api/newEventsApiSlice";
+import EventMapPreview from "@/app/components/EventMapPreview";
+import { buildNewEventPayload, needsOnline, needsVenue } from "@/utils/newEventForm";
+import { getApiErrorMessage } from "@/utils/api";
 
 export default function ReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [createvent, { isLoading, error }] = useCreateventMutation();
+  const eventId = Array.isArray(params.eventId) ? params.eventId[0] : params.eventId;
+  const [createNewEvent, { isLoading, error }] = useCreateNewEventMutation();
+  const [updateNewEvent, { isLoading: isUpdating, error: updateError }] =
+    useUpdateNewEventMutation();
+  const [submitMode, setSubmitMode] = useState<"draft" | "publish" | null>(null);
 
   const [formData, setFormData] = useState(() => {
     try {
@@ -35,20 +45,31 @@ export default function ReviewScreen() {
     }
   });
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (published: boolean) => {
     try {
-      const res = await createvent(formData).unwrap();
+      setSubmitMode(published ? "publish" : "draft");
+      const payload = buildNewEventPayload(formData, published);
+      const res = eventId
+        ? await updateNewEvent({ id: eventId, data: payload }).unwrap()
+        : await createNewEvent(payload).unwrap();
+
+      if (res?.error) {
+        throw new Error(String(res.body || "Failed to create event"));
+      }
 
       router.push("/success");
     } catch (error) {
       console.log("Event creation failed:", error);
+      Alert.alert("Event creation failed", getApiErrorMessage(error, "Please check the event details and try again."));
+    } finally {
+      setSubmitMode(null);
     }
   };
 
   const handleEdit = () => {
     router.push({
       pathname: "/create",
-      params: { formData: JSON.stringify(formData) },
+      params: { formData: JSON.stringify(formData), eventId: eventId || "" },
     });
   };
 
@@ -72,7 +93,9 @@ export default function ReviewScreen() {
         >
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Create Event</Text>
+        <Text className="text-white text-xl font-semibold">
+          {eventId ? "Edit Event" : "Create Event"}
+        </Text>
         {/* <TouchableOpacity onPress={handleEdit} className="ml-auto">
           <Edit2 color="white" size={20} />
         </TouchableOpacity> */}
@@ -115,12 +138,41 @@ export default function ReviewScreen() {
             <Text className="text-white text-lg font-semibold mb-2">
               About Event
             </Text>
+            <Text className="text-gray-300 mb-3">
+              {formData?.summary || "Event summary not provided"}
+            </Text>
             <Text className="text-gray-400">
               {formData?.description || "Event description not provided"}
             </Text>
           </View>
 
+          <View className="mb-6">
+            <Text className="text-white text-lg font-semibold mb-2">
+              Event Format
+            </Text>
+            <View className="bg-[#1A2432] rounded-lg p-4">
+              <Text className="text-white">
+                {formData.attendance_mode || "VENUE"}
+              </Text>
+              {needsOnline(formData.attendance_mode) && (
+                <View className="mt-3">
+                  <Text className="text-gray-400">
+                    {formData.online_platform || "Online platform"}
+                  </Text>
+                  <Text className="text-gray-400 mt-1">
+                    {formData.online_timezone || "Timezone not set"}
+                  </Text>
+                  <Text className="text-gray-400 mt-1">
+                    {formData.online_access_instructions ||
+                      "Access instructions not set"}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
           {/* Location */}
+          {needsVenue(formData.attendance_mode) && (
           <View className="mb-6">
             <Text className="text-white text-lg font-semibold mb-2">
               Location
@@ -137,28 +189,16 @@ export default function ReviewScreen() {
                   </Text>
                 </View>
               </View>
-              <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
-                <MapView
-                  style={{ flex: 1 }}
-                  initialRegion={{
-                    latitude: 51.5074, // Default to London coordinates
-                    longitude: -0.1278,
-                    latitudeDelta: 0.0922,
-                    longitudeDelta: 0.0421,
-                  }}
-                >
-                  <Marker
-                    coordinate={{ latitude: 51.5074, longitude: -0.1278 }}
-                    title={formData?.address}
-                    description={formData?.city}
-                  />
-                </MapView>
-              </View>
+              <EventMapPreview
+                address={formData?.address}
+                city={formData?.city}
+              />
               <TouchableOpacity onPress={openMaps} className="self-end">
                 <Text className="text-primary">View map</Text>
               </TouchableOpacity>
             </View>
           </View>
+          )}
 
           {/* Date and Time */}
           <View className="mb-6">
@@ -242,32 +282,86 @@ export default function ReviewScreen() {
               <Text className="text-gray-400">No tickets available</Text>
             )}
           </View>
+
+          <View className="mb-6">
+            <Text className="text-white text-lg font-semibold mb-2">
+              Extra Details
+            </Text>
+            <View className="bg-[#1A2432] rounded-lg p-4">
+              {!!formData.tags && (
+                <Text className="text-gray-400 mb-2">Tags: {formData.tags}</Text>
+              )}
+              {!!formData.door_time && (
+                <Text className="text-gray-400 mb-2">
+                  Door: {formData.door_time}
+                </Text>
+              )}
+              {!!formData.parking_info && (
+                <Text className="text-gray-400 mb-2">
+                  Parking: {formData.parking_info}
+                </Text>
+              )}
+              {!!formData.discount_info && (
+                <Text className="text-gray-400 mb-2">
+                  Lineup: {formData.discount_info}
+                </Text>
+              )}
+              {!!formData.agenda_info && (
+                <Text className="text-gray-400">
+                  Agenda: {formData.agenda_info}
+                </Text>
+              )}
+              {formData?.faqs?.length > 0 && (
+                <View className="mt-3">
+                  {formData.faqs.map((faq: any, index: number) => (
+                    <View key={index} className="mb-2">
+                      <Text className="text-white">{faq.question}</Text>
+                      <Text className="text-gray-400">{faq.answer}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
         </View>
       </ScrollView>
 
       {/* Error Message */}
-      {error && (
+      {(error || updateError) && (
         <View className="p-4">
           <Text className="text-red-500 text-center">
-            {(error as any)?.data?.message || "Failed to create event"}
+            {getApiErrorMessage(error || updateError, "Failed to save event")}
           </Text>
         </View>
       )}
 
       {/* Save & Continue Button */}
-      <View className="p-4 border-t border-[#1A2432]">
+      <View className="p-4 border-t border-[#1A2432] gap-3">
         <TouchableOpacity
-          className={`rounded-lg py-4 ${
-            isLoading ? "bg-gray-500" : "bg-primary"
-          }`}
-          onPress={handleSubmit}
-          disabled={isLoading}
+          className={`rounded-lg py-4 ${isLoading || isUpdating ? "bg-gray-500" : "bg-[#1A2432]"}`}
+          onPress={() => handleSubmit(false)}
+          disabled={isLoading || isUpdating}
         >
-          {isLoading ? (
+          {(isLoading || isUpdating) && submitMode === "draft" ? (
             <ActivityIndicator color="#9EDD45" />
           ) : (
+            <Text className="text-white text-center font-semibold">
+              {eventId ? "Update Draft" : "Save Draft"}
+            </Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          className={`rounded-lg py-4 ${
+            isLoading || isUpdating ? "bg-gray-500" : "bg-primary"
+          }`}
+          onPress={() => handleSubmit(true)}
+          disabled={isLoading || isUpdating}
+        >
+          {(isLoading || isUpdating) && submitMode === "publish" ? (
+            <ActivityIndicator color="#020E1E" />
+          ) : (
             <Text className="text-background text-center font-semibold">
-              Save and continue
+              {eventId ? "Update & Publish" : "Publish Event"}
             </Text>
           )}
         </TouchableOpacity>

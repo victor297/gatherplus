@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -31,6 +31,9 @@ import {
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "@/redux/features/auth/authSlice";
+import RecaptchaExecutor, {
+  type RecaptchaExecutorHandle,
+} from "@/app/components/RecaptchaExecutor";
 
 export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -38,6 +41,7 @@ export default function SignupScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const recaptchaRef = useRef<RecaptchaExecutorHandle>(null);
   const router = useRouter();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
@@ -68,11 +72,24 @@ export default function SignupScreen() {
       return;
     }
     setError(null);
+    setLoading(true);
     try {
-      const res = await usersignup({ name, email, password }).unwrap();
+      const recaptchaToken = await recaptchaRef.current?.execute("signup");
+      const res = await usersignup({
+        name,
+        email,
+        password,
+        ...(recaptchaToken ? { recaptcha_token: recaptchaToken } : {}),
+      }).unwrap();
       router.push(`/verify?email=${email.toString()}`);
     } catch (err: any) {
-      setError(err?.data?.body || "Signup failed. Please try again.");
+      setError(
+        err?.message?.includes("Security")
+          ? "Security check failed. Please retry."
+          : err?.data?.body || "Signup failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -158,6 +175,7 @@ export default function SignupScreen() {
 
   return (
     <View className="flex-1 bg-background p-6">
+      <RecaptchaExecutor ref={recaptchaRef} />
       <TouchableOpacity
         onPress={() => router.back()}
         className="mt-6 flex-row items-center justify-between"
@@ -243,7 +261,7 @@ export default function SignupScreen() {
         <TouchableOpacity
           className="bg-primary rounded-lg py-4 mt-8 flex items-center justify-center"
           onPress={handleSignup}
-          disabled={isLoading}
+          disabled={loading || isLoading}
         >
           {loading || isLoading || isAppleLoading ? (
             <ActivityIndicator color="white" />

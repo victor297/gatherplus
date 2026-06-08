@@ -1,51 +1,76 @@
-# Welcome to your Expo app 👋
+# GatherPlux Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo/React Native mobile app for GatherPlux.
 
-## Get started
+## Local Setup
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Run commands from this folder:
 
 ```bash
-npm run reset-project
+cd C:/Users/kriss/gatherplux/gatherplux_mobile/gatherplus
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Create a local env file:
 
-## Learn more
+```bash
+cp .env.example .env
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+For a physical phone, set `EXPO_PUBLIC_CORE_API_URL` in `.env` to your computer LAN IP, for example:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+EXPO_PUBLIC_CORE_API_URL=http://192.168.1.50:3000/api/v1
+EXPO_PUBLIC_PROVIDER_API_URL=http://192.168.1.50:3002/api/v1/provider
+EXPO_PUBLIC_PAYMENT_BASE_URL=http://192.168.1.50:3002/api/v1/payment
+```
 
-## Join the community
+Login and signup use Google reCAPTCHA v3 when `EXPO_PUBLIC_RECAPTCHA_SITE_KEY`
+is set. The site key is public; keep `RECAPTCHA_SECRET_KEY` only on the backend.
 
-Join our community of developers creating universal apps.
+The development default is local backend URLs, not the live Render backend. Only set
+`EXPO_PUBLIC_ALLOW_PRODUCTION_API_IN_DEV=true` when you intentionally want a dev bundle to hit production.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# gatherplus
+## Start The App
+
+For the dev-client build:
+
+```bash
+npm run start:dev-client
+```
+
+This app uses native modules, so Expo Go is not expected to be enough for full testing.
+
+## Development Builds
+
+Android physical device:
+
+```bash
+npx eas build --profile development-device --platform android
+```
+
+iPhone physical device:
+
+```bash
+npx eas build --profile development-device --platform ios
+```
+
+The existing `development` profile still targets the iOS simulator. Use `development-device` for a real phone.
+
+## Checks
+
+```bash
+npm run typecheck
+npm run lint
+```
+
+## Production Safety
+
+Do not run production OTA updates while testing:
+
+```bash
+# Do not run this during mobile parity work:
+eas update --channel production
+```
+
+Production builds should use the `production` EAS profile, which points at the live backend URLs.

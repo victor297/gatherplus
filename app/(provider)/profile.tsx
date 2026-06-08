@@ -47,15 +47,6 @@ import { RefreshControl } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useUploadFileMutation } from "@/redux/api/usersApiSlice";
 
-const router = useRouter();
-const handleEditService = (service) => {
-  console.log(service, "service");
-  router.push({
-    pathname: "/(provider)/update-service",
-    params: { service: JSON.stringify(service) },
-  });
-};
-
 // Custom component for a Service Card
 const ServiceCard = ({
   name,
@@ -65,38 +56,49 @@ const ServiceCard = ({
   priceType,
   images,
   service,
-}) => (
-  <View className="flex-row items-center bg-card rounded-xl p-4 mb-3 bg-lightbackground shadow-md">
-    {/* Service image */}
-    {images && images.length > 0 ? (
-      <Image
-        source={{ uri: images[0] }}
-        className="w-16 h-16 rounded-lg mr-4"
-        resizeMode="cover"
-      />
-    ) : (
-      <View className="w-16 h-16 rounded-lg bg-gray-600 mr-4"></View>
-    )}
-    <View className="flex-1">
-      <Text className="text-white text-lg font-bold">{name}</Text>
-      <Text className="text-gray-500 text-sm">
-        {truncateSentence(description)}
-      </Text>
+}) => {
+  const router = useRouter();
+
+  const handleEditService = () => {
+    router.push({
+      pathname: "/(provider)/update-service",
+      params: { service: JSON.stringify(service) },
+    });
+  };
+
+  return (
+    <View className="flex-row items-center bg-card rounded-xl p-4 mb-3 bg-lightbackground shadow-md">
+      {/* Service image */}
+      {images && images.length > 0 ? (
+        <Image
+          source={{ uri: images[0] }}
+          className="w-16 h-16 rounded-lg mr-4"
+          resizeMode="cover"
+        />
+      ) : (
+        <View className="w-16 h-16 rounded-lg bg-gray-600 mr-4"></View>
+      )}
+      <View className="flex-1">
+        <Text className="text-white text-lg font-bold">{name}</Text>
+        <Text className="text-gray-500 text-sm">
+          {truncateSentence(description)}
+        </Text>
+      </View>
+      <View className="">
+        <Text className="text-primary text-base font-bold">
+          {currency} {price}
+        </Text>
+        <Text className="text-gray-500 text-sm mt-1 capitalize">{priceType}</Text>
+      </View>
+      <TouchableOpacity
+        onPress={handleEditService}
+        className="items-end bg-background p-1 ml-3 rounded-full"
+      >
+        <Edit3 className="text-primary text-base font-bold" />
+      </TouchableOpacity>
     </View>
-    <View className="">
-      <Text className="text-primary text-base font-bold">
-        {currency} {price}
-      </Text>
-      <Text className="text-gray-500 text-sm mt-1 capitalize">{priceType}</Text>
-    </View>
-    <TouchableOpacity
-      onPress={() => handleEditService(service)}
-      className="items-end bg-background p-1 ml-3 rounded-full"
-    >
-      <Edit3 className="text-primary text-base font-bold" />
-    </TouchableOpacity>
-  </View>
-);
+  );
+};
 
 // Custom component for a Gallery Image with delete option
 const GalleryImage = ({ imageUrl, onRemove, index }) => (
@@ -333,7 +335,7 @@ export default function ServiceDetails() {
               <View className="items-center justify-center p-6 rounded-lg bg-lightbackground mx-4">
                 <FileText size={80} color="#6B7280" className="mb-4" />
                 <Text className="text-white text-lg font-semibold text-center mb-2">
-                  You haven't added any services yet
+                  You haven&apos;t added any services yet
                 </Text>
                 <Text className="text-gray-400 text-sm text-center mb-6">
                   Showcase what you offer by adding your first service.
@@ -415,7 +417,7 @@ export default function ServiceDetails() {
                 <View className="items-center justify-center p-6 rounded-lg bg-lightbackground mx-4">
                   <ImageIcon size={80} color="#6B7280" className="mb-4" />
                   <Text className="text-white text-lg font-semibold text-center mb-2">
-                    You haven't added any images yet
+                    You haven&apos;t added any images yet
                   </Text>
                   <Text className="text-gray-400 text-sm text-center mb-6">
                     Showcase your work by uploading photos to your gallery

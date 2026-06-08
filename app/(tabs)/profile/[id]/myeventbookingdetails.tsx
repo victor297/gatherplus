@@ -13,9 +13,11 @@ import { SafeAreaView } from "react-native";
 import { ArrowLeft, Search } from "lucide-react-native";
 import { Image } from "react-native";
 import { formatDate, formatTime } from "@/utils/formatDate";
+import { getStringParam } from "@/utils/routeParams";
 
 const MyEventTicketScreen = () => {
   const { id } = useLocalSearchParams();
+  const eventId = getStringParam(id);
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -30,7 +32,7 @@ const MyEventTicketScreen = () => {
     error,
     refetch,
   } = useGetMyEventBookingsQuery({
-    id,
+    id: eventId,
     search: searchTerm,
     page,
     size,

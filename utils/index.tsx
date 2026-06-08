@@ -9,7 +9,7 @@ export function truncateAlphabet(sentence, limit = 15) {
   return sentence.slice(0, limit) + "...";
 }
 export function formatDate(input, timeZone = "Africa/Lagos", locale = "en-US") {
-  const options = {
+  const options: Intl.DateTimeFormatOptions = {
     weekday: "long", // Friday
     year: "numeric", // 2025
     month: "long", // July

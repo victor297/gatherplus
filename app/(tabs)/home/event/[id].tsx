@@ -28,8 +28,11 @@ import {
   BookmarkIcon,
   ChevronDown,
   HeartIcon,
+  Info,
   MessageSquareIcon,
+  Monitor,
   Share2Icon,
+  Tag,
   User,
 } from "lucide-react-native";
 import RenderHTML from "react-native-render-html";
@@ -42,23 +45,39 @@ import {
 } from "@/redux/api/eventsApiSlice";
 import { formatDate } from "@/utils/formatDate";
 import { useSelector } from "react-redux";
-import MapView, { Marker } from "react-native-maps";
 import { useFollowEventCreatorMutation } from "@/redux/api/usersApiSlice";
 import CommentModal from "@/app/components/CommentModat";
+import EventMapPreview from "@/app/components/EventMapPreview";
 import * as Sharing from "expo-sharing";
 import * as ELinking from "expo-linking";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 import { truncateSentence } from "@/utils";
-import { WEB_URL } from "@/redux/constants";
+import {
+  buildEventShareUrl,
+  currencySymbol,
+  eventHasOnlineAccess,
+  eventNeedsVenue,
+  formatEnumLabel,
+  getAttendanceLabel,
+  getOnlineRevealLabel,
+  getTicketRemainingQuantity,
+  getUpcomingSessions,
+  isEventEnded,
+  isEventSoldOut,
+  isUpcomingSession,
+} from "@/utils/eventHelpers";
+import { getApiErrorMessage } from "@/utils/api";
+import { getStringParam } from "@/utils/routeParams";
 
 interface TicketSelection {
   quantity: number;
-  sessionId: number;
+  sessionId: number | string;
 }
 
 export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const eventId = getStringParam(id);
   const { width } = useWindowDimensions();
   const { userInfo, requireAuth } = useAuthCheck();
   const [isLiked, setIsLiked] = useState<boolean>(false);
@@ -68,11 +87,24 @@ export default function EventDetailsScreen() {
     isLoading,
     error,
     refetch,
-  } = useGetEventQuery({ id, user_id: userInfo?.sub });
+  } = useGetEventQuery({ id: eventId, user_id: userInfo?.sub });
+  const eventData = event?.body;
+  const upcomingSessions = getUpcomingSessions(eventData?.sessions || []);
+  const eventEnded = isEventEnded(eventData);
+  const eventSoldOut = isEventSoldOut(eventData);
+  const canBookEvent =
+    Boolean(eventData?.published ?? true) &&
+    !eventEnded &&
+    !eventSoldOut &&
+    upcomingSessions.length > 0;
+  const attendanceLabel = getAttendanceLabel(eventData);
+  const hasOnlineAccess = eventHasOnlineAccess(eventData);
+  const hasVenue = eventNeedsVenue(eventData);
+  const symbol = currencySymbol(eventData?.currency);
   const [ticketSelections, setTicketSelections] = useState<
     Record<number, TicketSelection>
   >({});
-  const updateSession = (ticketId: number, newSessionId: number) => {
+  const updateSession = (ticketId: number, newSessionId: number | string) => {
     setTicketSelections((prev) => ({
       ...prev,
       [ticketId]: {
@@ -87,7 +119,7 @@ export default function EventDetailsScreen() {
     isLoading: commentsLoading,
     isError: commentsError,
     refetch: refetchComments,
-  } = useGetCommentsQuery(id, {
+  } = useGetCommentsQuery(eventId, {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
   });
@@ -102,17 +134,20 @@ export default function EventDetailsScreen() {
   const [followEventCreator, { isLoading: isfollowLoading }] =
     useFollowEventCreatorMutation();
   const addTicket = (ticketId: number) => {
-    const ticket = event?.body?.tickets.find((t: any) => t.id === ticketId);
+    const ticket = eventData?.tickets?.find((t: any) => t.id === ticketId);
     if (!ticket) return;
+    if (upcomingSessions.length === 0) {
+      Alert.alert("Booking closed", "There are no upcoming sessions available for this event.");
+      return;
+    }
 
     setTicketSelections((prev) => {
       const current = prev[ticketId] || {
         quantity: 0,
-        sessionId: event?.body?.sessions[0].id,
+        sessionId: upcomingSessions[0].id,
       };
 
-      // Check if we've reached the ticket quantity limit
-      if (current.quantity >= ticket.quantity) return prev;
+      if (current.quantity >= getTicketRemainingQuantity(ticket)) return prev;
 
       return {
         ...prev,
@@ -139,15 +174,14 @@ export default function EventDetailsScreen() {
     });
   };
 
-  const totalAmount = event?.body?.tickets.reduce((sum: any, ticket: any) => {
+  const totalAmount = eventData?.tickets?.reduce((sum: any, ticket: any) => {
     const selection = ticketSelections[ticket.id];
     return sum + (selection?.quantity || 0) * Number(ticket.price);
-  }, 0);
+  }, 0) || 0;
 
   const shareEvent = async () => {
     try {
-      // Use your production website URL
-      const webUrl = `${WEB_URL}/eventsdetails/share/${id}`;
+      const webUrl = buildEventShareUrl(eventId);
       const shareOptions = {
         message: `🔥 Something big is coming!
 Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun, and epic memories!
@@ -198,26 +232,24 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
 
   const handleBuyTickets = () => {
     if (!requireAuth()) return;
-    // Check if event has tickets
-    if (!event?.body?.tickets || event.body.tickets.length === 0) {
-      // Event has no tickets at all - proceed directly
-      const ticketData = {
-        eventId: id,
-        currency: event?.body?.currency,
-        ticketInstances: [
-          { name: "free", price: 0, sessionId: "", ticketId: "" },
-        ], // No tickets needed
-        totalAmount: 0, // Free event
-        each_ticket_identity: event?.body?.each_ticket_identit,
-      };
-
-      return router.push({
-        pathname: `/home/event/${id}/checkout` as RelativePathString,
-        params: { data: JSON.stringify(ticketData) },
-      });
+    if (!canBookEvent) {
+      const message = eventEnded
+        ? "This event has ended."
+        : eventSoldOut
+        ? "This event is sold out."
+        : "There are no upcoming sessions available for this event.";
+      Alert.alert("Booking unavailable", message);
+      return;
     }
 
-    // Event has tickets - verify at least one is selected
+    if (!eventData?.tickets || eventData.tickets.length === 0) {
+      Alert.alert(
+        "Tickets unavailable",
+        "This event does not have bookable tickets right now."
+      );
+      return;
+    }
+
     const hasSelectedTickets = Object.values(ticketSelections).some(
       (selection) => selection?.quantity > 0
     );
@@ -227,9 +259,13 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
     }
 
     // Process selected tickets
-    const ticketInstances = event.body.tickets.flatMap((ticket: any) => {
+    const upcomingSessionIds = new Set(
+      upcomingSessions.map((session: any) => String(session.id))
+    );
+    const ticketInstances = eventData.tickets.flatMap((ticket: any) => {
       const selection = ticketSelections[ticket.id];
       if (!selection || selection.quantity === 0) return [];
+      if (!upcomingSessionIds.has(String(selection.sessionId))) return [];
 
       return Array(selection.quantity).fill({
         ticketId: ticket.id,
@@ -239,23 +275,36 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
       });
     });
 
+    if (ticketInstances.length === 0) {
+      Alert.alert(
+        "Session unavailable",
+        "Please select an upcoming session before continuing."
+      );
+      return;
+    }
+
     const ticketData = {
-      eventId: id,
-      currency: event.body.currency,
+      eventId,
+      currency: eventData.currency,
       ticketInstances,
       totalAmount,
-      each_ticket_identity: event.body.each_ticket_identit,
+      each_ticket_identity: eventData.each_ticket_identity,
+      age_restriction: eventData.age_restriction || 0,
+      guardian_required: Boolean(eventData.guardian_required),
+      absorb_fee: Boolean(eventData.absorb_fee),
+      attendance_mode: eventData.attendance_mode,
+      online_url_reveal: eventData.online_url_reveal,
     };
 
     router.push({
-      pathname: `/home/event/${id}/checkout` as RelativePathString,
+      pathname: `/home/event/${eventId}/checkout` as RelativePathString,
       params: { data: JSON.stringify(ticketData) },
     });
   };
   const handleBookmark = async () => {
     if (!requireAuth()) return;
     try {
-      const res = await bookmarkevent({ event_id: Number(id) }).unwrap();
+      const res = await bookmarkevent({ event_id: Number(eventId) }).unwrap();
       // alert("Bookmarked")
       refetch();
     } catch (err) {
@@ -266,7 +315,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
   const handleBookmarkRemove = async () => {
     if (!requireAuth()) return;
     try {
-      const res = await deleteBookmark(Number(id)).unwrap();
+      const res = await deleteBookmark(Number(eventId)).unwrap();
       // alert("Unbookmarked")
       refetch();
     } catch (err) {
@@ -276,7 +325,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
   const handleLike = async () => {
     if (!requireAuth()) return;
     try {
-      const res = await likeEvent(Number(id)).unwrap();
+      const res = await likeEvent(Number(eventId)).unwrap();
       setIsLiked(true);
       refetch();
     } catch (err) {
@@ -321,7 +370,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
             <ArrowLeft color="white" size={24} />
           </TouchableOpacity>
           <Text className="text-red-500">
-            {(error as any)?.data?.body} Please try again.
+            {getApiErrorMessage(error, "Failed to load event")} Please try again.
           </Text>
         </View>
       ) : (
@@ -364,14 +413,40 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
 
             <View className="px-4 pt-4">
               <Text className="text-white text-2xl font-bold mb-2">
-                {event?.body?.title}
+                {eventData?.title}
               </Text>
+              <View className="flex-row flex-wrap gap-2 mb-3">
+                <View className="bg-primary/20 px-3 py-1 rounded-full">
+                  <Text className="text-primary text-xs font-semibold">
+                    {attendanceLabel}
+                  </Text>
+                </View>
+                {eventEnded && (
+                  <View className="bg-red-500/20 px-3 py-1 rounded-full">
+                    <Text className="text-red-300 text-xs font-semibold">
+                      Ended
+                    </Text>
+                  </View>
+                )}
+                {eventSoldOut && (
+                  <View className="bg-amber-500/20 px-3 py-1 rounded-full">
+                    <Text className="text-amber-300 text-xs font-semibold">
+                      Sold out
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {eventData?.summary && (
+                <Text className="text-gray-300 mb-3 leading-6">
+                  {eventData.summary}
+                </Text>
+              )}
               <View className="flex-row justify-between ">
                 <Text className="text-gray-400 mb-2 flex flex-wrap w-64">
-                  {event?.body?.address}
+                  {hasVenue ? eventData?.address : "Online event"}
                 </Text>
                 <Text className="text-white">
-                  {formatDate(event?.body?.start_date)}
+                  {formatDate(eventData?.start_date)}
                 </Text>
               </View>
 
@@ -445,7 +520,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   <CommentModal
                     visible={commentModalVisible}
                     onClose={() => setCommentModalVisible(false)}
-                    eventId={Number(id)}
+                    eventId={Number(eventId)}
                     userId={userInfo?.sub}
                   />
                   <TouchableOpacity
@@ -461,10 +536,10 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 <Text className="text-white text-xl font-semibold mb-4">
                   About Event
                 </Text>
-                {event?.body?.description ? (
+                {eventData?.description ? (
                   <RenderHTML
                     contentWidth={width - 40}
-                    source={{ html: event.body.description }}
+                    source={{ html: eventData.description }}
                     tagsStyles={{
                       p: { color: "#9ca3af", marginBottom: 10, fontSize: 16 },
                       br: { height: 10 },
@@ -480,36 +555,104 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   <Text className="text-gray-400 mb-6">No description available.</Text>
                 )}
               </View>
-              <View className="bg-[#1A2432] rounded-lg p-4 mb-6">
-                <Text className="text-white text-xl font-semibold mb-4">
-                  Location
-                </Text>
-                <Text className="text-white mb-2">{event?.body?.address}</Text>
-                <Text className="text-gray-400 mb-4 ">
-                  {event?.body?.country?.name}, {event?.body?.state?.name},
-                  {event?.body?.city}
-                </Text>
-                <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
-                  <MapView
-                    style={{ flex: 1 }}
-                    initialRegion={{
-                      latitude: 51.5074, // Default to London coordinates
-                      longitude: -0.1278,
-                      latitudeDelta: 0.0922,
-                      longitudeDelta: 0.0421,
-                    }}
-                  >
-                    <Marker
-                      coordinate={{ latitude: 51.5074, longitude: -0.1278 }}
-                      title={event?.body?.address}
-                      description={event?.body?.city}
-                    />
-                  </MapView>
+              {hasOnlineAccess && (
+                <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
+                  <View className="flex-row items-center mb-4">
+                    <Monitor color="#9EDD45" size={20} />
+                    <Text className="text-white text-xl font-semibold ml-2">
+                      Online Access
+                    </Text>
+                  </View>
+                  <View className="space-y-2">
+                    <Text className="text-gray-300">
+                      Format: {attendanceLabel}
+                    </Text>
+                    <Text className="text-gray-300">
+                      Hosted on: {formatEnumLabel(eventData?.online_platform) || "Online"}
+                    </Text>
+                    <Text className="text-gray-300">
+                      Timezone: {eventData?.online_timezone || "Event timezone"}
+                    </Text>
+                    <Text className="text-gray-300">
+                      Access: {getOnlineRevealLabel(eventData?.online_url_reveal)}
+                    </Text>
+                  </View>
+                  {eventData?.online_access_instructions && (
+                    <Text className="text-gray-400 text-sm mt-4 leading-6">
+                      Access instructions are shared securely with confirmed attendees.
+                    </Text>
+                  )}
                 </View>
-                <TouchableOpacity onPress={openMaps} className="self-end">
-                  <Text className="text-primary">View map</Text>
-                </TouchableOpacity>
-              </View>
+              )}
+
+              {Array.isArray(eventData?.tags) && eventData.tags.length > 0 && (
+                <View className="bg-gray-800 rounded-lg p-4 mb-4">
+                  <View className="flex-row items-center mb-3">
+                    <Tag color="#9EDD45" size={18} />
+                    <Text className="text-white text-xl font-semibold ml-2">
+                      Tags
+                    </Text>
+                  </View>
+                  <View className="flex-row flex-wrap gap-2">
+                    {eventData.tags.map((tag: string) => (
+                      <View key={tag} className="bg-[#1A2432] px-3 py-2 rounded-full">
+                        <Text className="text-gray-300 text-sm">{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {(eventData?.door_time ||
+                eventData?.parking_info ||
+                eventData?.agenda_info ||
+                eventData?.discount_info) && (
+                <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
+                  <View className="flex-row items-center mb-3">
+                    <Info color="#9EDD45" size={18} />
+                    <Text className="text-white text-xl font-semibold ml-2">
+                      Event Info
+                    </Text>
+                  </View>
+                  {[
+                    ["Door time", eventData?.door_time],
+                    ["Parking", eventData?.parking_info],
+                    ["Agenda", eventData?.agenda_info],
+                    ["Lineup / extra info", eventData?.discount_info],
+                  ]
+                    .filter(([, value]) => Boolean(value))
+                    .map(([label, value]) => (
+                      <View key={label} className="mb-3">
+                        <Text className="text-primary text-sm font-semibold">
+                          {label}
+                        </Text>
+                        <Text className="text-gray-300 mt-1 leading-6">
+                          {value}
+                        </Text>
+                      </View>
+                    ))}
+                </View>
+              )}
+
+              {hasVenue && (
+                <View className="bg-[#1A2432] rounded-lg p-4 mb-6">
+                  <Text className="text-white text-xl font-semibold mb-4">
+                    Location
+                  </Text>
+                  <Text className="text-white mb-2">{eventData?.address}</Text>
+                  <Text className="text-gray-400 mb-4 ">
+                    {eventData?.country?.name}, {eventData?.state?.name},
+                    {eventData?.city}
+                  </Text>
+                  <EventMapPreview
+                    address={eventData?.address}
+                    city={eventData?.city}
+                  />
+                  <TouchableOpacity onPress={openMaps} className="self-end">
+                    <Text className="text-primary">View map</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <View className="bg-gray-800 rounded-lg p-4 mb-4">
                 <Text className="text-white text-xl font-semibold mb-2">
                   Sessions & Presenters
@@ -518,11 +661,11 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 <View className="flex-row items-center mb-2">
                   <Calendar className="text-gray-400 mr-2" size={20} />
                   <Text className="text-gray-400 text-lg">
-                    {formatDate(event?.body?.start_date)}
+                    {formatDate(eventData?.start_date)}
                   </Text>
                 </View>
 
-                {event?.body?.sessions?.map((session: any, sessionIndex: any) => (
+                {eventData?.sessions?.map((session: any, sessionIndex: any) => (
                   <View
                     key={sessionIndex}
                     className="mb-4 bg-[#1A2432] p-4 rounded-xl border border-gray-700"
@@ -537,7 +680,9 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                       </View>
                       <View className="bg-primary/20 px-2 py-1 rounded-md">
                         <Text className="text-primary text-xs font-bold uppercase">
-                          Session {sessionIndex + 1}
+                          {isUpcomingSession(session)
+                            ? `Session ${sessionIndex + 1}`
+                            : "Ended"}
                         </Text>
                       </View>
                     </View>
@@ -590,18 +735,45 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 ))}
               </View>
 
+              {Array.isArray(eventData?.faqs) && eventData.faqs.length > 0 && (
+                <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
+                  <Text className="text-white text-xl font-semibold mb-4">
+                    FAQs
+                  </Text>
+                  {eventData.faqs.map((faq: any, index: number) => (
+                    <View
+                      key={faq.id || index}
+                      className="border-b border-gray-700 pb-3 mb-3"
+                    >
+                      <Text className="text-white font-semibold">
+                        {faq.question}
+                      </Text>
+                      <Text className="text-gray-400 mt-2 leading-6">
+                        {faq.answer}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               <View className="bg-gray-800 rounded-lg p-2 mb-2">
                 <Text className="text-white text-xl font-semibold mb-4">
                   Ticket Information
                 </Text>
                 <View className="space-y-4">
-                  {event?.body?.tickets.map((ticket: any, index: any) => {
+                  {eventData?.tickets?.map((ticket: any, index: any) => {
                     const selection = ticketSelections[ticket.id] || {
                       quantity: 0,
-                      sessionId: event?.body?.sessions[0].id,
+                      sessionId: upcomingSessions[0]?.id,
                     };
-                    const remainingTickets =
-                      ticket.quantity - selection.quantity;
+                    const remainingTickets = Math.max(
+                      getTicketRemainingQuantity(ticket) - selection.quantity,
+                      0
+                    );
+                    const selectedSession =
+                      upcomingSessions.find(
+                        (s: any) => String(s.id) === String(selection.sessionId)
+                      ) || upcomingSessions[0];
 
                     return (
                       <View key={index}>
@@ -609,11 +781,11 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                           <View>
                             <Text className="text-white">{truncateSentence(ticket.name)}</Text>
                             <Text className="text-primary">
-                              {event?.body?.currency?.split(" - ")[0]}
+                              {symbol}
                               {ticket.price}
                             </Text>
                             <Text className="text-gray-400 text-sm">
-                              {remainingTickets} tickets remaining
+                              {getTicketRemainingQuantity(ticket)} tickets remaining
                             </Text>
                           </View>
                           <View className="flex-row items-center mt-2 space-x-4">
@@ -637,11 +809,15 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                             <TouchableOpacity
                               onPress={() => addTicket(ticket.id)}
                               className="bg-background p-2 rounded-full"
-                              disabled={remainingTickets === 0}
+                              disabled={remainingTickets === 0 || !canBookEvent}
                             >
                               <Plus
                                 size={20}
-                                color={remainingTickets === 0 ? "#666" : "#fff"}
+                                color={
+                                  remainingTickets === 0 || !canBookEvent
+                                    ? "#666"
+                                    : "#fff"
+                                }
                               />
                             </TouchableOpacity>
                           </View>
@@ -656,41 +832,30 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                               className="flex-row items-center justify-between bg-[#0e1621] px-4 py-3 rounded-xl border border-gray-700"
                               activeOpacity={0.7}
                               onPress={() => {
-                                const currentIndex =
-                                  event?.body?.sessions.findIndex(
-                                    (s: any) => s.id === selection.sessionId
-                                  );
+                                if (upcomingSessions.length <= 1) return;
+                                const currentIndex = upcomingSessions.findIndex(
+                                  (s: any) =>
+                                    String(s.id) === String(selection.sessionId)
+                                );
                                 const newIndex =
-                                  (currentIndex + 1) %
-                                  event?.body?.sessions.length;
+                                  (Math.max(currentIndex, 0) + 1) %
+                                  upcomingSessions.length;
                                 updateSession(
                                   ticket.id,
-                                  event?.body?.sessions[newIndex].id
+                                  upcomingSessions[newIndex].id
                                 );
                               }}
                             >
                               <View className="flex-1">
                                 <View className="flex-row items-center">
                                   <Text className="text-white font-semibold">
-                                    {
-                                      event?.body?.sessions.find(
-                                        (s: any) => s.id === selection.sessionId
-                                      )?.name
-                                    }
+                                    {selectedSession?.name}
                                   </Text>
                                 </View>
                                 <View className="flex-row items-center mt-1">
                                   <Clock size={12} color="#9ca3af" className="mr-1" />
                                   <Text className="text-gray-400 text-xs">
-                                    {
-                                      event?.body?.sessions.find(
-                                        (s: any) => s.id === selection.sessionId
-                                      )?.start_time
-                                    } - {
-                                      event?.body?.sessions.find(
-                                        (s: any) => s.id === selection.sessionId
-                                      )?.end_time
-                                    }
+                                    {selectedSession?.start_time} - {selectedSession?.end_time}
                                   </Text>
                                 </View>
                               </View>
@@ -712,12 +877,21 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                     )}
                   </Text>
                   <Text className="text-white text-xl font-bold">
-                    {event?.body?.currency?.split(" - ")[0]} {totalAmount}
+                    {symbol} {totalAmount}
                   </Text>
-                  {event?.body?.age_restriction > 0 && (
+                  {eventData?.age_restriction > 0 && (
                     <Text className="text-red-500 text-xs font-bold mt-2">
-                      ⚠️ {event?.body?.age_restriction} + is required for this
+                      {eventData?.age_restriction}+ is required for this
                       event
+                    </Text>
+                  )}
+                  {!canBookEvent && (
+                    <Text className="text-amber-300 text-xs font-semibold mt-2">
+                      {eventEnded
+                        ? "This event has ended."
+                        : eventSoldOut
+                        ? "All tickets are sold out."
+                        : "No upcoming sessions are available."}
                     </Text>
                   )}
                 </View>
@@ -727,11 +901,20 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
 
           <View className="p-4 border-t border-[#1A2432]">
             <TouchableOpacity
-              className="bg-primary rounded-lg py-4"
+              className={`rounded-lg py-4 ${
+                canBookEvent ? "bg-primary" : "bg-gray-600"
+              }`}
               onPress={handleBuyTickets}
+              disabled={!canBookEvent}
             >
               <Text className="text-background text-center font-semibold">
-                Buy Tickets
+                {eventEnded
+                  ? "Event Ended"
+                  : eventSoldOut
+                  ? "Sold Out"
+                  : upcomingSessions.length === 0
+                  ? "No Upcoming Sessions"
+                  : "Buy Tickets"}
               </Text>
             </TouchableOpacity>
           </View>

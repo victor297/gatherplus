@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router"; // If navigation is needed in thunk
+import { decodeJwtPayload, isTokenExpiringSoon, toUserId } from "@/utils/auth";
 
 interface UserInfo {
   username: string;
@@ -19,23 +19,6 @@ const initialState: AuthState = {
   userInfo: null,
 };
 
-// Function to decode JWT token
-const decodeToken = (token: string): { username: string; exp: number; sub: number } | null => {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = JSON.parse(atob(base64));
-    return {
-      username: jsonPayload.username,
-      exp: jsonPayload.exp,
-      sub: jsonPayload.sub,
-    };
-  } catch (error) {
-    console.error("Error decoding token:", error);
-    return null;
-  }
-};
-
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -45,20 +28,20 @@ const authSlice = createSlice({
       action: PayloadAction<{ body: { role: string; access_token: string; refresh_token: string } }>
     ) => {
       const { role, access_token, refresh_token } = action.payload.body;
-      const decodedToken = decodeToken(access_token);
+      const decodedToken = decodeJwtPayload(access_token);
 
-      if (!decodedToken) {
+      if (!decodedToken?.exp) {
         console.error("Invalid token");
         return;
       }
 
       const userData = {
-        username: decodedToken.username,
+        username: decodedToken.username || decodedToken.email || "",
         role,
         accessToken: access_token,
         refreshToken: refresh_token,
         exp: decodedToken.exp,
-        sub: decodedToken.sub,
+        sub: toUserId(decodedToken.sub),
       };
 
       state.userInfo = userData;
@@ -100,11 +83,7 @@ export const startTokenExpirationCheck = () => (dispatch: any, getState: any) =>
 
     if (!userInfo || !userInfo.exp) return;
 
-    const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
-    const timeToExpiry = userInfo.exp - currentTime;
-    const fiveMinutes = 300; // 5 minutes in seconds
-
-    if (timeToExpiry <= fiveMinutes) {
+    if (isTokenExpiringSoon(userInfo.exp)) {
       console.log("Token expiring soon, logging out...");
       dispatch(logout());
       // Navigation can be handled in the component, not here
@@ -124,11 +103,7 @@ export const checkTokenImmediately = () => (dispatch: any, getState: any) => {
 
   if (!userInfo || !userInfo.exp) return false;
 
-  const currentTime = Math.floor(Date.now() / 1000);
-  const timeToExpiry = userInfo.exp - currentTime;
-  const fiveMinutes = 300;
-
-  if (timeToExpiry <= fiveMinutes) {
+  if (isTokenExpiringSoon(userInfo.exp)) {
     dispatch(logout());
     return true;
   }

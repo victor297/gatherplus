@@ -1,7 +1,7 @@
 import { apiSlice } from "./apiSlice";
 import { PROVIDER_URL } from "../constants";
 
-export const userApiSlice = apiSlice.injectEndpoints({
+export const providerApiSlice = apiSlice.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
     getproviders: builder.query({
@@ -309,4 +309,4 @@ export const {
   useGetRepliesQuery,
   useLikeCommentMutation,
   useGetMediasQuery,
-} = userApiSlice;
+} = providerApiSlice;

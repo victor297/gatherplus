@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Camera, Check } from 'lucide-react-native';
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/redux/api/usersApiSlice';
-import { FILE_UPLOAD_URL } from '@/redux/constants';
+import { uploadSingleFile } from '@/utils/upload';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -48,45 +48,19 @@ const [uploading,setUploading]=useState(null)
     if (result.canceled || !result.assets?.length) return;
 
     const imageUri = result.assets[0].uri;
-    const fileName = imageUri.split('/').pop();
-    const fileType = fileName?.split('.').pop() || 'jpg';
-
-    const formDataUpload = new FormData();
-    formDataUpload.append('files', {
-      uri: imageUri,
-      name: fileName,
-      type: `image/${fileType}`,
-    } as any);
 
     try {
       setUploading(true)
-      const response = await fetch(FILE_UPLOAD_URL, {
-        method: 'POST',
-        body: formDataUpload,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.code === 200 && data.body?.[0]?.secure_url) {
-        setProfileData((prevData) => ({
-          ...prevData,
-          image_url: data.body[0].secure_url,
-        }));
-        setUploading(false)
-      } else {
-        Alert.alert('Upload Failed', 'Could not upload the image.');
-        setUploading(false)
-
-      }
+      const uploadedUrl = await uploadSingleFile(imageUri);
+      setProfileData((prevData) => ({
+        ...prevData,
+        image_url: uploadedUrl,
+      }));
     } catch (error) {
       Alert.alert('Error', 'Something went wrong during upload.');
+    } finally {
       setUploading(false)
-
     }
-    setUploading(false)
 
   };
 

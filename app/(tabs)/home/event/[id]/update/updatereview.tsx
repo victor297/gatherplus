@@ -6,6 +6,7 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  Alert,
   Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -17,13 +18,17 @@ import {
   MapPin,
 } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
-import { useUpdateventMutation } from "@/redux/api/eventsApiSlice";
-import MapView, { Marker } from "react-native-maps";
+import { useUpdateNewEventMutation } from "@/redux/api/newEventsApiSlice";
+import EventMapPreview from "@/app/components/EventMapPreview";
+import { getStringParam } from "@/utils/routeParams";
+import { buildNewEventPayload } from "@/utils/newEventForm";
+import { getApiErrorMessage } from "@/utils/api";
 
 export default function ReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [updateevent, { isLoading, error }] = useUpdateventMutation();
+  const eventId = getStringParam(params.id);
+  const [updateevent, { isLoading, error }] = useUpdateNewEventMutation();
   const [formData, setFormData] = useState(() => {
     try {
       return params.formData ? JSON.parse(params.formData as string) : {};
@@ -34,12 +39,17 @@ export default function ReviewScreen() {
   });
   const handleSubmit = async () => {
     try {
-      const res = await updateevent({ data: formData, id: params.id }).unwrap();
+      const payload = buildNewEventPayload(formData, true);
+      const res = await updateevent({ data: payload, id: eventId }).unwrap();
+      if (res?.error) {
+        throw new Error(String(res.body || "Failed to update event"));
+      }
       console.log(res, "update");
       console.log(formData, "formDataupdate");
       router.replace("/success");
     } catch (error) {
       console.error("Event update failed:", error);
+      Alert.alert("Event update failed", getApiErrorMessage(error, "Please check the event details and try again."));
     }
   };
 
@@ -125,23 +135,10 @@ export default function ReviewScreen() {
                   </Text>
                 </View>
               </View>
-              <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
-                <MapView
-                  style={{ flex: 1 }}
-                  initialRegion={{
-                    latitude: 51.5074, // Default to London coordinates
-                    longitude: -0.1278,
-                    latitudeDelta: 0.0922,
-                    longitudeDelta: 0.0421,
-                  }}
-                >
-                  <Marker
-                    coordinate={{ latitude: 51.5074, longitude: -0.1278 }}
-                    title={formData?.address}
-                    description={formData?.city}
-                  />
-                </MapView>
-              </View>
+              <EventMapPreview
+                address={formData?.address}
+                city={formData?.city}
+              />
               <TouchableOpacity onPress={openMaps} className="self-end">
                 <Text className="text-primary">View map</Text>
               </TouchableOpacity>

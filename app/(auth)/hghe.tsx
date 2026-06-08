@@ -132,7 +132,7 @@ export default function Login() {
           </TouchableOpacity>
 
           <View className="flex-row justify-center">
-            <Text className="text-gray-400">Don't have an account? </Text>
+            <Text className="text-gray-400">Don&apos;t have an account? </Text>
             <Link href="/signup">
               <Text className="text-primary">Signup</Text>
             </Link>

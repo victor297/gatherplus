@@ -3,12 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, Acti
 import { useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, ChevronDown } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
-import { useGetcategoriesQuery, useGetCountriesQuery, useGetStatesQuery, useGetEventQuery } from '@/redux/api/eventsApiSlice';
+import { useGetcategoriesQuery, useGetCountriesQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
+import { useGetNewEventQuery } from '@/redux/api/newEventsApiSlice';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useSelector } from 'react-redux';
 import { Platform } from 'react-native';
-import { FILE_UPLOAD_URL } from '@/redux/constants';
+import { uploadSingleFile } from '@/utils/upload';
 
 interface Participant {
   id?: string;
@@ -40,7 +41,7 @@ export default function UpdateEventScreen() {
   const { userInfo } = useSelector((state: any) => state.auth);
 
 
-  const { data: event, isLoading: eventLoading, error: eventError } = useGetEventQuery({ id: eventId,user_id:userInfo?.sub }, {
+  const { data: event, isLoading: eventLoading, error: eventError } = useGetNewEventQuery(eventId, {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
   }
@@ -120,6 +121,7 @@ export default function UpdateEventScreen() {
         city: eventData.city,
         country_code: eventData.country_code,
         description: eventData.description,
+        summary: eventData.summary || '',
         images: eventData.images,
         start_date: eventData.start_date,
         address: eventData.address,
@@ -130,6 +132,19 @@ export default function UpdateEventScreen() {
         guardian_required: eventData.guardian_required || false,
         is_free: eventData.is_free,
         event_type: eventData.event_type === 'RECURRING' ? 'recurring' : 'single',
+        recurring_frequency: eventData.recurring_frequency || 'WEEKLY',
+        attendance_mode: eventData.attendance_mode || 'VENUE',
+        online_platform: eventData.online_platform || 'ZOOM',
+        online_url: eventData.online_url || '',
+        online_access_instructions: eventData.online_access_instructions || '',
+        online_timezone: eventData.online_timezone || 'Africa/Lagos',
+        online_url_reveal: eventData.online_url_reveal || 'AFTER_BOOKING',
+        tags: Array.isArray(eventData.tags) ? eventData.tags.join(', ') : '',
+        faqs: eventData.faqs || [],
+        door_time: eventData.door_time || '',
+        parking_info: eventData.parking_info || '',
+        discount_info: eventData.discount_info || '',
+        agenda_info: eventData.agenda_info || '',
         time: eventData.time,
         absorb_fee: eventData.absorb_fee,
         ticketed: eventData.ticketed,
@@ -250,39 +265,17 @@ export default function UpdateEventScreen() {
     newSessions[sessionIndex].participants[participantIndex].imageError = undefined;
     setSessions(newSessions);
 
-    const formDataUpload = new FormData();
-    const fileName = imageUri.split('/').pop();
-    const fileType = fileName?.split('.').pop();
-
-    formDataUpload.append('files', {
-      uri: imageUri,
-      name: fileName,
-      type: `image/${fileType}`,
-    } as any);
-
     try {
-      const response = await fetch(FILE_UPLOAD_URL, {
-        method: 'POST',
-        body: formDataUpload,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const updatedSessions = [...sessions];
-        updatedSessions[sessionIndex].participants[participantIndex].image = data.body[0].url;
-        updatedSessions[sessionIndex].participants[participantIndex].imageUploading = false;
-        setSessions(updatedSessions);
-      } else {
-        throw new Error(data?.message || 'Failed to upload image');
-      }
+      const uploadedUrl = await uploadSingleFile(imageUri);
+      const updatedSessions = [...sessions];
+      updatedSessions[sessionIndex].participants[participantIndex].image = uploadedUrl;
+      updatedSessions[sessionIndex].participants[participantIndex].imageUploading = false;
+      setSessions(updatedSessions);
     } catch (error) {
       const errorSessions: any = [...sessions];
       errorSessions[sessionIndex].participants[participantIndex].imageUploading = false;
-      errorSessions[sessionIndex].participants[participantIndex].imageError = error?.message;
+      errorSessions[sessionIndex].participants[participantIndex].imageError =
+        error instanceof Error ? error.message : 'Failed to upload image';
       setSessions(errorSessions);
       console.error('Image upload error:', error);
     }
@@ -886,7 +879,7 @@ console.log(event,"eventevent")
                 });
               }}
             >
-              <Text className="text-white">There's an age restriction</Text>
+              <Text className="text-white">There&apos;s an age restriction</Text>
             </TouchableOpacity>
 
             {/* Age selection options */}

@@ -3,13 +3,14 @@ import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, ArrowLeftIcon } from "lucide-react-native";
 import { useVerifyuserMutation } from "@/redux/api/usersApiSlice";
+import { getApiErrorMessage } from "@/utils/api";
 
 export default function VerifyScreen() {
   const router = useRouter();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [timer, setTimer] = useState(30);
   const { email } = useLocalSearchParams();
-  const inputRefs = useRef([]);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
   // console.log(email, "email");
   const [verifyuser, { isLoading, error }] = useVerifyuserMutation();
 
@@ -27,14 +28,14 @@ export default function VerifyScreen() {
       setCode(newCode);
 
       if (text.length === 1 && index < 5) {
-        inputRefs.current[index + 1].focus();
+        inputRefs.current[index + 1]?.focus();
       }
     }
   };
 
   const handleBackspace = (index) => {
     if (code[index] === "" && index > 0) {
-      inputRefs.current[index - 1].focus();
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
@@ -75,7 +76,9 @@ export default function VerifyScreen() {
           {code.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(el) => (inputRefs.current[index] = el)}
+              ref={(el) => {
+                inputRefs.current[index] = el;
+              }}
               className="w-12 h-12 bg-[#1A2432] rounded-lg text-center text-white text-xl"
               maxLength={1}
               keyboardType="number-pad"
@@ -113,7 +116,7 @@ export default function VerifyScreen() {
 
         {error && (
           <Text className="text-red-500 text-center mt-4">
-            {error?.data?.body || "Verification failed"}
+            {getApiErrorMessage(error, "Verification failed")}
           </Text>
         )}
 
@@ -123,7 +126,7 @@ export default function VerifyScreen() {
           className="mt-4"
         >
           <Text className="text-center">
-            <Text className="text-gray-400">Didn't receive the code? </Text>
+            <Text className="text-gray-400">Didn&apos;t receive the code? </Text>
             <Text className={timer > 0 ? "text-gray-600" : "text-primary"}>
               Resend code
             </Text>

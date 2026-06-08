@@ -25,25 +25,27 @@ import {
 } from "@/redux/api/eventsApiSlice";
 import { formatDate } from "@/utils/formatDate";
 import { useSelector } from "react-redux";
-import MapView, { Marker } from "react-native-maps";
+import EventMapPreview from "@/app/components/EventMapPreview";
+import { getStringParam } from "@/utils/routeParams";
 
 export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const eventId = getStringParam(id);
   const { userInfo } = useSelector((state: any) => state.auth);
   const {
     data: event,
     isLoading,
     error,
     refetch,
-  } = useGetEventQuery({ id, user_id: userInfo?.sub });
+  } = useGetEventQuery({ id: eventId, user_id: userInfo?.sub });
   const [deleteEvent] = useDeleteEventMutation();
 
   const [showOptions, setShowOptions] = useState(false);
 
   const handleDeleteEvent = async () => {
     try {
-      const res = await deleteEvent(id).unwrap();
+      const res = await deleteEvent(eventId).unwrap();
       Alert.alert("Success", "Event deleted successfully");
 
       router.back();
@@ -76,7 +78,7 @@ export default function EventDetailsScreen() {
     setShowOptions(false);
     switch (option) {
       case "edit":
-        router.push(`/home/event/${id}/update/updatecreate`);
+        router.push(`/home/event/${eventId}/update/updatecreate`);
         break;
       case "share":
         Alert.alert("Share", "Share functionality would go here");
@@ -148,7 +150,7 @@ export default function EventDetailsScreen() {
                       disabled={Boolean(getTotalTicketsSold())}
                     >
                       {Boolean(getTotalTicketsSold()) ? (
-                        <Text style={styles.optionText}>Can't Edit</Text>
+                        <Text style={styles.optionText}>Can&apos;t Edit</Text>
                       ) : (
                         <Text style={styles.optionText}>Edit</Text>
                       )}
@@ -229,23 +231,10 @@ export default function EventDetailsScreen() {
                   {event?.body?.country?.name}, {event?.body?.state?.name},
                   {event?.body?.city}
                 </Text>
-                <View className="w-full h-40 bg-gray-700 rounded-lg my-3 overflow-hidden">
-                  <MapView
-                    style={{ flex: 1 }}
-                    initialRegion={{
-                      latitude: 51.5074, // Default to London coordinates
-                      longitude: -0.1278,
-                      latitudeDelta: 0.0922,
-                      longitudeDelta: 0.0421,
-                    }}
-                  >
-                    <Marker
-                      coordinate={{ latitude: 51.5074, longitude: -0.1278 }}
-                      title={event?.body?.address}
-                      description={event?.body?.city}
-                    />
-                  </MapView>
-                </View>
+                <EventMapPreview
+                  address={event?.body?.address}
+                  city={event?.body?.city}
+                />
                 <TouchableOpacity onPress={openMaps} className="self-end">
                   <Text className="text-primary">View map</Text>
                 </TouchableOpacity>

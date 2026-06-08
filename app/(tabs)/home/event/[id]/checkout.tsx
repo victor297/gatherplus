@@ -24,6 +24,35 @@ interface AttendeeDetails {
   dob?: string;
 }
 
+const getUserName = (userInfo: any) =>
+  userInfo?.profile?.name ||
+  userInfo?.name ||
+  userInfo?.fullname ||
+  userInfo?.firstname ||
+  "";
+
+const getUserEmail = (userInfo: any) =>
+  userInfo?.profile?.email || userInfo?.email || userInfo?.username || "";
+
+const getUserPhone = (userInfo: any) =>
+  userInfo?.profile?.phone || userInfo?.phone || "";
+
+const calculateAge = (dob?: string) => {
+  if (!dob) return null;
+  const parsed = new Date(dob);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - parsed.getFullYear();
+  const beforeBirthday =
+    today.getMonth() < parsed.getMonth() ||
+    (today.getMonth() === parsed.getMonth() &&
+      today.getDate() < parsed.getDate());
+
+  if (beforeBirthday) age -= 1;
+  return age;
+};
+
 export default function CheckoutScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
@@ -36,16 +65,23 @@ export default function CheckoutScreen() {
     refetch,
   } = useGetEventQuery({ id: ticketData?.eventId, user_id: userInfo?.sub });
   const [isFormValid, setIsFormValid] = useState(false);
+  const ageLimit = Number(
+    event?.body?.age_restriction || ticketData?.age_restriction || 0
+  );
+  const guardianRequired = Boolean(
+    event?.body?.guardian_required ?? ticketData?.guardian_required
+  );
+  const [receiveUpdates, setReceiveUpdates] = useState(true);
+  const [guardianConfirmed, setGuardianConfirmed] = useState(false);
 
   const [useCommonDetails, setUseCommonDetails] = useState(
     !event?.body?.each_ticket_identity
   );
-  console.log("userInfo", userInfo);
   const [commonDetails, setCommonDetails] = useState<AttendeeDetails>({
-    fullname: userInfo?.name || "David",
-    email: userInfo?.username || "[EMAIL_ADDRESS]",
-    phone: userInfo?.phone || "08098765432",
-    ...(event?.body?.age_restriction && { dob: "" }),
+    fullname: getUserName(userInfo),
+    email: getUserEmail(userInfo),
+    phone: getUserPhone(userInfo),
+    ...(ageLimit && { dob: "" }),
   });
 
   const [attendeeDetails, setAttendeeDetails] = useState<AttendeeDetails[]>(
@@ -53,41 +89,72 @@ export default function CheckoutScreen() {
       fullname: "",
       email: "",
       phone: "",
-      ...(event?.body?.age_restriction && { dob: "" }),
+      ...(ageLimit && { dob: "" }),
     })
   );
+
+  useEffect(() => {
+    if (event?.body) {
+      setUseCommonDetails(!event.body.each_ticket_identity);
+    }
+  }, [event?.body?.each_ticket_identity]);
+
+  useEffect(() => {
+    setCommonDetails((prev) => ({
+      ...prev,
+      fullname: prev.fullname || getUserName(userInfo),
+      email: prev.email || getUserEmail(userInfo),
+      phone: prev.phone || getUserPhone(userInfo),
+      ...(ageLimit && { dob: prev.dob || "" }),
+    }));
+    setAttendeeDetails((prev) =>
+      ticketData.ticketInstances.map((_: any, index: number) => ({
+        fullname: prev[index]?.fullname || "",
+        email: prev[index]?.email || "",
+        phone: prev[index]?.phone || "",
+        ...(ageLimit && { dob: prev[index]?.dob || "" }),
+      }))
+    );
+  }, [ageLimit, ticketData.ticketInstances.length, userInfo]);
+
   // Validate form whenever details change
   useEffect(() => {
     validateForm();
-  }, [commonDetails, attendeeDetails, useCommonDetails]);
+  }, [
+    ageLimit,
+    attendeeDetails,
+    commonDetails,
+    guardianConfirmed,
+    guardianRequired,
+    useCommonDetails,
+  ]);
 
   const validateForm = () => {
-    const needsDOB = event?.body?.age_restriction;
+    const detailsAreValid = (attendee: AttendeeDetails) => {
+      const age = calculateAge(attendee.dob);
+      return (
+        attendee.fullname.trim() !== "" &&
+        attendee.email.trim() !== "" &&
+        attendee.phone.trim() !== "" &&
+        (!ageLimit || (Boolean(attendee.dob) && age !== null && age >= ageLimit))
+      );
+    };
 
     if (useCommonDetails) {
-      // Validate common details
-      const isValid =
-        commonDetails.fullname.trim() !== "" &&
-        commonDetails.email.trim() !== "" &&
-        commonDetails.phone.trim() !== "" &&
-        (!needsDOB || (needsDOB && commonDetails.dob));
-      setIsFormValid(isValid as boolean);
-    } else {
-      // Validate all individual attendee details
-      const allValid = attendeeDetails.every(
-        (attendee) =>
-          attendee.fullname.trim() !== "" &&
-          attendee.email.trim() !== "" &&
-          attendee.phone.trim() !== "" &&
-          (!needsDOB || (needsDOB && attendee.dob))
+      setIsFormValid(
+        detailsAreValid(commonDetails) &&
+          (!guardianRequired || guardianConfirmed)
       );
-      setIsFormValid(allValid);
+    } else {
+      setIsFormValid(
+        attendeeDetails.every(detailsAreValid) &&
+          (!guardianRequired || guardianConfirmed)
+      );
     }
   };
   const handleContinue = () => {
     if (!isFormValid) return;
 
-    // Prepare data for backend
     const bookings = useCommonDetails
       ? ticketData.ticketInstances.map((instance: any) => ({
           ...commonDetails,
@@ -95,6 +162,7 @@ export default function CheckoutScreen() {
           ticket_id: instance.ticketId,
           name: instance.name,
           price: instance.price,
+          receive_updates: receiveUpdates,
         }))
       : ticketData.ticketInstances.map((instance: any, index: any) => ({
           ...attendeeDetails[index],
@@ -102,12 +170,19 @@ export default function CheckoutScreen() {
           ticket_id: instance.ticketId,
           name: instance.name,
           price: instance.price,
+          receive_updates: receiveUpdates,
         }));
 
     const bookingData = {
+      absorb_fee: Boolean(ticketData?.absorb_fee),
+      age_restriction: ageLimit,
+      attendance_mode: ticketData?.attendance_mode,
       event_id: Number(ticketData.eventId),
       currency: ticketData?.currency,
       channel: "PayStack",
+      guardian_required: guardianRequired,
+      online_url_reveal: ticketData?.online_url_reveal,
+      receive_updates: receiveUpdates,
       bookings,
     };
 
@@ -152,7 +227,7 @@ export default function CheckoutScreen() {
         >
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Event Details</Text>
+        <Text className="text-white text-xl font-semibold">Attendee Details</Text>
       </View>
 
       <ScrollView className="flex-1 px-4">
@@ -255,7 +330,7 @@ export default function CheckoutScreen() {
                 />
               </View>
             </View>
-            {event?.body?.age_restriction && (
+            {ageLimit > 0 && (
               <View>
                 <Text className="text-white mb-2">
                   Date of Birth <Text className="text-red-500">*</Text>
@@ -397,7 +472,7 @@ export default function CheckoutScreen() {
                   </View>
                 </View>
 
-                {event?.body?.age_restriction && (
+                {ageLimit > 0 && (
                   <View>
                     <Text className="text-white mb-2">
                       Date of Birth <Text className="text-red-500">*</Text>
@@ -434,6 +509,49 @@ export default function CheckoutScreen() {
             </View>
           ))
         )}
+        <View className="bg-[#1A2432] rounded-lg p-4 my-6">
+          {(ageLimit > 0 || guardianRequired) && (
+            <View className="mb-4">
+              <Text className="text-white font-semibold mb-2">
+                Booking rules
+              </Text>
+              {ageLimit > 0 && (
+                <Text className="text-gray-400 text-sm leading-6">
+                  Attendees must be at least {ageLimit} years old. Enter a valid
+                  date of birth in YYYY-MM-DD format.
+                </Text>
+              )}
+              {guardianRequired && (
+                <TouchableOpacity
+                  className="flex-row items-start mt-3"
+                  onPress={() => setGuardianConfirmed((prev) => !prev)}
+                >
+                  <Text className="text-primary font-bold mr-3">
+                    [{guardianConfirmed ? "x" : " "}]
+                  </Text>
+                  <Text className="text-gray-300 flex-1">
+                    I confirm a guardian aged 18 or older will be present.
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          <TouchableOpacity
+            className="flex-row items-start"
+            onPress={() => setReceiveUpdates((prev) => !prev)}
+          >
+            <Text className="text-primary font-bold mr-3">
+              [{receiveUpdates ? "x" : " "}]
+            </Text>
+            <View className="flex-1">
+              <Text className="text-white font-semibold">Receive updates</Text>
+              <Text className="text-gray-400 text-sm mt-1 leading-6">
+                Send booking and event updates to the attendee email address.
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <View className="p-4 border-t border-[#1A2432]">

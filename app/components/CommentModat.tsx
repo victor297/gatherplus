@@ -70,29 +70,25 @@ const CommentModal: React.FC<CommentModalProps> = ({
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [currentReplies, setCurrentReplies] = useState<Comment | null>(null);
 
-  // Fetch comments or replies based on whether it's a parent comment or reply
+  const activeParentId = currentReplies?.id ?? parentComment?.id ?? null;
+  const commentsQuery = useGetCommentsQuery(eventId, {
+    skip: Boolean(activeParentId),
+  });
+  const repliesQuery = useGetRepliesQuery(
+    { event_id: eventId, parent_id: activeParentId ?? 0 },
+    {
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+      skip: !activeParentId,
+    }
+  );
+  const activeQuery = activeParentId ? repliesQuery : commentsQuery;
   const {
     data: commentsData,
     isLoading: commentsLoading,
     isError: commentsError,
     refetch: refetchComments,
-  } = currentReplies
-    ? useGetRepliesQuery(
-        { event_id: eventId, parent_id: currentReplies.id },
-        {
-          refetchOnMountOrArgChange: true,
-          refetchOnFocus: true,
-        }
-      )
-    : parentComment
-    ? useGetRepliesQuery(
-        { event_id: eventId, parent_id: parentComment.id },
-        {
-          refetchOnMountOrArgChange: true,
-          refetchOnFocus: true,
-        }
-      )
-    : useGetCommentsQuery(eventId);
+  } = activeQuery;
 
   const [createComment, { isLoading: isCreating }] = useCreateCommentMutation();
   const [likeComment] = useLikeCommentMutation();

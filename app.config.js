@@ -47,9 +47,7 @@ module.exports = ({ config }) => ({
     config: {
       googleMaps: {
         // Reads from EXPO_PUBLIC_GOOGLE_MAPS_API_KEY in .env
-        apiKey:
-          process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ??
-          "AIzaSyAzyTQfv-LirivvA9Y9hcYMx7DxBDzXwWU",
+        apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
       },
     },
     intentFilters: [

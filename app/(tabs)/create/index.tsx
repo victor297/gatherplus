@@ -11,7 +11,7 @@ import {
   Image,
   KeyboardAvoidingView,
 } from "react-native";
-import { usePathname, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Calendar, Clock, ChevronDown } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
 import {
@@ -19,12 +19,23 @@ import {
   useGetCountriesQuery,
   useGetStatesQuery,
 } from "@/redux/api/eventsApiSlice";
+import { useGetNewEventQuery } from "@/redux/api/newEventsApiSlice";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from "expo-image-picker";
 import { Platform } from "react-native";
 import { useSelector } from "react-redux";
 import { Plus } from "lucide-react-native";
-import { FILE_UPLOAD_URL } from "@/redux/constants";
+import { uploadSingleFile } from "@/utils/upload";
+import {
+  ATTENDANCE_MODES,
+  DEFAULT_TIMEZONE,
+  ONLINE_PLATFORMS,
+  ONLINE_REVEAL_OPTIONS,
+  RECURRING_FREQUENCIES,
+  mapNewEventToMobileForm,
+  needsOnline,
+  needsVenue,
+} from "@/utils/newEventForm";
 
 interface Participant {
   label: string;
@@ -45,6 +56,8 @@ interface Session {
 }
 export default function CreateEventScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const eventId = Array.isArray(params.eventId) ? params.eventId[0] : params.eventId;
   const { userInfo } = useSelector((state: any) => state.auth);
 
   const [selectedCountry, setSelectedCountry] = useState<any>(null);
@@ -52,17 +65,18 @@ export default function CreateEventScreen() {
   const [isFormValid, setIsFormValid] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [formData, setFormData] = useState({
+  const defaultFormData = {
     title: "",
     eventCategory: "",
     category_id: "",
+    summary: "",
     sessionType: "single",
     state_id: 2,
     city: "",
     country_code: "NG",
     description: "",
     images: [],
-    start_date: "2025-06-15",
+    start_date: "",
     address: "",
     currency: "",
     each_ticket_identity: true,
@@ -70,13 +84,40 @@ export default function CreateEventScreen() {
     age_restriction: 0,
     guardian_required: false,
     is_free: false,
-    event_type: "SINGLE",
+    event_type: "single",
+    recurring_frequency: "WEEKLY",
+    attendance_mode: "VENUE",
+    online_platform: "ZOOM",
+    online_url: "",
+    online_access_instructions: "",
+    online_timezone: DEFAULT_TIMEZONE,
+    online_url_reveal: "AFTER_BOOKING",
+    tags: "",
+    faqs: [],
+    door_time: "",
+    parking_info: "",
+    discount_info: "",
+    agenda_info: "",
     time: "",
     absorb_fee: true,
     ticketed: true,
     tickets: [],
+  };
+  const [formData, setFormData] = useState<any>(() => {
+    try {
+      const incoming = params.formData ? JSON.parse(params.formData as string) : {};
+      return { ...defaultFormData, ...incoming };
+    } catch (error) {
+      console.error("Error parsing formData:", error);
+      return defaultFormData;
+    }
   });
-  const pathname = usePathname();
+  const {
+    data: editEventData,
+    isLoading: editEventLoading,
+  } = useGetNewEventQuery(eventId || "", {
+    skip: !eventId || Boolean(params.formData),
+  });
   const {
     data: categoriesData,
     isLoading: categoriesLoading,
@@ -134,6 +175,46 @@ export default function CreateEventScreen() {
     }
   }, [categoriesLoading, countryLoading]);
 
+  useEffect(() => {
+    if (editEventData?.body && !params.formData) {
+      const mapped = mapNewEventToMobileForm(editEventData.body);
+      setFormData((prev: any) => ({ ...prev, ...mapped }));
+      setSessions(mapped.sessions?.length ? mapped.sessions : sessions);
+    }
+  }, [editEventData, params.formData]);
+
+  useEffect(() => {
+    if (categories.length > 0 && formData.category_id && !formData.eventCategory) {
+      const category = categories.find(
+        (item: any) => Number(item.id) === Number(formData.category_id)
+      );
+      if (category) {
+        setFormData((prev: any) => ({
+          ...prev,
+          eventCategory: category.name,
+        }));
+      }
+    }
+  }, [categories, formData.category_id, formData.eventCategory]);
+
+  useEffect(() => {
+    if (!selectedCountry && countries.length > 0 && formData.country_code) {
+      const country = countries.find((item: any) => item.code2 === formData.country_code);
+      if (country) {
+        setSelectedCountry(country);
+      }
+    }
+  }, [countries, formData.country_code, selectedCountry]);
+
+  useEffect(() => {
+    if (!selectedState && states.length > 0 && formData.state_id) {
+      const state = states.find((item: any) => Number(item.id) === Number(formData.state_id));
+      if (state) {
+        setSelectedState(state);
+      }
+    }
+  }, [states, formData.state_id, selectedState]);
+
   const validateForm = () => {
     // Basic validation
     let isValid = true;
@@ -141,7 +222,13 @@ export default function CreateEventScreen() {
     // Event details validation
     if (!formData.title.trim()) isValid = false;
     if (!formData.eventCategory) isValid = false;
+    if (!formData.summary.trim()) isValid = false;
     if (!formData.event_type) isValid = false;
+    if (needsOnline(formData.attendance_mode)) {
+      if (!formData.online_platform) isValid = false;
+      if (!formData.online_access_instructions.trim()) isValid = false;
+      if (!formData.online_timezone.trim()) isValid = false;
+    }
 
     // Sessions validation
     if (sessions.length === 0) isValid = false;
@@ -154,10 +241,12 @@ export default function CreateEventScreen() {
     });
 
     // Location validation
-    if (!selectedCountry) isValid = false;
-    if (!selectedState) isValid = false;
-    if (!formData.city.trim()) isValid = false;
-    if (!formData.address.trim()) isValid = false;
+    if (needsVenue(formData.attendance_mode)) {
+      if (!selectedCountry) isValid = false;
+      if (!selectedState) isValid = false;
+      if (!formData.city.trim()) isValid = false;
+      if (!formData.address.trim()) isValid = false;
+    }
 
     setIsFormValid(isValid);
   };
@@ -246,6 +335,26 @@ export default function CreateEventScreen() {
     newSessions[index] = { ...newSessions[index], [field]: value };
     setSessions(newSessions);
   };
+
+  const addFaq = () => {
+    setFormData((prev: any) => ({
+      ...prev,
+      faqs: [...(prev.faqs || []), { question: "", answer: "" }],
+    }));
+  };
+
+  const updateFaq = (index: number, field: "question" | "answer", value: string) => {
+    const faqs = [...(formData.faqs || [])];
+    faqs[index] = { ...faqs[index], [field]: value };
+    setFormData({ ...formData, faqs });
+  };
+
+  const removeFaq = (index: number) => {
+    const faqs = [...(formData.faqs || [])];
+    faqs.splice(index, 1);
+    setFormData({ ...formData, faqs });
+  };
+
   const handleSaveAndContinue = () => {
     if (!isFormValid) return;
 
@@ -255,7 +364,10 @@ export default function CreateEventScreen() {
         formData: JSON.stringify({
           ...formData,
           event_type:
-            formData.event_type === "recurring" ? "RECURRING" : "SINGLE",
+            String(formData.event_type).toLowerCase() === "recurring"
+              ? "RECURRING"
+              : "SINGLE",
+          attendance_mode: formData.attendance_mode,
           sessions: sessions.map((session: any) => ({
             name: session.name,
             date: session.startDate,
@@ -267,6 +379,7 @@ export default function CreateEventScreen() {
             ),
           })),
         }),
+        eventId: eventId || "",
       },
     });
   };
@@ -304,50 +417,22 @@ export default function CreateEventScreen() {
       undefined;
     setSessions(newSessions);
 
-    // Prepare FormData
-    const formDataUpload = new FormData();
-    const fileName = imageUri.split("/").pop();
-    const fileType = fileName?.split(".").pop();
-
-    formDataUpload.append("files", {
-      uri: imageUri,
-      name: fileName,
-      type: `image/${fileType}`,
-    } as any);
-
     try {
-      const response = await fetch(
-        FILE_UPLOAD_URL,
-        {
-          method: "POST",
-          body: formDataUpload,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Update participant with the new image URL
-        const updatedSessions = [...sessions];
-        updatedSessions[sessionIndex].participants[participantIndex].image =
-          data.body[0].url; // Adjust based on your API response
-        updatedSessions[sessionIndex].participants[
-          participantIndex
-        ].imageUploading = false;
-        setSessions(updatedSessions);
-      } else {
-        throw new Error(data.message || "Failed to upload image");
-      }
+      const uploadedUrl = await uploadSingleFile(imageUri);
+      const updatedSessions = [...sessions];
+      updatedSessions[sessionIndex].participants[participantIndex].image =
+        uploadedUrl;
+      updatedSessions[sessionIndex].participants[
+        participantIndex
+      ].imageUploading = false;
+      setSessions(updatedSessions);
     } catch (error) {
       const errorSessions = [...sessions];
       errorSessions[sessionIndex].participants[
         participantIndex
       ].imageUploading = false;
       errorSessions[sessionIndex].participants[participantIndex].imageError =
-        error.message;
+        error instanceof Error ? error.message : "Failed to upload image";
       setSessions(errorSessions);
       console.error("Image upload error:", error);
     }
@@ -411,7 +496,7 @@ export default function CreateEventScreen() {
     );
   }
 
-  if (isLoadingData) {
+  if (isLoadingData || editEventLoading) {
     return (
       <View className="flex-1 bg-background justify-center items-center">
         <ActivityIndicator color="#9EDD45" />
@@ -432,7 +517,9 @@ export default function CreateEventScreen() {
         >
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Create Event</Text>
+        <Text className="text-white text-xl font-semibold">
+          {eventId ? "Edit Event" : "Create Event"}
+        </Text>
       </View>
       <ProgressSteps currentStep={0} />
 
@@ -484,6 +571,24 @@ export default function CreateEventScreen() {
                 </Text>
                 <ChevronDown size={20} color="#6B7280" />
               </TouchableOpacity>
+            </View>
+
+            {/* Event Summary */}
+            <View>
+              <Text className="text-white my-2">
+                Event Summary <Text className="text-red-500">*</Text>
+              </Text>
+              <TextInput
+                className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white border ${
+                  !formData.summary ? "border-red-500" : "border-transparent"
+                }`}
+                placeholder="Short summary for event cards and previews*"
+                placeholderTextColor="#6B7280"
+                value={formData.summary}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, summary: text })
+                }
+              />
             </View>
 
             {/* Event Type */}
@@ -541,6 +646,184 @@ export default function CreateEventScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {formData.event_type === "recurring" && (
+              <View>
+                <Text className="text-white my-2">Recurring Frequency</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {RECURRING_FREQUENCIES.map((frequency) => (
+                    <TouchableOpacity
+                      key={frequency}
+                      className={`px-3 py-2 rounded-lg ${
+                        formData.recurring_frequency === frequency
+                          ? "bg-primary"
+                          : "bg-[#1A2432]"
+                      }`}
+                      onPress={() =>
+                        setFormData({
+                          ...formData,
+                          recurring_frequency: frequency,
+                          sessionType: "multiple",
+                        })
+                      }
+                    >
+                      <Text
+                        className={
+                          formData.recurring_frequency === frequency
+                            ? "text-background font-semibold"
+                            : "text-white"
+                        }
+                      >
+                        {frequency.replace("_", " ")}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Attendance Mode */}
+            <View>
+              <Text className="text-white my-2">
+                Attendance Mode <Text className="text-red-500">*</Text>
+              </Text>
+              <View className="flex-row gap-2">
+                {ATTENDANCE_MODES.map((mode) => (
+                  <TouchableOpacity
+                    key={mode}
+                    className={`flex-1 rounded-lg py-3 items-center ${
+                      formData.attendance_mode === mode
+                        ? "bg-primary"
+                        : "bg-[#1A2432]"
+                    }`}
+                    onPress={() => setFormData({ ...formData, attendance_mode: mode })}
+                  >
+                    <Text
+                      className={
+                        formData.attendance_mode === mode
+                          ? "text-background font-semibold"
+                          : "text-white"
+                      }
+                    >
+                      {mode}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {needsOnline(formData.attendance_mode) && (
+              <View className="bg-[#111823] p-3 rounded-lg mt-2">
+                <Text className="text-white font-bold mb-3">Online Access</Text>
+                <Text className="text-white my-2">
+                  Platform <Text className="text-red-500">*</Text>
+                </Text>
+                <View className="flex-row flex-wrap gap-2 mb-2">
+                  {ONLINE_PLATFORMS.map((platform) => (
+                    <TouchableOpacity
+                      key={platform}
+                      className={`px-3 py-2 rounded-lg ${
+                        formData.online_platform === platform
+                          ? "bg-primary"
+                          : "bg-[#1A2432]"
+                      }`}
+                      onPress={() =>
+                        setFormData({ ...formData, online_platform: platform })
+                      }
+                    >
+                      <Text
+                        className={
+                          formData.online_platform === platform
+                            ? "text-background font-semibold"
+                            : "text-white"
+                        }
+                      >
+                        {platform.replace("_", " ")}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text className="text-white my-2">Online URL</Text>
+                <TextInput
+                  className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
+                  placeholder="https://..."
+                  placeholderTextColor="#6B7280"
+                  value={formData.online_url}
+                  autoCapitalize="none"
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, online_url: text })
+                  }
+                />
+
+                <Text className="text-white my-2">
+                  Access Instructions <Text className="text-red-500">*</Text>
+                </Text>
+                <TextInput
+                  className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white h-24 border ${
+                    !formData.online_access_instructions
+                      ? "border-red-500"
+                      : "border-transparent"
+                  }`}
+                  placeholder="Joining instructions, waiting room, passcode, or host notes*"
+                  placeholderTextColor="#6B7280"
+                  multiline
+                  textAlignVertical="top"
+                  value={formData.online_access_instructions}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      online_access_instructions: text,
+                    })
+                  }
+                />
+
+                <Text className="text-white my-2">
+                  Timezone <Text className="text-red-500">*</Text>
+                </Text>
+                <TextInput
+                  className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white border ${
+                    !formData.online_timezone
+                      ? "border-red-500"
+                      : "border-transparent"
+                  }`}
+                  placeholder="Africa/Lagos*"
+                  placeholderTextColor="#6B7280"
+                  value={formData.online_timezone}
+                  autoCapitalize="none"
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, online_timezone: text })
+                  }
+                />
+
+                <Text className="text-white my-2">Reveal Link</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {ONLINE_REVEAL_OPTIONS.map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      className={`px-3 py-2 rounded-lg ${
+                        formData.online_url_reveal === option
+                          ? "bg-primary"
+                          : "bg-[#1A2432]"
+                      }`}
+                      onPress={() =>
+                        setFormData({ ...formData, online_url_reveal: option })
+                      }
+                    >
+                      <Text
+                        className={
+                          formData.online_url_reveal === option
+                            ? "text-background font-semibold"
+                            : "text-white"
+                        }
+                      >
+                        {option.replace(/_/g, " ")}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Sessions Section */}
@@ -961,6 +1244,7 @@ export default function CreateEventScreen() {
           </View>
 
           {/* Location Section */}
+          {needsVenue(formData.attendance_mode) && (
           <View className="bg-[#111823] p-3 rounded-lg">
             <Text className="text-white mb-4 font-bold">Location</Text>
             <Text className="text-gray-500 my-2">
@@ -1028,6 +1312,7 @@ export default function CreateEventScreen() {
               />
             </View>
           </View>
+          )}
 
           {/* Event Description */}
           <View className="bg-[#111823] p-3 rounded-lg">
@@ -1044,6 +1329,116 @@ export default function CreateEventScreen() {
                 setFormData({ ...formData, description: text })
               }
             />
+          </View>
+
+          {/* Event Enhancements */}
+          <View className="bg-[#111823] p-3 rounded-lg">
+            <Text className="text-white my-2 font-bold">Extra Event Details</Text>
+
+            <Text className="text-white my-2">Tags</Text>
+            <TextInput
+              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
+              placeholder="music, brunch, tech"
+              placeholderTextColor="#6B7280"
+              value={formData.tags}
+              autoCapitalize="none"
+              onChangeText={(text) => setFormData({ ...formData, tags: text })}
+            />
+
+            <Text className="text-white my-2">Door Time</Text>
+            <TextInput
+              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
+              placeholder="Doors open at 6:00 PM"
+              placeholderTextColor="#6B7280"
+              value={formData.door_time}
+              onChangeText={(text) =>
+                setFormData({ ...formData, door_time: text })
+              }
+            />
+
+            <Text className="text-white my-2">Parking Info</Text>
+            <TextInput
+              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-20"
+              placeholder="Parking, drop-off, accessibility, transit"
+              placeholderTextColor="#6B7280"
+              multiline
+              textAlignVertical="top"
+              value={formData.parking_info}
+              onChangeText={(text) =>
+                setFormData({ ...formData, parking_info: text })
+              }
+            />
+
+            <Text className="text-white my-2">Lineup / Extra Info</Text>
+            <TextInput
+              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-20"
+              placeholder="Lineup, offers, discounts, or extra notes"
+              placeholderTextColor="#6B7280"
+              multiline
+              textAlignVertical="top"
+              value={formData.discount_info}
+              onChangeText={(text) =>
+                setFormData({ ...formData, discount_info: text })
+              }
+            />
+
+            <Text className="text-white my-2">Agenda</Text>
+            <TextInput
+              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-24"
+              placeholder="Agenda, schedule, set times, or event flow"
+              placeholderTextColor="#6B7280"
+              multiline
+              textAlignVertical="top"
+              value={formData.agenda_info}
+              onChangeText={(text) =>
+                setFormData({ ...formData, agenda_info: text })
+              }
+            />
+          </View>
+
+          {/* FAQs */}
+          <View className="bg-[#111823] p-3 rounded-lg">
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-white font-bold">FAQs</Text>
+              <TouchableOpacity
+                className="bg-primary/20 border border-primary rounded-lg px-3 py-2"
+                onPress={addFaq}
+              >
+                <Text className="text-primary font-semibold">+ Add FAQ</Text>
+              </TouchableOpacity>
+            </View>
+
+            {(formData.faqs || []).map((faq: any, index: number) => (
+              <View
+                key={index}
+                className="bg-[#1A2432] rounded-lg p-3 mb-3 border border-gray-700"
+              >
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-white font-semibold">
+                    FAQ {index + 1}
+                  </Text>
+                  <TouchableOpacity onPress={() => removeFaq(index)}>
+                    <Text className="text-red-400">Remove</Text>
+                  </TouchableOpacity>
+                </View>
+                <TextInput
+                  className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-2"
+                  placeholder="Question"
+                  placeholderTextColor="#6B7280"
+                  value={faq.question}
+                  onChangeText={(text) => updateFaq(index, "question", text)}
+                />
+                <TextInput
+                  className="bg-[#111823] rounded-lg px-4 py-3 text-white h-20"
+                  placeholder="Answer"
+                  placeholderTextColor="#6B7280"
+                  multiline
+                  textAlignVertical="top"
+                  value={faq.answer}
+                  onChangeText={(text) => updateFaq(index, "answer", text)}
+                />
+              </View>
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -1139,6 +1534,11 @@ export default function CreateEventScreen() {
                     onPress={() => {
                       setSelectedCountry(country);
                       setSelectedState(null);
+                      setFormData({
+                        ...formData,
+                        country_code: country.code2,
+                        state_id: "",
+                      });
                       setShowCountryModal(false);
                       setShowStateModal(true);
                     }}
@@ -1228,7 +1628,7 @@ export default function CreateEventScreen() {
                 });
               }}
             >
-              <Text className="text-white">There's an age restriction</Text>
+              <Text className="text-white">There&apos;s an age restriction</Text>
             </TouchableOpacity>
 
             {/* Age selection options */}

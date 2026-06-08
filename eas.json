@@ -10,15 +10,43 @@
       "ios": {
         "simulator": true
       },
-      "channel": "development"
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_PAYMENT_BASE_URL": "http://localhost:3002/api/v1/payment",
+        "EXPO_PUBLIC_RECAPTCHA_SITE_KEY": "6Lef2wwtAAAAABKg6M0vjzHkV7nmjpblwy1KQyw3"
+      }
+    },
+    "development-device": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_PAYMENT_BASE_URL": "http://localhost:3002/api/v1/payment",
+        "EXPO_PUBLIC_RECAPTCHA_SITE_KEY": "6Lef2wwtAAAAABKg6M0vjzHkV7nmjpblwy1KQyw3"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "preview",
+        "EXPO_PUBLIC_PAYMENT_BASE_URL": "https://gather-plus-backend-event.onrender.com/api/v1/payment",
+        "EXPO_PUBLIC_RECAPTCHA_SITE_KEY": "6Lef2wwtAAAAABKg6M0vjzHkV7nmjpblwy1KQyw3"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_CORE_API_URL": "https://gather-plus-backend-core.onrender.com/api/v1",
+        "EXPO_PUBLIC_PAYMENT_BASE_URL": "https://gather-plus-backend-event.onrender.com/api/v1/payment",
+        "EXPO_PUBLIC_PROVIDER_API_URL": "https://gather-plus-backend-event.onrender.com/api/v1/provider",
+        "EXPO_PUBLIC_RECAPTCHA_SITE_KEY": "6Lef2wwtAAAAABKg6M0vjzHkV7nmjpblwy1KQyw3",
+        "EXPO_PUBLIC_WEB_URL": "https://www.gatherplux.com"
+      }
     }
   },
   "submit": {

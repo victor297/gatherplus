@@ -1,212 +1,223 @@
+import { compactParams } from "@/utils/api";
+import type { ParticipantBookingQuery } from "@/types/bookings";
+import type { EventListParams } from "@/types/events";
+import { BASE_RESOURCE_URL, EVENT_URL } from "../constants";
 import { apiSlice } from "./apiSlice";
-import { BASE_URL, USER_URL } from "../constants";
 
+type EventId = string | number;
 
-export const userApiSlice = apiSlice.injectEndpoints({
+export const eventApiSlice = apiSlice.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
-    createvent: builder.mutation<any,any>({
+    createvent: builder.mutation<any, any>({
       query: (data) => ({
-        url: `${BASE_URL}/event`,
+        url: EVENT_URL,
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["Event"],
     }),
-    updatevent: builder.mutation<any,any>({
-      query: ({data,id}) => ({
-        url: `${BASE_URL}/event/${id}`,
+    updatevent: builder.mutation<any, { data: any; id: EventId }>({
+      query: ({ data, id }) => ({
+        url: `${EVENT_URL}/${id}`,
         method: "PUT",
         body: data,
       }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "Event", id }],
     }),
-    getcategories: builder.query({
+    getcategories: builder.query<any, void | Record<string, never>>({
       query: () => ({
-        url: `${BASE_URL}/base/category`,
+        url: `${BASE_RESOURCE_URL}/category`,
       }),
+      providesTags: ["Base"],
     }),
-    getCountries: builder.query({
+    getCountries: builder.query<any, void | Record<string, never>>({
       query: () => ({
-        url: `${BASE_URL}/base/country`,
+        url: `${BASE_RESOURCE_URL}/country`,
       }),
-     
+      providesTags: ["Base"],
     }),
-    getMaxFreeTicket: builder.query({
+    getMaxFreeTicket: builder.query<any, void | Record<string, never>>({
       query: () => ({
-        url: `${BASE_URL}/base/setting`,
+        url: `${BASE_RESOURCE_URL}/setting`,
       }),
-     
+      providesTags: ["Base"],
     }),
-    getStates: builder.query<any,any>({
-      query: (country:any) => ({
-        url: `${BASE_URL}/base/country/state/${country}`,
+    getStates: builder.query<any, string | number>({
+      query: (country) => ({
+        url: `${BASE_RESOURCE_URL}/country/state/${country}`,
       }),
+      providesTags: ["Base"],
     }),
-    getEvents: builder.query<any,any>({
-      query: ({ category_id,country_code, state_id, city, type, search, sortBy, sortDirection,page,size,start_date,end_date } = {}) => {
-        const params = new URLSearchParams();
-        if (category_id) params.append("category_id", category_id);
-        if (country_code) params.append("country_code", country_code);
-        if (state_id) params.append("state_id", state_id);
-        if (city) params.append("city", city);
-        if (type) params.append("type", type);
-        if (search) params.append("search", search);
-        if (sortBy) params.append("sortBy", sortBy);
-        if (sortDirection) params.append("sortDirection", sortDirection);
-        if (page) params.append("page", page);
-        if (size) params.append("size", size);
-        if (start_date) params.append("start_date", start_date);
-        if (end_date) params.append("end_date", end_date);
-        return {
-          url: `${BASE_URL}/event/list?${params.toString()}`,
-        };
-      },
-
-    }),
-    getEvent: builder.query({     
-      query: ({id,user_id}) => ({
-        url: `${BASE_URL}/event/${id}?user_id=${user_id}`,
+    getEvents: builder.query<any, EventListParams | void>({
+      query: (params = {}) => ({
+        url: `${EVENT_URL}/list`,
+        params: compactParams(params),
       }),
-    
+      providesTags: ["Event"],
     }),
-    deleteEvent: builder.mutation({
+    getEvent: builder.query<any, { id: EventId; user_id?: EventId }>({
+      query: ({ id, user_id }) => ({
+        url: `${EVENT_URL}/${id}`,
+        params: compactParams({ user_id }),
+      }),
+      providesTags: (_result, _error, { id }) => [{ type: "Event", id }],
+    }),
+    deleteEvent: builder.mutation<any, EventId>({
       query: (id) => ({
-        url: `${BASE_URL}/event/${id}`,
-        method: 'DELETE',
+        url: `${EVENT_URL}/${id}`,
+        method: "DELETE",
       }),
+      invalidatesTags: ["Event"],
     }),
-    deleteBookmark: builder.mutation({
+    deleteBookmark: builder.mutation<any, EventId>({
       query: (id) => ({
-        url: `${BASE_URL}/event/bookmark/${id}`,
-        method: 'DELETE',
+        url: `${EVENT_URL}/bookmark/${id}`,
+        method: "DELETE",
       }),
+      invalidatesTags: ["Bookmark", "Event"],
     }),
-    bookmarkevent: builder.mutation<any,any>({
+    bookmarkevent: builder.mutation<any, any>({
       query: (data) => ({
-        url: `${BASE_URL}/event/bookmark`,
+        url: `${EVENT_URL}/bookmark`,
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["Bookmark", "Event"],
     }),
-    getBookmarks: builder.query({
-      query: (id) => ({
-        url: `${BASE_URL}/event/bookmark`,
+    getBookmarks: builder.query<any, void | EventId | Record<string, never>>({
+      query: () => ({
+        url: `${EVENT_URL}/bookmark`,
       }),
- 
+      providesTags: ["Bookmark"],
     }),
-    createBooking: builder.mutation<any,any>({
+    createBooking: builder.mutation<any, any>({
       query: (data) => ({
-        url: `${BASE_URL}/event/booking`,
+        url: `${EVENT_URL}/booking`,
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["Booking", "Event"],
     }),
-
-    getBookings: builder.query<any,any>({
-      query: ({  type } = {}) => {
-        const params = new URLSearchParams();
-  
-        if (type) params.append("type", type);
-  
-  
-        return {
-          url: `${BASE_URL}/event/booking/event?${params.toString()}`,
-        };
-      },
-  
-    }),
-    getMyEventBookings: builder.query<any,any>({
-      query: ({id,  type } = {}) => {
-        const params = new URLSearchParams();
-  
-        if (type) params.append("type", type);
-  
-  
-        return {
-          url: `${BASE_URL}/event/booking/${id}/booking?${params.toString()}`,
-        }; 
-      },
-  
-    }),
-    getBookingDetails: builder.query({     
-      query: (id) => ({
-        url: `${BASE_URL}/event/booking/${id}/booking/me`,
+    getBookings: builder.query<any, Record<string, unknown> | void>({
+      query: (params = {}) => ({
+        url: `${EVENT_URL}/booking/event`,
+        params: compactParams(params),
       }),
-   
+      providesTags: ["Booking"],
     }),
-    LikeEvent: builder.mutation({     
+    getUserTicketBookings: builder.query<any, void | Record<string, unknown>>({
+      query: (params = {}) => ({
+        url: `${EVENT_URL}/booking/me`,
+        params: compactParams(params),
+      }),
+      providesTags: ["Booking"],
+    }),
+    getMyEventBookings: builder.query<any, ParticipantBookingQuery>({
+      query: ({ id, ...params }) => ({
+        url: `${EVENT_URL}/booking/${id}/booking`,
+        params: compactParams(params),
+      }),
+      providesTags: ["Booking"],
+    }),
+    getBookingDetails: builder.query<any, EventId>({
       query: (id) => ({
-        url: `${BASE_URL}/event/${id}/like`,
+        url: `${EVENT_URL}/booking/${id}/booking/me`,
+      }),
+      providesTags: (_result, _error, id) => [{ type: "Booking", id }],
+    }),
+    getBookingById: builder.query<any, EventId>({
+      query: (id) => ({
+        url: `${EVENT_URL}/booking/${id}`,
+      }),
+      providesTags: (_result, _error, id) => [{ type: "Booking", id }],
+    }),
+    completeBookingPayment: builder.mutation<any, EventId>({
+      query: (txnRef) => ({
+        url: `${EVENT_URL}/booking/complete/${txnRef}`,
         method: "GET",
-
       }),
-   
+      invalidatesTags: ["Booking", "Event"],
     }),
-    getMyEvents: builder.query<any,any>({
-      query: ({ category_id, state_id, city, type, search, sortBy, sortDirection,page,size } = {}) => {
-        const params = new URLSearchParams();
-        if (category_id) params.append("category_id", category_id);
-        if (state_id) params.append("state_id", state_id);
-        if (city) params.append("city", city);
-        if (type) params.append("type", type);
-        if (search) params.append("search", search);
-        if (sortBy) params.append("sortBy", sortBy);
-        if (sortDirection) params.append("sortDirection", sortDirection);
-        if (page) params.append("page", page);
-        if (size) params.append("size", size);
-  
-        return {
-          url: `${BASE_URL}/event/me?${params.toString()}`,
-        };
-      },
-      
+    LikeEvent: builder.mutation<any, EventId>({
+      query: (id) => ({
+        url: `${EVENT_URL}/${id}/like`,
+        method: "GET",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "Event", id }],
     }),
-
-    createComment: builder.mutation<any,any>({
-      query: ({data,user_id}) => ({
-        url: `${BASE_URL}/event/${user_id}/comment`,
+    unlikeEvent: builder.mutation<any, EventId>({
+      query: (id) => ({
+        url: `${EVENT_URL}/${id}/like`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "Event", id }],
+    }),
+    getMyEvents: builder.query<any, EventListParams | void>({
+      query: (params = {}) => ({
+        url: `${EVENT_URL}/me`,
+        params: compactParams(params),
+      }),
+      providesTags: ["Event"],
+    }),
+    createComment: builder.mutation<any, { data: any; user_id: EventId }>({
+      query: ({ data, user_id }) => ({
+        url: `${EVENT_URL}/${user_id}/comment`,
         method: "POST",
         body: data,
       }),
+      invalidatesTags: (_result, _error, { user_id }) => [{ type: "Event", id: user_id }],
     }),
-    likeComment: builder.mutation<any,any>({
-      query: ({data,user_id}) => ({
-        url: `${BASE_URL}/event/${user_id}/comment`,
+    likeComment: builder.mutation<any, { data: any; user_id: EventId }>({
+      query: ({ data, user_id }) => ({
+        url: `${EVENT_URL}/${user_id}/comment`,
         method: "PATCH",
         body: data,
       }),
+      invalidatesTags: (_result, _error, { user_id }) => [{ type: "Event", id: user_id }],
     }),
-
-    getComments: builder.query({
+    getComments: builder.query<any, EventId>({
       query: (event_id) => ({
-        url: `${BASE_URL}/event/${event_id}/comment`,
+        url: `${EVENT_URL}/${event_id}/comment`,
       }),
+      providesTags: (_result, _error, event_id) => [{ type: "Event", id: event_id }],
     }),
-    getReplies: builder.query({
-      query: ({event_id,parent_id}) => ({
-        url: `${BASE_URL}/event/${event_id}/comment/${parent_id}`,
+    getReplies: builder.query<any, { event_id: EventId; parent_id: EventId }>({
+      query: ({ event_id, parent_id }) => ({
+        url: `${EVENT_URL}/${event_id}/comment/${parent_id}`,
       }),
+      providesTags: (_result, _error, { event_id }) => [{ type: "Event", id: event_id }],
     }),
   }),
-
 });
 
-export const {
-useGetcategoriesQuery,
-  useCreateventMutation,
-  useUpdateventMutation, 
-  useDeleteBookmarkMutation,
-  useGetEventsQuery,
-  useGetCountriesQuery,
-  useGetStatesQuery,
-  useGetEventQuery,
-  useBookmarkeventMutation,
-  useGetBookmarksQuery,
-  useCreateBookingMutation,
-  useGetBookingsQuery,
-  useGetMyEventsQuery,
-  useGetBookingDetailsQuery,
-  useDeleteEventMutation,
-  useGetMyEventBookingsQuery,
-  useLikeEventMutation,useCreateCommentMutation,useGetCommentsQuery,useGetRepliesQuery,useLikeCommentMutation,useGetMaxFreeTicketQuery
+export const userApiSlice = eventApiSlice;
 
-} = userApiSlice;
+export const {
+  useBookmarkeventMutation,
+  useCreateBookingMutation,
+  useCompleteBookingPaymentMutation,
+  useCreateCommentMutation,
+  useCreateventMutation,
+  useDeleteBookmarkMutation,
+  useDeleteEventMutation,
+  useGetBookingDetailsQuery,
+  useGetBookingByIdQuery,
+  useGetBookingsQuery,
+  useGetBookmarksQuery,
+  useGetCommentsQuery,
+  useGetCountriesQuery,
+  useGetEventQuery,
+  useGetEventsQuery,
+  useGetMaxFreeTicketQuery,
+  useGetMyEventBookingsQuery,
+  useGetMyEventsQuery,
+  useGetRepliesQuery,
+  useGetStatesQuery,
+  useGetUserTicketBookingsQuery,
+  useGetcategoriesQuery,
+  useLikeCommentMutation,
+  useLikeEventMutation,
+  useUnlikeEventMutation,
+  useUpdateventMutation,
+} = eventApiSlice;

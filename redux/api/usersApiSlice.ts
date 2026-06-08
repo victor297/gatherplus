@@ -1,17 +1,17 @@
 import { apiSlice } from "./apiSlice";
-import { PROFILE_URL, USER_URL } from "../constants";
+import { FILE_URL, PROFILE_URL, USER_URL } from "../constants";
 
 interface LoginData {
   username: string;
   password: string;
+  recaptcha_token?: string;
 }
 
 interface SignupData {
-  data:{
   name: string;
   email: string;
   password: string;
-}
+  recaptcha_token?: string;
 }
 
 interface UpdateUserData {
@@ -42,7 +42,7 @@ export const userApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
     }),
-    usersignup: builder.mutation<any,any>({
+    usersignup: builder.mutation<any, SignupData>({
       query: (data) => ({
         url: `${USER_URL}`,
         method: "POST",
@@ -87,7 +87,15 @@ export const userApiSlice = apiSlice.injectEndpoints({
       query: () => ({
         url: `${PROFILE_URL}`,
       }),
-    }),  
+      providesTags: ["Profile"],
+    }),
+    getUserWallet: builder.query<any, void | Record<string, never>>({
+      query: () => ({
+        url: `${PROFILE_URL}/wallet`,
+        method: "GET",
+      }),
+      providesTags: ["Wallet"],
+    }),
      updateProfile: builder.mutation<{ success: boolean }, any>({
       query: (data) => ({
         url: `${PROFILE_URL}`,
@@ -129,14 +137,11 @@ export const userApiSlice = apiSlice.injectEndpoints({
           }),
        
         }),
-        uploadFile: builder.mutation<any, FormData>({
+    uploadFile: builder.mutation<any, FormData>({
       query: (formData) => ({
-        url: "/file",
+        url: FILE_URL,
         method: "POST",
-            body: formData,
-       headers: {
-            "Content-Type": "multipart/form-data",
-          },
+        body: formData,
       }),
     }),
     }),
@@ -154,6 +159,7 @@ export const {
   useForgetpasswordMutation,
   useResetpasswordMutation,
   useGetProfileQuery, 
+  useGetUserWalletQuery,
   useUpdateProfileMutation,
   useUpdateEmailMutation,
   useUpdatePasswordMutation,

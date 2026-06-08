@@ -5,6 +5,7 @@ import { Provider,useDispatch } from "react-redux";
 import { initializeUserInfo } from '@/redux/features/auth/authSlice';
 import store from '@/redux/store';
 import { StripeProvider } from '@stripe/stripe-react-native';
+import { appConfig } from '@/config/env';
 
 declare global {
   interface Window {
@@ -33,8 +34,8 @@ export default function RootLayout() {
   }, []);
   return (
       <StripeProvider
-        merchantIdentifier={process.env.EXPO_PUBLIC_STRIPE_MERCHANT_IDENTIFIER ?? "merchant.REPLACE_ME"}
-        publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""}
+        merchantIdentifier={appConfig.stripeMerchantIdentifier}
+        publishableKey={appConfig.stripePublishableKey}
       >
     <Provider store={store}>
       <RootLayoutContent />

@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { ArrowLeft, Upload } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
-import { FILE_UPLOAD_URL } from '@/redux/constants';
+import { uploadSingleFile } from '@/utils/upload';
 
 export default function BannerScreen() {
   const router = useRouter();
@@ -63,41 +63,18 @@ export default function BannerScreen() {
     if (result.canceled || !result.assets?.length) return;
 
     const imageUri = result.assets[0].uri;
-    const fileName = imageUri.split('/').pop();
-    const fileType = fileName?.split('.').pop() || 'jpg';
-
-    const formDataUpload = new FormData();
-    formDataUpload.append('files', {
-      uri: imageUri,
-      name: fileName,
-      type: `image/${fileType}`,
-    } as any);
 
     try {
       setLoading(true);
-      const response = await fetch(FILE_UPLOAD_URL, {
-        method: 'POST',
-        body: formDataUpload,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const uploadedUrl = await uploadSingleFile(imageUri);
+      setBannerImage(uploadedUrl);
 
-      const data = await response.json();
-
-      if (data.code === 200 && data.body?.[0]?.secure_url) {
-        const uploadedUrl = data.body[0].secure_url;
-        setBannerImage(uploadedUrl);
-
-        // Update formData with the new banner image
-        setFormData((prevData: any) => ({
-          ...prevData,
-          // Maintain only one image in the array (replace if exists)
-          images: [uploadedUrl]
-        }));
-      } else {
-        Alert.alert('Upload Failed', 'Could not upload the image.');
-      }
+      // Update formData with the new banner image
+      setFormData((prevData: any) => ({
+        ...prevData,
+        // Maintain only one image in the array (replace if exists)
+        images: [uploadedUrl]
+      }));
     } catch (error) {
       Alert.alert('Error', 'Something went wrong during upload.');
     } finally {

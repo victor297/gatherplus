@@ -7,6 +7,8 @@ export default function CreateEventLayout() {
       <Stack.Screen name="banner" />
       <Stack.Screen name="ticketing" />
       <Stack.Screen name="review" />
+      <Stack.Screen name="ai/index" />
+      <Stack.Screen name="ai/review/index" />
     </Stack>
   );
 }

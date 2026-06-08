@@ -1,10 +1,12 @@
-export const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL ?? "https://gather-plus-backend-core.onrender.com/api/v1";
-export const PROVIDER_URL = process.env.EXPO_PUBLIC_PROVIDER_URL ?? "https://gather-plus-backend-event.onrender.com/api/v1/provider";
-export const FILE_UPLOAD_URL = process.env.EXPO_PUBLIC_FILE_UPLOAD_URL ?? "https://gather-plus-backend-core.onrender.com/api/v1/file";
-export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? "https://www.gatherplux.com";
+import { appConfig } from "@/config/env";
+
+export const BASE_URL = appConfig.coreApiUrl;
+export const PAYMENT_BASE_URL = appConfig.paymentApiUrl;
+export const PROVIDER_URL = appConfig.providerApiUrl;
 export const USER_URL = "/account";
 export const PROFILE_URL = "/profile";
-
-// --- Stripe ---
-export const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
-export const STRIPE_MERCHANT_IDENTIFIER = process.env.EXPO_PUBLIC_STRIPE_MERCHANT_IDENTIFIER ?? "merchant.REPLACE_ME";
+export const EVENT_URL = "/event";
+export const NEW_EVENTS_URL = "/new-events";
+export const ANALYTICS_URL = "/analytics";
+export const BASE_RESOURCE_URL = "/base";
+export const FILE_URL = "/file";

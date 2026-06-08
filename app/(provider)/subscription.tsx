@@ -339,7 +339,7 @@ const Subscription = () => {
                 <View className="bg-card p-6 rounded-lg items-center">
                   <Feather name="package" size={48} color="#9EDD45" />
                   <Text className="text-white text-lg mt-4 text-center">
-                    You don't have any active subscriptions yet
+                    You don&apos;t have any active subscriptions yet
                   </Text>
                   <Text className="text-gray-400 text-center mt-2">
                     Choose a plan to get started

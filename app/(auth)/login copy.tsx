@@ -281,7 +281,7 @@ export default function Login() {
 
           <View className="flex-row justify-center">
             <Text className="text-gray-400 text-lg">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
             </Text>
             <Link href="/signup">
               <Text className="text-primary text-lg">Signup</Text>

@@ -246,6 +246,7 @@ export default function TicketingScreen() {
               ? tickets.map((ticket) => ({ ...ticket, price: 0 }))
               : tickets,
         }),
+        eventId: params.eventId || "",
       },
     });
   };
@@ -290,7 +291,9 @@ export default function TicketingScreen() {
         >
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Create Event</Text>
+        <Text className="text-white text-xl font-semibold">
+          {params.eventId ? "Edit Event" : "Create Event"}
+        </Text>
       </View>
 
       <ProgressSteps currentStep={2} />

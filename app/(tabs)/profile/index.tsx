@@ -103,14 +103,26 @@ export default function ProfileScreen() {
     {
       icon: <BookDashed size={24} color="#6B7280" />,
       title: "Bookings",
-      subtitle: "Upcoming events, past events",
+      subtitle: "Ticket library and access codes",
       route: "/profile/bookings",
     },
     {
       icon: <Ticket size={24} color="#6B7280" />,
-      title: "My Events",
-      subtitle: "Manage your events",
-      route: "/profile/myevents",
+      title: "Organizer Workspace",
+      subtitle: "Manage drafts, previews, attendees",
+      route: "/profile/events",
+    },
+    {
+      icon: <Star size={24} color="#6B7280" />,
+      title: "Revenue",
+      subtitle: "Wallet and payout requests",
+      route: "/profile/revenue",
+    },
+    {
+      icon: <Ticket size={24} color="#6B7280" />,
+      title: "Create with AI",
+      subtitle: "Generate an event draft",
+      route: "/create/ai",
     },
     {
       icon: <Mail size={24} color="#6B7280" />,

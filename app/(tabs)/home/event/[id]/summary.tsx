@@ -14,13 +14,41 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, X } from "lucide-react-native";
 import Svg, { Rect, Circle } from "react-native-svg";
 import QRCode from "react-native-qrcode-svg";
-import { useCreateBookingMutation } from "@/redux/api/eventsApiSlice";
+import {
+  useCompleteBookingPaymentMutation,
+  useCreateBookingMutation,
+  useGetMaxFreeTicketQuery,
+} from "@/redux/api/eventsApiSlice";
 import { useStripe } from "@stripe/stripe-react-native";
 import * as Linking from "expo-linking";
 import { WebView } from "react-native-webview";
 import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
+import {
+  calculateBookingFees,
+  currencySymbol,
+  getOnlineRevealLabel,
+} from "@/utils/eventHelpers";
+
+const extractPaymentReference = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.searchParams.get("reference") ||
+      parsed.searchParams.get("trxref") ||
+      parsed.searchParams.get("transaction_reference") ||
+      parsed.searchParams.get("payment_intent") ||
+      ""
+    );
+  } catch {
+    const match = url.match(/(?:reference|trxref|payment_intent)=([^&#]+)/i);
+    return match?.[1] ? decodeURIComponent(match[1]) : "";
+  }
+};
+
+const getStripePaymentIntentId = (clientSecret?: string) =>
+  clientSecret?.split("_secret")[0] || "";
 
 export default function OrderSummaryScreen() {
   const router = useRouter();
@@ -29,8 +57,9 @@ export default function OrderSummaryScreen() {
   const { userInfo } = useSelector((state: any) => state.auth);
   const [createBooking, { isLoading: isBookingLoading }] =
     useCreateBookingMutation();
+  const [completeBookingPayment] = useCompleteBookingPaymentMutation();
+  const { data: feeSettings } = useGetMaxFreeTicketQuery({});
   const [isProcessing, setIsProcessing] = useState(false);
-  console.log(bookingData, "bookingData1s");
   // Payment states
   const [paymentResponse, setPaymentResponse] = useState<any>(null);
   const [selectedChannel, setSelectedChannel] = useState<
@@ -39,6 +68,10 @@ export default function OrderSummaryScreen() {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [stripeLoading, setStripeLoading] = useState(false);
   const [showPaystackWebView, setShowPaystackWebView] = useState(false);
+  const paymentCallbackUrl = Linking.createURL(
+    `payment-callback/event/${bookingData.event_id}`
+  );
+  const symbol = currencySymbol(bookingData?.currency);
 
   // Calculate totals
   const ticketGroups = bookingData.bookings.reduce(
@@ -58,32 +91,53 @@ export default function OrderSummaryScreen() {
     (sum: any, booking: any) => sum + booking.price,
     0
   );
-  const tax = 0;
-  const total = subtotal + tax;
+  const platformFeeRate = Number(
+    bookingData?.platformFeeRate ?? feeSettings?.body?.platform_fee ?? 0
+  );
+  const fixedFeeAmount = Number(
+    bookingData?.fixedFeeAmount ?? feeSettings?.body?.fixed_fee ?? 0
+  );
+  const fees = calculateBookingFees(
+    subtotal,
+    platformFeeRate,
+    fixedFeeAmount,
+    Boolean(bookingData?.absorb_fee)
+  );
+  const total = fees.total;
 
   const fetchPaymentSheetParams = async () => {
     try {
       const response = await createBooking({
         ...bookingData,
         channel: "Stripe",
+        callback_url: paymentCallbackUrl,
         user_id: userInfo?.sub,
       }).unwrap();
 
-      console.log(response, "stripe");
-
-      if (response.message === "SUCCESSFUL") {
+      if (response.message === "SUCCESSFUL" && response.body?.client_secret) {
         return {
           paymentIntent: response.body.client_secret,
           ephemeralKey: response.body.ephemeralKey,
           customer: response.body.customer,
         };
       }
-      // throw new Error("Failed to fetch payment sheet params");
+      throw new Error("Failed to fetch payment sheet params");
     } catch (error) {
       Alert.alert("Try Again", error?.data?.body || "Failed to set up payment");
       console.log("Error fetching payment sheet params:", error);
-      // throw error;
+      throw error;
     }
+  };
+
+  const completePaymentReference = async (reference?: string) => {
+    if (reference) {
+      try {
+        await completeBookingPayment(reference).unwrap();
+      } catch (error) {
+        console.log("Payment completion check failed:", error);
+      }
+    }
+    router.replace("/profile/bookings");
   };
 
   const handleBookEvent = async () => {
@@ -122,21 +176,26 @@ export default function OrderSummaryScreen() {
         const res = await createBooking({
           ...bookingData,
           channel: selectedChannel,
+          callback_url: paymentCallbackUrl,
           user_id: userInfo?.sub,
         }).unwrap();
-        
-        console.log("Paystack Authorization URL:", res?.body?.authorization_url);
-        
+
         if (res?.body?.authorization_url) {
           setIsProcessing(false);
-          // Use WebBrowser since WebView refuses to render Paystack (white screen)
           const result = await WebBrowser.openBrowserAsync(res.body.authorization_url);
-          
-          if (result.type === 'cancel' || result.type === 'dismiss') {
-            console.log("User returned from Paystack browser");
-            // If we didn't receive a deep link redirect, we assume they closed it.
-            // Navigate to bookings just in case they paid but the backend didn't redirect.
-            router.replace("/profile/bookings");
+
+          if (result.type === "cancel" || result.type === "dismiss") {
+            Alert.alert(
+              "Payment not confirmed",
+              "If payment was completed, your booking will appear after confirmation.",
+              [
+                { text: "Stay", style: "cancel" },
+                {
+                  text: "View bookings",
+                  onPress: () => router.replace("/profile/bookings"),
+                },
+              ]
+            );
           }
         } else {
           Alert.alert("Error", "Could not get payment link");
@@ -176,7 +235,7 @@ export default function OrderSummaryScreen() {
           console.log(error);
           Alert.alert(` ${error.code}`, error.message);
         } else {
-          router.push("/profile/bookings" as any);
+          await completePaymentReference(getStripePaymentIntentId(paymentIntent));
         }
       } else {
         Alert.alert("Error", "Failed to initialize payment sheet");
@@ -195,7 +254,7 @@ useEffect(() => {
     if (url.includes("payment-callback")||url.includes("adtil.local")) {
       console.log("Payment success redirect received");
       WebBrowser.dismissBrowser();
-      router.replace("/profile/bookings");
+      completePaymentReference(extractPaymentReference(url));
     }
   });
 
@@ -308,9 +367,7 @@ useEffect(() => {
                   <Text className="text-white font-bold text-sm bg-blue-600 p-1 rounded-full">
                     {booking?.price == 0
                       ? "Free"
-                      : `${
-                          bookingData?.currency?.split(" - ")[0]
-                        } ${booking?.price?.toLocaleString()}`}
+                      : `${symbol} ${booking?.price?.toLocaleString()}`}
                   </Text>
                 </View>
               </View>
@@ -326,7 +383,7 @@ useEffect(() => {
               <View className="flex-row justify-between" key={name}>
                 <Text className="text-gray-400">{name}</Text>
                 <Text className="text-white">
-                  {group?.count} × {bookingData?.currency?.split(" - ")[0]}
+                  {group?.count} x {symbol}
                   {(group?.total / group?.count).toLocaleString()}
                 </Text>
               </View>
@@ -337,22 +394,52 @@ useEffect(() => {
             <View className="flex-row justify-between">
               <Text className="text-gray-400">Sub-total</Text>
               <Text className="text-white">
-                {bookingData?.currency?.split(" - ")[0]}
+                {symbol}
                 {subtotal.toLocaleString()}
               </Text>
             </View>
             <View className="flex-row justify-between">
-              <Text className="text-gray-400">Tax</Text>
+              <Text className="text-gray-400">Platform fee</Text>
               <Text className="text-white">
-                {bookingData?.currency?.split(" - ")[0]} {tax.toLocaleString()}
+                {symbol} {fees.platformFee.toLocaleString()}
               </Text>
             </View>
+            <View className="flex-row justify-between">
+              <Text className="text-gray-400">Fixed fee</Text>
+              <Text className="text-white">
+                {symbol} {fees.fixedFee.toLocaleString()}
+              </Text>
+            </View>
+            {bookingData?.absorb_fee && subtotal > 0 && (
+              <Text className="text-gray-500 text-xs">
+                The organizer covers buyer fees for this event.
+              </Text>
+            )}
+            {bookingData?.age_restriction > 0 && (
+              <Text className="text-gray-400 text-sm">
+                Age rule: {bookingData.age_restriction}+ required.
+              </Text>
+            )}
+            {bookingData?.guardian_required && (
+              <Text className="text-gray-400 text-sm">
+                Guardian confirmation included.
+              </Text>
+            )}
+            <Text className="text-gray-400 text-sm">
+              Event updates: {bookingData?.receive_updates ? "On" : "Off"}
+            </Text>
+            {(bookingData?.attendance_mode === "ONLINE" ||
+              bookingData?.attendance_mode === "HYBRID") ? (
+              <Text className="text-gray-400 text-sm">
+                Online access: {getOnlineRevealLabel(bookingData?.online_url_reveal)}
+              </Text>
+            ) : null}
           </View>
           <View className="h-[1px] bg-[#1A2432] my-4" />
           <View className="flex-row justify-between">
             <Text className="text-gray-400">Total</Text>
             <Text className="text-primary text-xl font-bold">
-              {bookingData?.currency?.split(" - ")[0]} {total.toLocaleString()}
+              {symbol} {total.toLocaleString()}
             </Text>
           </View>
         </View>

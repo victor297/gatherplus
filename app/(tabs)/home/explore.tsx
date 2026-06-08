@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -27,9 +27,16 @@ import {
   useGetCountriesQuery,
   useGetStatesQuery,
 } from "@/redux/api/eventsApiSlice";
+import { useGetRecommendedEventsQuery } from "@/redux/api/analyticsApiSlice";
 import { formatDate } from "@/utils/formatDate";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Location from "expo-location";
+import {
+  currencySymbol,
+  getAttendanceLabel,
+  getTicketPrice,
+} from "@/utils/eventHelpers";
+import type { AttendanceMode } from "@/types/events";
 
 interface Country {
   code2: string;
@@ -55,6 +62,8 @@ export default function ExploreScreen() {
   const [showFiltering, setShowFiltering] = useState(false);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [attendanceMode, setAttendanceMode] = useState<AttendanceMode | "ALL">("ALL");
+  const [priceFilter, setPriceFilter] = useState<"all" | "free" | "paid">("all");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -93,8 +102,10 @@ export default function ExploreScreen() {
     city: city || null,
     country_code: selectedCountry?.code2 || null,
     state_id: selectedState?.id || null,
-    type: "LIVE",
+    type: "UPCOMING",
     category_id: selectedCategory,
+    attendance_mode: attendanceMode === "ALL" ? null : attendanceMode,
+    price: priceFilter === "all" ? null : priceFilter,
     search: searchTerm,
     page,
     size,
@@ -103,6 +114,43 @@ export default function ExploreScreen() {
     start_date: startDate?.toISOString().split("T")[0],
     end_date: endDate?.toISOString().split("T")[0],
   });
+
+  const { data: recommendedData, isFetching: isRecommendedFetching } =
+    useGetRecommendedEventsQuery({
+      range: "30d",
+      size: 8,
+      city: city || null,
+      region: selectedState?.name || null,
+      country_code: selectedCountry?.code2 || null,
+    });
+
+  const recommendedEvents = useMemo(() => {
+    const result = recommendedData?.body?.result || [];
+    return Array.isArray(result) ? result.filter((event) => event?.id) : [];
+  }, [recommendedData]);
+
+  const hasActiveFilters = Boolean(
+    selectedCategory ||
+      sortBy ||
+      startDate ||
+      endDate ||
+      selectedCountry ||
+      selectedState ||
+      city ||
+      attendanceMode !== "ALL" ||
+      priceFilter !== "all"
+  );
+
+  const formatEventPrice = (event: any) => {
+    if (event?.is_free) return "Free";
+    const firstTicketPrice = Array.isArray(event?.tickets)
+      ? event.tickets.map(getTicketPrice).find((price) => price > 0)
+      : null;
+    const price = Number(event?.price ?? firstTicketPrice ?? 0);
+    return price > 0
+      ? `${currencySymbol(event?.currency)} ${price.toLocaleString()}`
+      : "Free";
+  };
 
   // Get user's current location on mount
   // useEffect(() => {
@@ -162,6 +210,8 @@ export default function ExploreScreen() {
     city,
     selectedCountry,
     selectedState,
+    attendanceMode,
+    priceFilter,
   ]);
 
   // Append new events when data is loaded
@@ -202,6 +252,8 @@ export default function ExploreScreen() {
     setSortDirection("asc");
     setStartDate(null);
     setEndDate(null);
+    setAttendanceMode("ALL");
+    setPriceFilter("all");
     setSelectedCountry(null);
     setSelectedState(null);
     setCity("");
@@ -237,7 +289,7 @@ export default function ExploreScreen() {
             }}
             className="p-2"
           >
-            {showFiltering ? (
+            {showFiltering || hasActiveFilters ? (
               <Filter className="text-primary" fill="#9edd45" size={24} />
             ) : (
               <Filter color="white" size={24} />
@@ -256,7 +308,6 @@ export default function ExploreScreen() {
         transparent={true}
         onRequestClose={() => {
           setShowFilters(false);
-          setShowFiltering(false);
         }}
       >
         <View className="flex-1 bg-black bg-opacity-50 justify-end">
@@ -266,7 +317,6 @@ export default function ExploreScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setShowFilters(false);
-                  setShowFiltering(false);
                 }}
               >
                 <Text className="text-primary">Close</Text>
@@ -274,6 +324,73 @@ export default function ExploreScreen() {
             </View>
 
             <ScrollView nestedScrollEnabled={true}>
+              {/* Attendance Mode */}
+              <View className="mb-6">
+                <Text className="text-white text-lg mb-3">Attendance</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {[
+                    { label: "All", value: "ALL" },
+                    { label: "Venue", value: "VENUE" },
+                    { label: "Online", value: "ONLINE" },
+                    { label: "Hybrid", value: "HYBRID" },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      className={`px-4 py-2 rounded-full ${
+                        attendanceMode === option.value
+                          ? "bg-primary"
+                          : "bg-[#2A3647]"
+                      }`}
+                      onPress={() =>
+                        setAttendanceMode(option.value as AttendanceMode | "ALL")
+                      }
+                    >
+                      <Text
+                        className={
+                          attendanceMode === option.value
+                            ? "text-background font-semibold"
+                            : "text-white"
+                        }
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Price Filter */}
+              <View className="mb-6">
+                <Text className="text-white text-lg mb-3">Price</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {[
+                    { label: "All", value: "all" },
+                    { label: "Free", value: "free" },
+                    { label: "Paid", value: "paid" },
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      className={`px-4 py-2 rounded-full ${
+                        priceFilter === option.value ? "bg-primary" : "bg-[#2A3647]"
+                      }`}
+                      onPress={() =>
+                        setPriceFilter(option.value as "all" | "free" | "paid")
+                      }
+                    >
+                      <Text
+                        className={
+                          priceFilter === option.value
+                            ? "text-background font-semibold"
+                            : "text-white"
+                        }
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
               {/* Location Filters */}
               <View className="mb-6">
                 <Text className="text-white text-lg mb-3">Location</Text>
@@ -573,6 +690,52 @@ export default function ExploreScreen() {
         </View>
       )}
 
+      {(recommendedEvents.length > 0 || isRecommendedFetching) && (
+        <View className="mb-4">
+          <View className="flex-row items-center justify-between px-4 mb-3">
+            <Text className="text-white text-lg font-semibold">
+              Recommended for you
+            </Text>
+            {isRecommendedFetching && <ActivityIndicator color="#9EDD45" />}
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+          >
+            {recommendedEvents.map((event) => (
+              <TouchableOpacity
+                key={`recommended-${event.id}`}
+                className="w-64 bg-[#1A2432] rounded-lg overflow-hidden mr-3"
+                onPress={() => router.push(`/(tabs)/home/event/${event.id}`)}
+              >
+                <Image
+                  source={{ uri: event?.images?.[0] }}
+                  className="w-full h-32"
+                  resizeMode="cover"
+                />
+                <View className="p-3">
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-primary text-xs font-semibold">
+                      {getAttendanceLabel(event)}
+                    </Text>
+                    <Text className="text-white text-xs font-semibold">
+                      {formatEventPrice(event)}
+                    </Text>
+                  </View>
+                  <Text className="text-white font-semibold" numberOfLines={2}>
+                    {event.title}
+                  </Text>
+                  <Text className="text-gray-400 text-xs mt-2" numberOfLines={1}>
+                    {event?.city || event?.address || "Location TBA"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Events List */}
       <FlatList
         data={allEvents}
@@ -613,6 +776,14 @@ export default function ExploreScreen() {
               resizeMode="cover"
             />
             <View className="p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-primary text-xs font-semibold">
+                  {getAttendanceLabel(event)}
+                </Text>
+                <Text className="text-white text-sm font-semibold">
+                  {formatEventPrice(event)}
+                </Text>
+              </View>
               <Text className="text-white text-xl font-semibold">
                 {event.title}
               </Text>

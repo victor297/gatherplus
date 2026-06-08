@@ -4,12 +4,13 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, TimerReset } from 'lucide-react-native';
 import { useGetBookmarksQuery } from '@/redux/api/eventsApiSlice';
 import { formatDate } from '@/utils/formatDate';
+import { getApiErrorMessage } from '@/utils/api';
 
 
 
 export default function BookmarksScreen() {
   const router = useRouter();
-  const { data: bookmarks, isLoading, error,refetch } = useGetBookmarksQuery<any>({},{ refetchOnMountOrArgChange: true,
+  const { data: bookmarks, isLoading, error,refetch } = useGetBookmarksQuery(undefined,{ refetchOnMountOrArgChange: true,
     refetchOnFocus: true,});
 console.log(bookmarks)
 
@@ -25,7 +26,7 @@ console.log(bookmarks)
         {isLoading ? <View className="text-white  bg-background flex justify-center items-center py-4"><ActivityIndicator color="#9EDD45" /></View>
           : error ?
             <View className="flex-1 bg-background justify-center items-center">
-              <Text className="text-red-500">{error?.data.body}Failed to load data. Please try again.</Text>
+              <Text className="text-red-500">{getApiErrorMessage(error, "Failed to load data. Please try again.")}</Text>
             </View> :bookmarks?.body?.length<=0?<Text className='text-white text-center'>You dont have any bookedmared event</Text>: bookmarks?.body?.map((event: any) => (
               <TouchableOpacity
                 key={event.id} onPress={() => router.push(`/(tabs)/home/event/${event.event_id}`)}
