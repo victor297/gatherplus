@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -26,6 +27,101 @@ import {
 import EventMapPreview from "@/app/components/EventMapPreview";
 import { buildNewEventPayload, needsOnline, needsVenue } from "@/utils/newEventForm";
 import { getApiErrorMessage } from "@/utils/api";
+import type { CreateEventV2Payload } from "@/types/events";
+
+const RECENT_EVENT_CREATE_KEY = "gatherplus.recentEventCreate.v1";
+const DUPLICATE_CREATE_WINDOW_MS = 10 * 60 * 1000;
+
+type RecentEventCreate = {
+  createdAt: number;
+  eventId?: number | string;
+  fingerprint: string;
+  title?: string;
+};
+
+const normalizeFingerprintText = (value: unknown) =>
+  String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+const hashText = (value: string) => {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
+};
+
+const createEventFingerprint = (
+  payload: CreateEventV2Payload,
+  published: boolean
+) => {
+  const sessions = Array.isArray(payload.sessions)
+    ? payload.sessions.map((session) => ({
+        date: session.date,
+        end_date: session.end_date,
+        end_time: session.end_time,
+        start_time: session.start_time,
+      }))
+    : [];
+  const tickets = Array.isArray(payload.tickets)
+    ? payload.tickets.map((ticket) => ({
+        name: normalizeFingerprintText(ticket.name),
+        price: Number(ticket.price || 0),
+        quantity: Number(ticket.quantity || 0),
+      }))
+    : [];
+
+  return JSON.stringify({
+    address: normalizeFingerprintText(payload.address),
+    attendance_mode: payload.attendance_mode,
+    category_id: payload.category_id,
+    city: normalizeFingerprintText(payload.city),
+    country_code: normalizeFingerprintText(payload.country_code),
+    online_platform: payload.online_platform,
+    published,
+    sessions,
+    state_id: payload.state_id,
+    tickets,
+    title: normalizeFingerprintText(payload.title),
+  });
+};
+
+const createIdempotencyKey = (fingerprint: string) =>
+  `mobile-event-create-${hashText(fingerprint)}`;
+
+const readRecentDuplicate = async (fingerprint: string) => {
+  try {
+    const raw = await AsyncStorage.getItem(RECENT_EVENT_CREATE_KEY);
+    if (!raw) return null;
+
+    const recent = JSON.parse(raw) as RecentEventCreate;
+    const createdAt = Number(recent?.createdAt || 0);
+    const isRecent = Date.now() - createdAt < DUPLICATE_CREATE_WINDOW_MS;
+
+    return recent?.fingerprint === fingerprint && isRecent ? recent : null;
+  } catch {
+    return null;
+  }
+};
+
+const rememberEventCreate = async (
+  fingerprint: string,
+  payload: CreateEventV2Payload,
+  response: any
+) => {
+  try {
+    const eventId = response?.body?.id || response?.body?.event?.id;
+    const recent: RecentEventCreate = {
+      createdAt: Date.now(),
+      eventId,
+      fingerprint,
+      title: String(payload.title || ""),
+    };
+    await AsyncStorage.setItem(RECENT_EVENT_CREATE_KEY, JSON.stringify(recent));
+  } catch {
+    // Local duplicate warning is best-effort; saving the event must not fail here.
+  }
+};
 
 export default function ReviewScreen() {
   const router = useRouter();
@@ -56,16 +152,29 @@ export default function ReviewScreen() {
       faqs.length
   );
 
-  const handleSubmit = async (published: boolean) => {
+  const submitEvent = async (
+    published: boolean,
+    payload: CreateEventV2Payload,
+    idempotencyKey: string,
+    fingerprint: string,
+    allowDuplicate = false
+  ) => {
     try {
       setSubmitMode(published ? "publish" : "draft");
-      const payload = buildNewEventPayload(formData, published);
       const res = eventId
         ? await updateNewEvent({ id: eventId, data: payload }).unwrap()
-        : await createNewEvent(payload).unwrap();
+        : await createNewEvent({
+            allowDuplicate,
+            data: payload,
+            idempotencyKey,
+          }).unwrap();
 
       if (res?.error) {
         throw new Error(String(res.body || "Failed to create event"));
+      }
+
+      if (!eventId) {
+        await rememberEventCreate(fingerprint, payload, res);
       }
 
       router.push("/success");
@@ -75,6 +184,43 @@ export default function ReviewScreen() {
     } finally {
       setSubmitMode(null);
     }
+  };
+
+  const handleSubmit = async (published: boolean) => {
+    if (submitMode || isLoading || isUpdating) return;
+
+    const payload = buildNewEventPayload(formData, published);
+    const fingerprint = createEventFingerprint(payload, published);
+    const idempotencyKey = createIdempotencyKey(fingerprint);
+
+    if (!eventId) {
+      const recentDuplicate = await readRecentDuplicate(fingerprint);
+
+      if (recentDuplicate) {
+        Alert.alert(
+          "Possible duplicate event",
+          "You recently created an event with the same title, date, ticket setup, and location. Open your event list to edit it, or continue if you really need another copy.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Create anyway",
+              style: "destructive",
+              onPress: () =>
+                void submitEvent(
+                  published,
+                  payload,
+                  `${idempotencyKey}-${Date.now()}`,
+                  fingerprint,
+                  true
+                ),
+            },
+          ]
+        );
+        return;
+      }
+    }
+
+    await submitEvent(published, payload, idempotencyKey, fingerprint);
   };
 
   const handleEdit = () => {

@@ -12,6 +12,18 @@ import { NEW_EVENTS_URL } from "../constants";
 import { apiSlice } from "./apiSlice";
 
 type EventId = string | number;
+type CreateNewEventArg =
+  | CreateEventV2Payload
+  | {
+      allowDuplicate?: boolean;
+      data: CreateEventV2Payload;
+      idempotencyKey?: string;
+    };
+
+const getCreateEventRequest = (arg: CreateNewEventArg) => {
+  if ("data" in arg) return arg;
+  return { data: arg };
+};
 
 export const newEventsApiSlice = apiSlice.injectEndpoints({
   overrideExisting: false,
@@ -62,12 +74,22 @@ export const newEventsApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: (_result, _error, id) => [{ type: "NewEvent", id }],
     }),
-    createNewEvent: builder.mutation<any, CreateEventV2Payload>({
-      query: (data) => ({
-        url: NEW_EVENTS_URL,
-        method: "POST",
-        body: data,
-      }),
+    createNewEvent: builder.mutation<any, CreateNewEventArg>({
+      query: (arg) => {
+        const { allowDuplicate, data, idempotencyKey } =
+          getCreateEventRequest(arg);
+        const headers: Record<string, string> = {};
+
+        if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+        if (allowDuplicate) headers["X-Allow-Duplicate-Create"] = "true";
+
+        return {
+          url: NEW_EVENTS_URL,
+          method: "POST",
+          body: data,
+          headers: Object.keys(headers).length ? headers : undefined,
+        };
+      },
       invalidatesTags: ["NewEvent", "Event"],
     }),
     updateNewEvent: builder.mutation<

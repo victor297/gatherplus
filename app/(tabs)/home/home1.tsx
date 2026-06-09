@@ -17,9 +17,11 @@ import {
   Globe2,
   ArrowRight,
   BookOpenText,
+  CalendarDays,
   MonitorPlay,
   ShieldCheck,
   Ticket,
+  TrendingUp,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
@@ -41,6 +43,7 @@ import {
   useGetPublicBlogsQuery,
 } from "@/redux/api/blogApiSlice";
 import { useGetTicketExchangeMarketplaceQuery } from "@/redux/api/ticketExchangeApiSlice";
+import { useGetRecommendedEventsQuery } from "@/redux/api/analyticsApiSlice";
 
 const DEFAULT_BLOG_IMAGE =
   "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
@@ -77,6 +80,24 @@ const money = (value?: unknown, currency?: unknown) => {
   } catch {
     return `${code} ${amount.toLocaleString()}`;
   }
+};
+
+const eventImage = (event: any) =>
+  event?.images?.[0] || event?.image || event?.cover_image || null;
+
+const eventLocation = (event: any) => {
+  const mode = String(event?.attendance_mode || "").toUpperCase();
+  if (mode === "ONLINE") return "Online";
+  return event?.city || event?.address || event?.state?.name || "Location TBA";
+};
+
+const eventPrice = (event: any) => {
+  if (event?.is_free) return "Free";
+  const ticketPrices = getArray(event?.tickets)
+    .map((ticket: any) => Number(ticket?.price || 0))
+    .filter((price) => price > 0);
+  const price = Number(event?.price || ticketPrices[0] || 0);
+  return price > 0 ? money(price, event?.currency) : "Free";
 };
 
 export default function HomeScreen() {
@@ -201,10 +222,25 @@ export default function HomeScreen() {
     page: 1,
     size: 6,
   });
+  const {
+    data: recommendedData,
+    isLoading: isRecommendedLoading,
+    isFetching: isFetchingRecommended,
+    refetch: refetchRecommended,
+  } = useGetRecommendedEventsQuery({
+    city: selectedState?.name || null,
+    country_code: selectedCountry?.code2 || null,
+    range: "30d",
+    region: selectedState?.name || null,
+    size: 6,
+  });
 
   const blogPosts = Array.isArray(blogData?.body?.result)
     ? blogData.body.result
     : [];
+  const recommendedEvents = getArray(recommendedData?.body?.result)
+    .filter((event: any) => event?.id)
+    .slice(0, 6);
   const onlineEvents = getArray(online?.body?.events?.result).slice(0, 6);
   const resaleBody = resaleData?.body || {};
   const resaleListings = getArray(
@@ -225,6 +261,7 @@ export default function HomeScreen() {
       refetchproviders(),
       refetchBlogs(),
       refetchResale(),
+      refetchRecommended(),
     ])
       .then(() => setRefreshing(false))
       .catch(() => setRefreshing(false));
@@ -233,6 +270,7 @@ export default function HomeScreen() {
     refetchLive,
     refetchOnline,
     refetchproviders,
+    refetchRecommended,
     refetchResale,
     refetchUpcoming,
   ]);
@@ -584,6 +622,105 @@ export default function HomeScreen() {
                       </TouchableOpacity>
                     ))}
                   </View>
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Events Worth Opening */}
+            <View className="mb-6">
+              <View className="flex-row justify-between items-center px-4 mb-4">
+                <View className="flex-1 pr-3">
+                  <Text className="text-white text-xl font-bold">
+                    Events worth opening
+                  </Text>
+                  <Text className="text-gray-400 mt-1">
+                    Standout events shaped by views, clicks, and bookings.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="bg-white rounded-full px-4 py-2"
+                  onPress={() => router.push("/(tabs)/home/explore")}
+                >
+                  <Text className="text-background font-bold">Find</Text>
+                </TouchableOpacity>
+              </View>
+
+              {isRecommendedLoading || isFetchingRecommended ? (
+                <ActivityIndicator color="#9EDD45" />
+              ) : recommendedEvents.length <= 0 ? (
+                <View className="mx-4 bg-[#111823] border border-[#243044] rounded-2xl p-5">
+                  <View className="h-12 w-12 rounded-2xl bg-primary/15 items-center justify-center mb-3">
+                    <TrendingUp color="#9EDD45" size={24} />
+                  </View>
+                  <Text className="text-white text-lg font-bold">
+                    Watch this shortlist
+                  </Text>
+                  <Text className="text-gray-400 mt-2 leading-5">
+                    Events people open, view, and book most will appear here as
+                    the marketplace gets more activity.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 16 }}
+                >
+                  {recommendedEvents.map((event: any) => (
+                    <TouchableOpacity
+                      key={event.id}
+                      onPress={() =>
+                        router.push(`/(tabs)/home/event/${event.id}`)
+                      }
+                      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mr-3 w-56"
+                    >
+                      <Image
+                        source={
+                          eventImage(event)
+                            ? { uri: eventImage(event) }
+                            : require("../../../assets/images/landing.webp")
+                        }
+                        className="w-full h-28 bg-[#1A2432]"
+                        resizeMode="cover"
+                      />
+                      <View className="p-3">
+                        <View className="flex-row items-center justify-between mb-2">
+                          <View className="bg-primary/15 rounded-full px-2.5 py-1">
+                            <Text className="text-primary text-[11px] font-bold">
+                              {event?.type || "Upcoming"}
+                            </Text>
+                          </View>
+                          <Text className="text-primary text-xs font-black">
+                            {eventPrice(event)}
+                          </Text>
+                        </View>
+                        <Text
+                          className="text-white text-base font-bold leading-5"
+                          numberOfLines={2}
+                        >
+                          {event?.title}
+                        </Text>
+                        <View className="flex-row items-center mt-3">
+                          <CalendarDays color="#94A3B8" size={13} />
+                          <Text
+                            className="text-gray-400 text-xs ml-2 flex-1"
+                            numberOfLines={1}
+                          >
+                            {formatDate(event?.start_date)}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center mt-2">
+                          <MapPin color="#94A3B8" size={13} />
+                          <Text
+                            className="text-gray-400 text-xs ml-2 flex-1"
+                            numberOfLines={1}
+                          >
+                            {eventLocation(event)}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </ScrollView>
               )}
             </View>
