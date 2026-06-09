@@ -99,6 +99,13 @@ export const eventApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Booking", "Event"],
     }),
+    validatePromoCode: builder.mutation<any, any>({
+      query: (data) => ({
+        url: "/promo-codes/validate",
+        method: "POST",
+        body: data,
+      }),
+    }),
     getBookings: builder.query<any, Record<string, unknown> | void>({
       query: (params = {}) => ({
         url: `${EVENT_URL}/booking/event`,
@@ -220,4 +227,5 @@ export const {
   useLikeEventMutation,
   useUnlikeEventMutation,
   useUpdateventMutation,
+  useValidatePromoCodeMutation,
 } = eventApiSlice;

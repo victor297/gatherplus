@@ -1,12 +1,14 @@
-import React, { useMemo } from "react";
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, CalendarDays, CreditCard, RefreshCcw, Wallet } from "lucide-react-native";
+import { ArrowLeft, CalendarDays, CreditCard, RefreshCcw, Search, Wallet } from "lucide-react-native";
 import ProfileFoundationScreen from "@/app/components/profile/ProfileFoundationScreen";
 import { useGetUserWalletLedgerQuery } from "@/redux/api/usersApiSlice";
 import type { RevenueHistoryItem, WalletCreditItem } from "@/types/revenue";
 
 type LedgerType = "available" | "pending" | "requested";
+
+const PAGE_SIZE = 12;
 
 const normalizeCurrency = (value?: unknown) =>
   String(value || "NGN").split(/[\s-]/)[0] || "NGN";
@@ -45,6 +47,8 @@ export default function RevenueLedgerScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const selectedType = getType(params.type as string | undefined);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const { data, isFetching, isLoading, refetch } = useGetUserWalletLedgerQuery({});
   const body = data?.body || {};
 
@@ -53,6 +57,33 @@ export default function RevenueLedgerScreen() {
     if (selectedType === "requested") return body.payoutRequests || [];
     return body.availableCredits || [];
   }, [body.availableCredits, body.pendingCredits, body.payoutRequests, selectedType]);
+
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return items;
+    return items.filter((item: WalletCreditItem | RevenueHistoryItem) => {
+      const credit = item as WalletCreditItem;
+      const payout = item as RevenueHistoryItem;
+      const booking = Array.isArray(credit.booking) ? credit.booking[0] : undefined;
+      const haystack = [
+        credit.event?.title,
+        credit.txn_ref,
+        booking?.code,
+        (payout as any).reference,
+        payout.status,
+        item.status,
+        credit.id ? `credit #${credit.id}` : "",
+        payout.id ? `request #${payout.id}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [items, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  const pagedItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const copy = {
     available: {
@@ -140,7 +171,11 @@ export default function RevenueLedgerScreen() {
             className={`rounded-full px-4 py-3 border ${
               selectedType === type ? "bg-[#5B4DFF] border-[#5B4DFF]" : "bg-[#111823] border-[#243044]"
             }`}
-            onPress={() => router.setParams({ type })}
+            onPress={() => {
+              setPage(1);
+              setSearch("");
+              router.setParams({ type });
+            }}
           >
             <Text className="text-white font-semibold capitalize">{type}</Text>
           </TouchableOpacity>
@@ -149,10 +184,30 @@ export default function RevenueLedgerScreen() {
 
       <View className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden">
         <View className="p-5 border-b border-[#243044]">
-          <Text className="text-white text-xl font-semibold">Transaction detail</Text>
-          <Text className="text-gray-400 mt-1">
-            {items.length} record{items.length === 1 ? "" : "s"} found.
-          </Text>
+          <View className="flex-row items-start justify-between">
+            <View className="flex-1 pr-3">
+              <Text className="text-white text-xl font-semibold">Transaction detail</Text>
+              <Text className="text-gray-400 mt-1">
+                {filteredItems.length} record{filteredItems.length === 1 ? "" : "s"} found.
+              </Text>
+            </View>
+            <Text className="text-gray-500">
+              Page {page} of {totalPages}
+            </Text>
+          </View>
+          <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-3 flex-row items-center mt-4">
+            <Search color="#8B6BFF" size={18} />
+            <TextInput
+              className="flex-1 text-white py-3 ml-2"
+              placeholder="Search reference, event, or status"
+              placeholderTextColor="#728097"
+              value={search}
+              onChangeText={(value) => {
+                setPage(1);
+                setSearch(value);
+              }}
+            />
+          </View>
         </View>
 
         {isFetching && !isLoading ? (
@@ -161,9 +216,9 @@ export default function RevenueLedgerScreen() {
           </View>
         ) : null}
 
-        {items.length ? (
+        {pagedItems.length ? (
           <FlatList
-            data={items}
+            data={pagedItems}
             keyExtractor={(item: any, index) => String(item.id || index)}
             renderItem={renderItem}
             scrollEnabled={false}
@@ -177,6 +232,24 @@ export default function RevenueLedgerScreen() {
             </Text>
           </View>
         )}
+
+        <View className="p-4 flex-row items-center justify-between">
+          <TouchableOpacity
+            className="bg-[#1A2432] rounded-xl px-4 py-3 disabled:opacity-40"
+            disabled={page <= 1}
+            onPress={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            <Text className="text-white font-semibold">Previous</Text>
+          </TouchableOpacity>
+          <Text className="text-gray-300">Page {page} of {totalPages}</Text>
+          <TouchableOpacity
+            className="bg-[#1A2432] rounded-xl px-4 py-3 disabled:opacity-40"
+            disabled={page >= totalPages}
+            onPress={() => setPage((current) => Math.min(totalPages, current + 1))}
+          >
+            <Text className="text-white font-semibold">Next</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ProfileFoundationScreen>
   );

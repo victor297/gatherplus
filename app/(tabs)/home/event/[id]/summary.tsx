@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   StatusBar,
+  TextInput,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, X } from "lucide-react-native";
@@ -18,6 +19,7 @@ import {
   useCompleteBookingPaymentMutation,
   useCreateBookingMutation,
   useGetMaxFreeTicketQuery,
+  useValidatePromoCodeMutation,
 } from "@/redux/api/eventsApiSlice";
 import { useStripe } from "@stripe/stripe-react-native";
 import * as Linking from "expo-linking";
@@ -50,6 +52,9 @@ const extractPaymentReference = (url: string) => {
 const getStripePaymentIntentId = (clientSecret?: string) =>
   clientSecret?.split("_secret")[0] || "";
 
+const normalizeCurrency = (value?: unknown) =>
+  String(value || "NGN").split(/[\s-]/)[0] || "NGN";
+
 export default function OrderSummaryScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
@@ -58,8 +63,12 @@ export default function OrderSummaryScreen() {
   const [createBooking, { isLoading: isBookingLoading }] =
     useCreateBookingMutation();
   const [completeBookingPayment] = useCompleteBookingPaymentMutation();
+  const [validatePromoCode, { isLoading: isValidatingPromo }] =
+    useValidatePromoCodeMutation();
   const { data: feeSettings } = useGetMaxFreeTicketQuery({});
   const [isProcessing, setIsProcessing] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
   // Payment states
   const [paymentResponse, setPaymentResponse] = useState<any>(null);
   const [selectedChannel, setSelectedChannel] = useState<
@@ -97,18 +106,63 @@ export default function OrderSummaryScreen() {
   const fixedFeeAmount = Number(
     bookingData?.fixedFeeAmount ?? feeSettings?.body?.fixed_fee ?? 0
   );
-  const fees = calculateBookingFees(
-    subtotal,
+  const promoDiscount = Number(
+    appliedPromo?.discount_amount ??
+      appliedPromo?.discountAmount ??
+      appliedPromo?.amount ??
+      0
+  );
+  const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
+  const checkoutFees = calculateBookingFees(
+    discountedSubtotal,
     platformFeeRate,
     fixedFeeAmount,
     Boolean(bookingData?.absorb_fee)
   );
-  const total = fees.total;
+  const total = checkoutFees.total;
+
+  const bookingPayload = () => ({
+    ...bookingData,
+    promo_code: appliedPromo?.code || appliedPromo?.promo_code || undefined,
+  });
+
+  const handleValidatePromo = async () => {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) {
+      Alert.alert("Promo code required", "Enter a promo code first.");
+      return;
+    }
+
+    try {
+      const response = await validatePromoCode({
+        code,
+        currency: normalizeCurrency(bookingData?.currency),
+        email: bookingData?.bookings?.[0]?.email,
+        event_id: bookingData.event_id,
+        subtotal,
+        ticket_ids: bookingData.bookings.map((booking: any) => booking.ticket_id),
+        user_id: userInfo?.sub,
+      }).unwrap();
+      const body = response?.body || response;
+      const discount = Number(body?.discount_amount ?? body?.discountAmount ?? body?.amount ?? 0);
+      setAppliedPromo({ ...body, code });
+      setPromoCode(code);
+      Alert.alert(
+        "Promo applied",
+        discount > 0
+          ? `${symbol}${discount.toLocaleString()} has been removed from this order.`
+          : "This code is valid for this order."
+      );
+    } catch (error: any) {
+      setAppliedPromo(null);
+      Alert.alert("Promo not applied", error?.data?.body || "This promo code is not valid for this order.");
+    }
+  };
 
   const fetchPaymentSheetParams = async () => {
     try {
       const response = await createBooking({
-        ...bookingData,
+        ...bookingPayload(),
         channel: "Stripe",
         callback_url: paymentCallbackUrl,
         user_id: userInfo?.sub,
@@ -146,7 +200,7 @@ export default function OrderSummaryScreen() {
       try {
         console.log(bookingData, "booking");
         const response = await createBooking({
-          ...bookingData,
+          ...bookingPayload(),
           channel: "Free",
           user_id: userInfo?.sub,
           // or whatever you want to call it
@@ -174,7 +228,7 @@ export default function OrderSummaryScreen() {
     try {
       if (selectedChannel === "PayStack") {
         const res = await createBooking({
-          ...bookingData,
+          ...bookingPayload(),
           channel: selectedChannel,
           callback_url: paymentCallbackUrl,
           user_id: userInfo?.sub,
@@ -401,14 +455,50 @@ useEffect(() => {
             <View className="flex-row justify-between">
               <Text className="text-gray-400">Platform fee</Text>
               <Text className="text-white">
-                {symbol} {fees.platformFee.toLocaleString()}
+                {symbol} {checkoutFees.platformFee.toLocaleString()}
               </Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-gray-400">Fixed fee</Text>
               <Text className="text-white">
-                {symbol} {fees.fixedFee.toLocaleString()}
+                {symbol} {checkoutFees.fixedFee.toLocaleString()}
               </Text>
+            </View>
+            <View className="bg-[#111823] border border-[#243044] rounded-xl p-3">
+              <Text className="text-gray-300 font-semibold">Promo code</Text>
+              <View className="flex-row gap-2 mt-3">
+                <TextInput
+                  className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white flex-1"
+                  placeholder="Enter code"
+                  placeholderTextColor="#728097"
+                  autoCapitalize="characters"
+                  value={promoCode}
+                  onChangeText={(value) => {
+                    setPromoCode(value.toUpperCase());
+                    if (appliedPromo) setAppliedPromo(null);
+                  }}
+                />
+                <TouchableOpacity
+                  className="bg-primary rounded-xl px-4 justify-center disabled:opacity-50"
+                  disabled={isValidatingPromo || subtotal <= 0}
+                  onPress={handleValidatePromo}
+                >
+                  <Text className="text-background font-bold">
+                    {isValidatingPromo ? "Checking" : "Apply"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {appliedPromo ? (
+                <View className="flex-row justify-between mt-3">
+                  <Text className="text-primary font-semibold">
+                    {appliedPromo.code || promoCode} applied
+                  </Text>
+                  <Text className="text-primary font-semibold">
+                    -{symbol}
+                    {promoDiscount.toLocaleString()}
+                  </Text>
+                </View>
+              ) : null}
             </View>
             {bookingData?.absorb_fee && subtotal > 0 && (
               <Text className="text-gray-500 text-xs">

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Text,
   TextInput,
@@ -21,6 +22,11 @@ import {
 } from "lucide-react-native";
 import ProfileFoundationScreen from "@/app/components/profile/ProfileFoundationScreen";
 import { useGetUserTicketBookingsQuery } from "@/redux/api/eventsApiSlice";
+import {
+  useCancelResaleListingMutation,
+  useCreateResaleListingMutation,
+  useGetMyTicketExchangeQuery,
+} from "@/redux/api/ticketExchangeApiSlice";
 import { formatDate } from "@/utils/formatDate";
 
 type WalletBooking = {
@@ -134,6 +140,7 @@ export default function BookingsScreen() {
   const [expandedGroups, setExpandedGroups] = useState<(string | number)[]>([]);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [resalePrices, setResalePrices] = useState<Record<string, string>>({});
 
   const { data, error, isFetching, isLoading, refetch } = useGetUserTicketBookingsQuery(
     { page: 1, size: 250 },
@@ -142,8 +149,24 @@ export default function BookingsScreen() {
       refetchOnMountOrArgChange: true,
     }
   );
+  const {
+    data: resaleData,
+    isFetching: resaleFetching,
+    refetch: refetchResale,
+  } = useGetMyTicketExchangeQuery(undefined, {
+    refetchOnFocus: true,
+    refetchOnMountOrArgChange: true,
+  });
+  const [createListing, { isLoading: isListing }] = useCreateResaleListingMutation();
+  const [cancelListing, { isLoading: isCancellingListing }] = useCancelResaleListingMutation();
 
   const wallet = useMemo(() => parseWallet(data), [data]);
+  const resaleBody = resaleData?.body || {};
+  const eligibleResale = getArray(resaleBody.eligibleBookings);
+  const resaleListings = getArray(resaleBody.listings);
+  const activeResaleListings = resaleListings.filter(
+    (listing: any) => String(listing.status || "").toUpperCase() === "ACTIVE"
+  );
   const filteredGroups = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return wallet.groups;
@@ -166,6 +189,35 @@ export default function BookingsScreen() {
         ? current.filter((id) => id !== eventId)
         : [...current, eventId]
     );
+  };
+
+  const handleListForResale = async (booking: any) => {
+    const price = Number(resalePrices[String(booking.id)] || booking.ticket?.price || 0);
+    if (!price || price <= 0) {
+      Alert.alert("Price required", "Enter a resale price greater than zero.");
+      return;
+    }
+
+    try {
+      await createListing({ booking_id: booking.id, price }).unwrap();
+      setResalePrices((current) => ({ ...current, [String(booking.id)]: "" }));
+      refetchResale();
+      refetch();
+      Alert.alert("Ticket listed", "Your ticket is now available on the resale marketplace.");
+    } catch (err: any) {
+      Alert.alert("Could not list ticket", err?.data?.body || "Please try again.");
+    }
+  };
+
+  const handleCancelListing = async (listingId: number | string) => {
+    try {
+      await cancelListing(listingId).unwrap();
+      refetchResale();
+      refetch();
+      Alert.alert("Listing cancelled", "The resale listing has been removed.");
+    } catch (err: any) {
+      Alert.alert("Could not cancel listing", err?.data?.body || "Please try again.");
+    }
   };
 
   return (
@@ -202,22 +254,129 @@ export default function BookingsScreen() {
       </View>
 
       {activeTab === "resale" ? (
-        <View className="bg-[#111823] border border-[#243044] rounded-2xl p-5 mb-5">
-          <Text className="text-white text-xl font-semibold">Ticket resale</Text>
-          <Text className="text-gray-400 mt-2 leading-6">
-            Paid, unused, upcoming tickets can be listed for resale when the backend marks them
-            eligible. Free tickets, checked-in tickets, cancelled tickets, and tickets from events
-            you organize are excluded for integrity.
-          </Text>
-          <TouchableOpacity
-            className="bg-primary rounded-xl py-3 mt-5"
-            onPress={() => router.push("/sell-tickets" as any)}
-          >
-            <Text className="text-background text-center font-bold">Open resale workspace</Text>
-          </TouchableOpacity>
+        <View className="gap-4 mb-5">
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl p-5">
+            <View className="flex-row items-start justify-between">
+              <View className="flex-1 pr-3">
+                <Text className="text-white text-xl font-semibold">Ticket resale</Text>
+                <Text className="text-gray-400 mt-2 leading-6">
+                  Paid, unused, upcoming tickets can be listed. Free passes, checked-in tickets,
+                  cancelled tickets, and tickets for events you organize are excluded.
+                </Text>
+              </View>
+              {resaleFetching ? <ActivityIndicator color="#9EDD45" /> : null}
+            </View>
+
+            <View className="flex-row gap-3 mt-5">
+              <View className="flex-1 bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4">
+                <Text className="text-white text-2xl font-bold">{eligibleResale.length}</Text>
+                <Text className="text-gray-400 mt-1">Can list</Text>
+              </View>
+              <View className="flex-1 bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4">
+                <Text className="text-white text-2xl font-bold">{activeResaleListings.length}</Text>
+                <Text className="text-gray-400 mt-1">Active</Text>
+              </View>
+            </View>
+
+            <View className="flex-row gap-3 mt-4">
+              <TouchableOpacity
+                className="bg-primary rounded-xl py-3 flex-1"
+                onPress={() => router.push("/sell-tickets" as any)}
+              >
+                <Text className="text-background text-center font-bold">Seller workspace</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="border border-[#2E3A4D] rounded-xl py-3 flex-1"
+                onPress={() => router.push("/ticket-exchange" as any)}
+              >
+                <Text className="text-white text-center font-semibold">Marketplace</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden">
+            <View className="p-4 border-b border-[#243044]">
+              <Text className="text-white text-lg font-semibold">Eligible tickets</Text>
+              <Text className="text-gray-400 mt-1">
+                {eligibleResale.length} paid ticket{eligibleResale.length === 1 ? "" : "s"} ready for resale.
+              </Text>
+            </View>
+            {eligibleResale.slice(0, 4).map((booking: any) => (
+              <View key={booking.id || booking.code} className="p-4 border-b border-[#243044]">
+                <Text className="text-white font-semibold">{booking.event?.title || "Event ticket"}</Text>
+                <Text className="text-gray-400 mt-1">
+                  {booking.ticket?.name || "Ticket"} · {booking.code || "No code"} ·{" "}
+                  {money(booking.ticket?.price || booking.invoice?.finalAmount || 0, booking.event?.currency)}
+                </Text>
+                <View className="flex-row gap-2 mt-3">
+                  <TextInput
+                    className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white flex-1"
+                    keyboardType="decimal-pad"
+                    placeholder="Resale price"
+                    placeholderTextColor="#728097"
+                    value={resalePrices[String(booking.id)] ?? String(booking.ticket?.price || "")}
+                    onChangeText={(value) =>
+                      setResalePrices((current) => ({ ...current, [String(booking.id)]: value }))
+                    }
+                  />
+                  <TouchableOpacity
+                    className="bg-primary rounded-xl px-4 justify-center disabled:opacity-50"
+                    disabled={isListing}
+                    onPress={() => handleListForResale(booking)}
+                  >
+                    <Text className="text-background font-bold">List</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+            {!eligibleResale.length ? (
+              <View className="p-6">
+                <Text className="text-gray-300 font-semibold">No eligible resale tickets right now.</Text>
+                <Text className="text-gray-500 mt-2">
+                  Paid tickets appear here only when they are unused, upcoming, not already listed,
+                  and not from your own event.
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden">
+            <View className="p-4 border-b border-[#243044]">
+              <Text className="text-white text-lg font-semibold">Your listings</Text>
+              <Text className="text-gray-400 mt-1">Active and sold listings stay visible for audit.</Text>
+            </View>
+            {resaleListings.slice(0, 4).map((listing: any) => (
+              <View key={listing.id} className="p-4 border-b border-[#243044]">
+                <View className="flex-row items-start justify-between">
+                  <View className="flex-1 pr-3">
+                    <Text className="text-white font-semibold">{listing.event?.title || "Resale ticket"}</Text>
+                    <Text className="text-gray-400 mt-1">
+                      {listing.ticket?.name || "Ticket"} · {money(listing.price, listing.currency)} ·{" "}
+                      {listing.status || "Active"}
+                    </Text>
+                  </View>
+                  {String(listing.status || "").toUpperCase() === "ACTIVE" ? (
+                    <TouchableOpacity
+                      className="border border-red-500/40 rounded-xl px-3 py-2 disabled:opacity-50"
+                      disabled={isCancellingListing}
+                      onPress={() => handleCancelListing(listing.id)}
+                    >
+                      <Text className="text-red-300 font-semibold">Cancel</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </View>
+            ))}
+            {!resaleListings.length ? (
+              <View className="p-6">
+                <Text className="text-gray-300 font-semibold">No resale listings yet.</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       ) : null}
 
+      {activeTab === "events" ? (
       <View className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden">
         <View className="p-4 border-b border-[#243044]">
           <View className="flex-row items-start justify-between">
@@ -403,6 +562,7 @@ export default function BookingsScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      ) : null}
     </ProfileFoundationScreen>
   );
 }
