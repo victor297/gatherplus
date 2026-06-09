@@ -24,6 +24,7 @@ import {
   MessageCircleIcon,
   Calendar1Icon,
   Users,
+  Globe2,
 } from "lucide-react-native";
 import { useGetProfileQuery } from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -101,6 +102,12 @@ export default function ProfileScreen() {
   }
 
   const menuItems = [
+    {
+      icon: <Globe2 size={24} color="#6B7280" />,
+      title: "Public Marketplace",
+      subtitle: "Browse countries, cities, planners, events",
+      route: "/marketplace",
+    },
     {
       icon: <BookDashed size={24} color="#6B7280" />,
       title: "Bookings",

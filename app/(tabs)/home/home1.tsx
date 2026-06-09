@@ -14,6 +14,8 @@ import {
   Search,
   ChevronDown,
   StarIcon,
+  Globe2,
+  ArrowRight,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
@@ -240,6 +242,32 @@ export default function HomeScreen() {
           </Text>
         ) : (
           <>
+            <View className="px-4 mb-6">
+              <TouchableOpacity
+                className="bg-[#111823] border border-[#243044] rounded-2xl p-4"
+                onPress={() => router.push("/marketplace" as any)}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center flex-1">
+                    <View className="h-12 w-12 rounded-2xl bg-[#1A2432] items-center justify-center mr-3">
+                      <Globe2 color="#9EDD45" size={22} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-white text-lg font-bold">
+                        Public Marketplace
+                      </Text>
+                      <Text className="text-gray-400 mt-1" numberOfLines={2}>
+                        Explore active cities, planners, and public events.
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="h-10 w-10 rounded-full bg-[#1A2432] items-center justify-center ml-3">
+                    <ArrowRight color="#9EDD45" size={18} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+
             {/* Categories */}
             <Text className="text-white text-xl font-bold px-4 mb-4">
               Categories
@@ -351,9 +379,9 @@ export default function HomeScreen() {
                 </Text>
                 <TouchableOpacity
                   className="p-2"
-                  onPress={() => router.push("/(provider)/services")}
+                  onPress={() => router.push("/marketplace" as any)}
                 >
-                  <Text className="text-primary">See All</Text>
+                  <Text className="text-primary">Marketplace</Text>
                 </TouchableOpacity>
               </View>
               {isprovidersLoading || isFetchingproviders ? (

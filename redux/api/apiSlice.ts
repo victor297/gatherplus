@@ -31,6 +31,7 @@ export const apiSlice = createApi({
     "Event",
     "NewEvent",
     "Notifications",
+    "Marketplace",
     "PromoCode",
     "Profile",
     "Provider",
