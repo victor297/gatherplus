@@ -1,5 +1,5 @@
 import { View, Text, TextInput, ScrollView, Image, TouchableOpacity, RefreshControl, ActivityIndicator, Modal } from 'react-native';
-import { MapPin, Search, Bell, ChevronDown } from 'lucide-react-native';
+import { MapPin, Search, ChevronDown } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { Picker } from '@react-native-picker/picker';
@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { formatDate } from '@/utils/formatDate';
 import { useDispatch } from 'react-redux';
 import { checkTokenImmediately } from '@/redux/features/auth/authSlice';
+import NotificationBellButton from '@/app/components/NotificationBellButton';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -147,9 +148,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </Modal>
           </View>
-          <TouchableOpacity>
-            <Bell size={24} color="#fff" />
-          </TouchableOpacity>
+          <NotificationBellButton />
         </View>
 
         <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4  mb-6">

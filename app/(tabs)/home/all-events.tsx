@@ -14,7 +14,6 @@ import { useRouter } from "expo-router";
 import {
   ArrowLeft,
   Search,
-  Bell,
   Filter,
   Calendar as CalendarIcon,
   Clock,
@@ -30,6 +29,7 @@ import {
 import { formatDate } from "@/utils/formatDate";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Location from "expo-location";
+import NotificationBellButton from "@/app/components/NotificationBellButton";
 
 interface Country {
   code2: string;
@@ -255,9 +255,7 @@ export default function ExploreScreen() {
               <Filter color="white" size={24} />
             )}
           </TouchableOpacity>
-          <TouchableOpacity>
-            <Bell color="white" size={24} />
-          </TouchableOpacity>
+          <NotificationBellButton />
         </View>
       </View>
 

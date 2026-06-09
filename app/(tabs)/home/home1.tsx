@@ -12,7 +12,6 @@ import {
 import {
   MapPin,
   Search,
-  Bell,
   ChevronDown,
   StarIcon,
 } from "lucide-react-native";
@@ -30,6 +29,7 @@ import { useDispatch } from "react-redux";
 import { checkTokenImmediately } from "@/redux/features/auth/authSlice";
 import { useGetprovidersQuery } from "@/redux/api/providersApiSlice";
 import { truncateAlphabet, truncateSentence } from "@/utils";
+import NotificationBellButton from "@/app/components/NotificationBellButton";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -208,9 +208,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </Modal>
           </View>
-          <TouchableOpacity>
-            <Bell size={24} color="#fff" />
-          </TouchableOpacity>
+          <NotificationBellButton />
         </View>
 
         <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4  mb-6">

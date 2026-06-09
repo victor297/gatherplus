@@ -14,7 +14,6 @@ import { useRouter } from "expo-router";
 import {
   ArrowLeft,
   Search,
-  Bell,
   Filter,
   Calendar as CalendarIcon,
   TimerReset,
@@ -37,6 +36,7 @@ import {
   getTicketPrice,
 } from "@/utils/eventHelpers";
 import type { AttendanceMode } from "@/types/events";
+import NotificationBellButton from "@/app/components/NotificationBellButton";
 
 interface Country {
   code2: string;
@@ -295,9 +295,7 @@ export default function ExploreScreen() {
               <Filter color="white" size={24} />
             )}
           </TouchableOpacity>
-          <TouchableOpacity>
-            <Bell color="white" size={24} />
-          </TouchableOpacity>
+          <NotificationBellButton />
         </View>
       </View>
 

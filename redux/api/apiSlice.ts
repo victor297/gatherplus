@@ -28,6 +28,7 @@ export const apiSlice = createApi({
     "Bookmark",
     "Event",
     "NewEvent",
+    "Notifications",
     "Profile",
     "Provider",
     "Questionnaire",
