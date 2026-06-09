@@ -17,6 +17,9 @@ import {
   Globe2,
   ArrowRight,
   BookOpenText,
+  MonitorPlay,
+  ShieldCheck,
+  Ticket,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
@@ -31,12 +34,13 @@ import { formatDate } from "@/utils/formatDate";
 import { useDispatch } from "react-redux";
 import { checkTokenImmediately } from "@/redux/features/auth/authSlice";
 import { useGetprovidersQuery } from "@/redux/api/providersApiSlice";
-import { truncateAlphabet, truncateSentence } from "@/utils";
+import { truncateAlphabet } from "@/utils";
 import NotificationBellButton from "@/app/components/NotificationBellButton";
 import {
   BlogPost,
   useGetPublicBlogsQuery,
 } from "@/redux/api/blogApiSlice";
+import { useGetTicketExchangeMarketplaceQuery } from "@/redux/api/ticketExchangeApiSlice";
 
 const DEFAULT_BLOG_IMAGE =
   "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
@@ -55,6 +59,25 @@ function formatBlogDate(value?: string | null) {
     month: "short",
   });
 }
+
+const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
+
+const normalizeCurrency = (value?: unknown) =>
+  String(value || "NGN").split(/[\s-]/)[0] || "NGN";
+
+const money = (value?: unknown, currency?: unknown) => {
+  const amount = Number(value || 0);
+  const code = normalizeCurrency(currency);
+  try {
+    return new Intl.NumberFormat("en-US", {
+      currency: code,
+      maximumFractionDigits: amount % 1 ? 2 : 0,
+      style: "currency",
+    }).format(amount);
+  } catch {
+    return `${code} ${amount.toLocaleString()}`;
+  }
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -133,6 +156,20 @@ export default function HomeScreen() {
     search: searchTerm,
   });
   const {
+    data: online,
+    isLoading: isOnlineLoading,
+    isFetching: isFetchingOnline,
+    refetch: refetchOnline,
+  } = useGetEventsQuery({
+    attendance_mode: "ONLINE",
+    city: null,
+    page: 1,
+    search: searchTerm,
+    size: 6,
+    sortDirection,
+    type: "UPCOMING",
+  });
+  const {
     data: providers,
     error: providersError,
     isLoading: isprovidersLoading,
@@ -155,22 +192,50 @@ export default function HomeScreen() {
     page: 1,
     size: 6,
   });
+  const {
+    data: resaleData,
+    isLoading: isResaleLoading,
+    isFetching: isFetchingResale,
+    refetch: refetchResale,
+  } = useGetTicketExchangeMarketplaceQuery({
+    page: 1,
+    size: 6,
+  });
 
   const blogPosts = Array.isArray(blogData?.body?.result)
     ? blogData.body.result
     : [];
+  const onlineEvents = getArray(online?.body?.events?.result).slice(0, 6);
+  const resaleBody = resaleData?.body || {};
+  const resaleListings = getArray(
+    resaleBody.listings || resaleBody.result || resaleBody.data
+  )
+    .filter(
+      (listing: any) =>
+        String(listing.status || "ACTIVE").toUpperCase() === "ACTIVE"
+    )
+    .slice(0, 6);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     Promise.all([
       refetchUpcoming(),
       refetchLive(),
+      refetchOnline(),
       refetchproviders(),
       refetchBlogs(),
+      refetchResale(),
     ])
       .then(() => setRefreshing(false))
       .catch(() => setRefreshing(false));
-  }, []);
+  }, [
+    refetchBlogs,
+    refetchLive,
+    refetchOnline,
+    refetchproviders,
+    refetchResale,
+    refetchUpcoming,
+  ]);
 
   return (
     <View className="flex-1 bg-background">
@@ -393,10 +458,10 @@ export default function HomeScreen() {
                   Featured Planners and Pros{" "}
                 </Text>
                 <TouchableOpacity
-                  className="p-2"
+                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
                   onPress={() => router.push("/marketplace" as any)}
                 >
-                  <Text className="text-primary">Marketplace</Text>
+                  <Text className="text-primary font-semibold">Marketplace</Text>
                 </TouchableOpacity>
               </View>
               {isprovidersLoading || isFetchingproviders ? (
@@ -460,10 +525,10 @@ export default function HomeScreen() {
                   Live Events
                 </Text>
                 <TouchableOpacity
-                  className="p-2"
+                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
                   onPress={() => router.push("/(tabs)/home/explore")}
                 >
-                  <Text className="text-primary">Show All</Text>
+                  <Text className="text-primary font-semibold">Show all</Text>
                 </TouchableOpacity>
               </View>
               {isliveLoading || isFetchinglive ? (
@@ -485,42 +550,213 @@ export default function HomeScreen() {
                         onPress={() =>
                           router.push(`/(tabs)/home/event/${event.id}`)
                         }
-                        className="bg-[#1A2432] w-48 rounded-lg overflow-hidden mb-4"
+                        className="bg-[#1A2432] w-52 rounded-2xl overflow-hidden mb-4 border border-[#243044]"
                       >
                         <Image
                           source={{ uri: event?.images?.[0] }}
                           className="w-full h-32"
                           resizeMode="cover"
                         />
-                        <View className="p-4">
-                          <Text className="text-white text-xl font-semibold">
+                        <View className="p-3">
+                          <View className="self-start bg-primary/15 rounded-full px-3 py-1 mb-2">
+                            <Text className="text-primary text-xs font-bold">
+                              Live now
+                            </Text>
+                          </View>
+                          <Text
+                            className="text-white text-lg font-bold leading-6"
+                            numberOfLines={2}
+                          >
                             {event?.title}
                           </Text>
-                          <Text className="text-gray-400 mb-4">
+                          <Text className="text-gray-400 mt-1" numberOfLines={2}>
                             {event?.address?.length > 25
                               ? `${event.address.slice(0, 25)}...`
                               : event?.address}
                           </Text>
-                          <View className="flex-row items-center justify-between">
-                            <View className="flex-row">
-                              {[1, 2, 3].map((avatar) => (
-                                <Image
-                                  key={avatar}
-                                  source={require("../../../assets/images/thumbnail.png")}
-                                  className="w-8 h-8 rounded-full border-2 border-[#1A2432] -ml-2 first:ml-0"
-                                />
-                              ))}
-                            </View>
-                            <TouchableOpacity className="bg-primary px-6 py-2 rounded-full">
-                              <Text className="text-background font-semibold">
-                                Join now
-                              </Text>
-                            </TouchableOpacity>
+                          <View className="bg-primary rounded-xl py-3 mt-4 flex-row items-center justify-center">
+                            <Text className="text-background font-black">
+                              Join now
+                            </Text>
+                            <ArrowRight color="#06101F" size={16} />
                           </View>
                         </View>
                       </TouchableOpacity>
                     ))}
                   </View>
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Online Events */}
+            <View className="mb-6">
+              <View className="flex-row justify-between items-center px-4 mb-4">
+                <View className="flex-1 pr-3">
+                  <Text className="text-white text-xl font-bold">
+                    Online Events
+                  </Text>
+                  <Text className="text-gray-400 mt-1">
+                    Join virtual sessions from anywhere.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
+                  onPress={() => router.push("/marketplace" as any)}
+                >
+                  <Text className="text-primary font-semibold">More</Text>
+                </TouchableOpacity>
+              </View>
+
+              {isOnlineLoading || isFetchingOnline ? (
+                <ActivityIndicator color="#9EDD45" />
+              ) : onlineEvents.length <= 0 ? (
+                <View className="mx-4 bg-[#111823] border border-[#243044] rounded-2xl p-5">
+                  <View className="h-12 w-12 rounded-2xl bg-primary/15 items-center justify-center mb-3">
+                    <MonitorPlay color="#9EDD45" size={24} />
+                  </View>
+                  <Text className="text-white text-lg font-bold">
+                    Online events are coming
+                  </Text>
+                  <Text className="text-gray-400 mt-2 leading-5">
+                    Virtual workshops, streams, and remote sessions will show
+                    here as organizers publish them.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 16 }}
+                >
+                  {onlineEvents.map((event: any) => (
+                    <TouchableOpacity
+                      key={event.id}
+                      onPress={() =>
+                        router.push(`/(tabs)/home/event/${event.id}`)
+                      }
+                      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mr-3 w-56"
+                    >
+                      <Image
+                        source={
+                          event?.images?.[0]
+                            ? { uri: event.images[0] }
+                            : require("../../../assets/images/landing.webp")
+                        }
+                        className="w-full h-28 bg-[#1A2432]"
+                        resizeMode="cover"
+                      />
+                      <View className="p-3">
+                        <View className="flex-row items-center mb-2">
+                          <MonitorPlay color="#9EDD45" size={14} />
+                          <Text className="text-primary text-xs font-bold ml-2">
+                            Online
+                          </Text>
+                        </View>
+                        <Text
+                          className="text-white text-base font-bold leading-5"
+                          numberOfLines={2}
+                        >
+                          {event?.title}
+                        </Text>
+                        <Text className="text-gray-400 text-sm mt-1">
+                          {formatDate(event?.start_date)}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Resale Tickets */}
+            <View className="mb-6">
+              <View className="flex-row justify-between items-center px-4 mb-4">
+                <View className="flex-1 pr-3">
+                  <Text className="text-white text-xl font-bold">
+                    Tickets for resale
+                  </Text>
+                  <Text className="text-gray-400 mt-1">
+                    Verified tickets from other attendees.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
+                  onPress={() => router.push("/ticket-exchange" as any)}
+                >
+                  <Text className="text-primary font-semibold">See all</Text>
+                </TouchableOpacity>
+              </View>
+
+              {isResaleLoading || isFetchingResale ? (
+                <ActivityIndicator color="#9EDD45" />
+              ) : resaleListings.length <= 0 ? (
+                <View className="mx-4 bg-[#111823] border border-[#243044] rounded-2xl p-5 overflow-hidden">
+                  <View className="flex-row items-start">
+                    <View className="h-12 w-12 rounded-2xl bg-primary/15 items-center justify-center mr-3">
+                      <Ticket color="#9EDD45" size={24} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-white text-lg font-bold">
+                        Watch this space
+                      </Text>
+                      <Text className="text-gray-400 mt-2 leading-5">
+                        Resale tickets will appear here when attendees list
+                        verified tickets for sale.
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    className="bg-[#1A2432] border border-[#2A3546] rounded-xl py-3 mt-4 flex-row items-center justify-center"
+                    onPress={() => router.push("/ticket-exchange" as any)}
+                  >
+                    <ShieldCheck color="#9EDD45" size={16} />
+                    <Text className="text-white font-semibold ml-2">
+                      Open resale market
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 16 }}
+                >
+                  {resaleListings.map((listing: any) => (
+                    <TouchableOpacity
+                      key={listing.id}
+                      className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mr-3 w-56"
+                      onPress={() => router.push("/ticket-exchange" as any)}
+                    >
+                      <View className="flex-row items-center mb-3">
+                        <View className="h-10 w-10 rounded-2xl bg-primary/15 items-center justify-center mr-3">
+                          <Ticket color="#9EDD45" size={20} />
+                        </View>
+                        <View className="bg-primary/15 rounded-full px-3 py-1">
+                          <Text className="text-primary text-xs font-bold">
+                            Verified
+                          </Text>
+                        </View>
+                      </View>
+                      <Text
+                        className="text-white text-base font-bold leading-5"
+                        numberOfLines={2}
+                      >
+                        {listing.event?.title || "Resale ticket"}
+                      </Text>
+                      <Text
+                        className="text-gray-400 text-sm mt-1"
+                        numberOfLines={1}
+                      >
+                        {listing.ticket?.name || "Ticket"}
+                      </Text>
+                      <Text className="text-primary text-lg font-black mt-3">
+                        {money(
+                          listing.buyer_total_amount || listing.price,
+                          listing.currency || listing.event?.currency
+                        )}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </ScrollView>
               )}
             </View>
