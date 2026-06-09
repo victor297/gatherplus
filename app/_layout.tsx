@@ -4,8 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Provider,useDispatch } from "react-redux";
 import { initializeUserInfo } from '@/redux/features/auth/authSlice';
 import store from '@/redux/store';
-import { StripeProvider } from '@stripe/stripe-react-native';
-import { appConfig } from '@/config/env';
+import AppStripeProvider from '@/components/AppStripeProvider';
 
 declare global {
   interface Window {
@@ -33,14 +32,11 @@ export default function RootLayout() {
     window.frameworkReady?.();
   }, []);
   return (
-      <StripeProvider
-        merchantIdentifier={appConfig.stripeMerchantIdentifier}
-        publishableKey={appConfig.stripePublishableKey}
-      >
+    <AppStripeProvider>
     <Provider store={store}>
       <RootLayoutContent />
       <StatusBar style="light" />
     </Provider>
-    </StripeProvider>
+    </AppStripeProvider>
   );
 }

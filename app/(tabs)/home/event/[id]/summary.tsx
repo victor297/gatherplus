@@ -21,7 +21,7 @@ import {
   useGetMaxFreeTicketQuery,
   useValidatePromoCodeMutation,
 } from "@/redux/api/eventsApiSlice";
-import { useStripe } from "@stripe/stripe-react-native";
+import { useAppStripe } from "@/components/useAppStripe";
 import * as Linking from "expo-linking";
 import { WebView } from "react-native-webview";
 import { useSelector } from "react-redux";
@@ -74,7 +74,7 @@ export default function OrderSummaryScreen() {
   const [selectedChannel, setSelectedChannel] = useState<
     "Stripe" | "PayStack" | null
   >(null);
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { initPaymentSheet, presentPaymentSheet } = useAppStripe();
   const [stripeLoading, setStripeLoading] = useState(false);
   const [showPaystackWebView, setShowPaystackWebView] = useState(false);
   const paymentCallbackUrl = Linking.createURL(

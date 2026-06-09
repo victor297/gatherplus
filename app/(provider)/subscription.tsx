@@ -11,12 +11,12 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { WebView } from "react-native-webview";
-import { useStripe } from "@stripe/stripe-react-native";
 import {
   useCompleteSubMutation,
   useGetPlansQuery,
   useInitiateSubMutation,
 } from "@/redux/api/providersApiSlice";
+import { useAppStripe } from "@/components/useAppStripe";
 import { ArrowLeft, X as XIcon } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { RefreshControl, StyleSheet } from "react-native";
@@ -33,7 +33,7 @@ const Subscription = () => {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("plans"); // "plans" or "active"
 
-  const stripe = useStripe();
+  const stripe = useAppStripe();
 
   // Get plans data
   const {
