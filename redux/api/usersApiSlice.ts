@@ -96,6 +96,13 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ["Wallet"],
     }),
+    getUserWalletLedger: builder.query<any, void | Record<string, never>>({
+      query: () => ({
+        url: `${PROFILE_URL}/wallet/ledger`,
+        method: "GET",
+      }),
+      providesTags: ["Wallet"],
+    }),
      updateProfile: builder.mutation<{ success: boolean }, any>({
       query: (data) => ({
         url: `${PROFILE_URL}`,
@@ -160,6 +167,7 @@ export const {
   useResetpasswordMutation,
   useGetProfileQuery, 
   useGetUserWalletQuery,
+  useGetUserWalletLedgerQuery,
   useUpdateProfileMutation,
   useUpdateEmailMutation,
   useUpdatePasswordMutation,

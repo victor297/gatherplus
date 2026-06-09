@@ -18,3 +18,11 @@ export interface UserTicketBooking {
   status?: string;
   ticket?: Record<string, unknown>;
 }
+
+export interface UserBookingGroup {
+  event: Record<string, any>;
+  invoiceTotal: number;
+  latestBookingAt?: string;
+  ticketCount: number;
+  tickets: UserTicketBooking[];
+}

@@ -1,25 +1,35 @@
 import React, { useRef } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
   ActivityIndicator,
-  TouchableOpacity,
   Alert,
   Linking,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import QRCode from "react-native-qrcode-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
-import { Ionicons } from "@expo/vector-icons";
-import Svg, { Rect, Circle } from "react-native-svg";
+import QRCode from "react-native-qrcode-svg";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Clock,
+  Download,
+  Mail,
+  MapPin,
+  Monitor,
+  Phone,
+  RefreshCcw,
+  Ticket,
+  User,
+} from "lucide-react-native";
 import {
   useGetBookingByIdQuery,
   useGetBookingDetailsQuery,
 } from "@/redux/api/eventsApiSlice";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native";
-import { ArrowLeft } from "lucide-react-native";
 import { getStringParam } from "@/utils/routeParams";
 import {
   canShowProtectedOnlineAccess,
@@ -29,241 +39,257 @@ import {
   getAttendanceLabel,
   getOnlineRevealLabel,
 } from "@/utils/eventHelpers";
+import { formatDate } from "@/utils/formatDate";
 
-const TicketCard = ({ booking, index }: { booking: any; index: number }) => {
-  const ticketRef = useRef<View | null>(null);
-  const { data: richBookingData, isFetching } = useGetBookingByIdQuery(
-    booking?.id,
-    {
-      skip: !booking?.id,
-    }
+const money = (value?: unknown, currency?: unknown) => {
+  const amount = Number(value || 0);
+  const code = currencySymbol(String(currency || "NGN")) || "NGN";
+  return amount > 0 ? `${code} ${amount.toLocaleString()}` : "Free";
+};
+
+function InfoTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 flex-1 min-w-[46%]">
+      <View className="w-10 h-10 rounded-full bg-white/10 items-center justify-center mb-3">
+        {icon}
+      </View>
+      <Text className="text-gray-400 text-xs uppercase tracking-[2px]">{label}</Text>
+      <Text className="text-white font-semibold mt-1">{value}</Text>
+    </View>
   );
+}
+
+function TicketPass({ booking, index }: { booking: any; index: number }) {
+  const ticketRef = useRef<View | null>(null);
+  const { data: richBookingData, isFetching } = useGetBookingByIdQuery(booking?.id, {
+    skip: !booking?.id,
+  });
   const richBooking = richBookingData?.body || booking;
-  const event = richBooking?.event;
+  const event = richBooking?.event || booking?.event || {};
   const code = richBooking?.code || booking?.code || String(richBooking?.id || "");
   const hasOnlineAccess = eventHasOnlineAccess(event);
   const canShowJoinLink = canShowProtectedOnlineAccess(richBooking);
-  const symbol = currencySymbol(event?.currency || richBooking?.ticket?.currency);
+  const session = richBooking?.session || {};
+  const ticket = richBooking?.ticket || {};
 
   const downloadTicket = async () => {
     try {
       if (!ticketRef.current) return;
-
       const uri = await captureRef(ticketRef.current, {
         format: "png",
         quality: 1,
       });
-
       const permission = await MediaLibrary.requestPermissionsAsync();
-      if (permission.granted) {
-        await MediaLibrary.saveToLibraryAsync(uri);
-        Alert.alert("Success", "Ticket saved to gallery.");
-      } else {
-        Alert.alert("Permission denied", "Please allow photo permissions.");
+      if (!permission.granted) {
+        Alert.alert("Permission needed", "Allow photo access to save this ticket.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "Failed to save the ticket. Try again.");
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert("Ticket saved", "The ticket image was saved to your gallery.");
+    } catch {
+      Alert.alert("Download failed", "Please try again.");
     }
   };
 
   return (
     <View
-      className="mb-6 bg-white rounded-lg p-4"
       ref={ticketRef}
       collapsable={false}
+      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mb-5"
     >
-      <View className="relative w-[100%] m-1">
-        <Svg height="128" width="100%" viewBox="0 0 520 170">
-          <Rect
-            x="0"
-            y="0"
-            width="520"
-            height="170"
-            rx="10"
-            ry="10"
-            fill="white"
-            stroke="gray"
-            strokeWidth="2"
-          />
-          <Circle
-            cx="0"
-            cy="85"
-            r="20"
-            fill="#020e1e"
-            stroke="#020e1e"
-            strokeWidth="2"
-          />
-          <Circle
-            cx="520"
-            cy="85"
-            r="20"
-            fill="#020e1e"
-            stroke="#020e1e"
-            strokeWidth="2"
-          />
-        </Svg>
-        <View className="absolute top-0 left-0 w-full h-full flex justify-center p-4">
-          <Text className="font-bold text-blue-600 text-center mb-2">
-            {event?.title || richBooking?.session?.name || `Ticket ${index + 1}`}
-          </Text>
-          <View className="flex-row justify-center gap-3 items-center">
-            <QRCode value={code} size={64} />
-            <View className="flex-1">
-              <Text className="text-base text-gray-700">
-                {richBooking?.fullname}
+      <View className="p-5 border-b border-[#243044]">
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 pr-3">
+            <View className="flex-row items-center">
+              <View className="w-11 h-11 rounded-full bg-primary items-center justify-center">
+                <Ticket color="#020817" size={21} />
+              </View>
+              <Text className="text-[#8B6BFF] font-bold tracking-[4px] uppercase ml-3">
+                Secure pass
               </Text>
-              <Text className="text-sm text-gray-500">{richBooking?.email}</Text>
-              <Text className="text-sm text-gray-500">
-                {richBooking?.ticket?.name || richBooking?.ticket?.seat_type}
-              </Text>
-              <Text className="text-xs text-gray-500 mt-1">Code: {code}</Text>
             </View>
-            <TouchableOpacity
-              onPress={downloadTicket}
-              className="bg-gray-100 p-2 rounded-full"
-            >
-              <Ionicons name="download-outline" size={20} color="black" />
-            </TouchableOpacity>
+            <Text className="text-white text-2xl font-bold mt-4">
+              {event?.title || session?.name || `Ticket ${index + 1}`}
+            </Text>
+            <Text className="text-gray-400 mt-2">
+              {ticket?.name || ticket?.seat_type || "General admission"}
+            </Text>
+          </View>
+          <TouchableOpacity className="bg-[#1A2432] rounded-xl p-3" onPress={downloadTicket}>
+            <Download color="#E5E7EB" size={19} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View className="p-5">
+        <View className="items-center bg-white rounded-2xl p-5 mb-5">
+          <QRCode value={code} size={190} />
+          <Text className="text-[#5B4DFF] font-mono font-bold tracking-[3px] mt-4">
+            {code}
+          </Text>
+          <Text className="text-gray-500 text-center mt-2">
+            Scan this QR or show the code at check-in.
+          </Text>
+        </View>
+
+        <View className="flex-row flex-wrap gap-3">
+          <InfoTile
+            icon={<CalendarDays color="#A993FF" size={19} />}
+            label="Date"
+            value={formatDate(session?.date || event?.start_date)}
+          />
+          <InfoTile
+            icon={<Clock color="#A993FF" size={19} />}
+            label="Time"
+            value={`${session?.start_time || "Time"}${session?.end_time ? ` - ${session.end_time}` : ""}`}
+          />
+          <InfoTile
+            icon={<MapPin color="#A993FF" size={19} />}
+            label="Where"
+            value={
+              event?.attendance_mode === "ONLINE"
+                ? "Online event"
+                : event?.city || event?.address || getAttendanceLabel(event)
+            }
+          />
+          <InfoTile
+            icon={<Ticket color="#A993FF" size={19} />}
+            label="Price"
+            value={money(ticket?.price || richBooking?.final_amount, event?.currency || ticket?.currency)}
+          />
+        </View>
+
+        {hasOnlineAccess ? (
+          <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mt-4">
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 rounded-full bg-[#5B4DFF] items-center justify-center">
+                <Monitor color="white" size={20} />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-white text-lg font-semibold">Online access</Text>
+                <Text className="text-gray-400">
+                  {formatEnumLabel(event?.online_platform) || "Online"} ·{" "}
+                  {event?.online_timezone || "Event timezone"}
+                </Text>
+              </View>
+            </View>
+            <Text className="text-gray-400 leading-6 mt-3">
+              {event?.online_access_instructions || getOnlineRevealLabel(event?.online_url_reveal)}
+            </Text>
+            {canShowJoinLink ? (
+              <TouchableOpacity
+                className="bg-primary rounded-xl py-3 mt-4"
+                onPress={() => Linking.openURL(event.online_url)}
+              >
+                <Text className="text-background text-center font-bold">Join event</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text className="text-gray-500 mt-4">
+                The private join link is protected until the organizer allows access.
+              </Text>
+            )}
+          </View>
+        ) : null}
+
+        <View className="mt-5">
+          <Text className="text-white text-lg font-semibold mb-3">Attendee</Text>
+          <View className="gap-3">
+            <InfoRow icon={<User color="#A993FF" size={17} />} value={richBooking?.fullname || "Guest attendee"} />
+            <InfoRow icon={<Mail color="#A993FF" size={17} />} value={richBooking?.email || "No email"} />
+            <InfoRow icon={<Phone color="#A993FF" size={17} />} value={richBooking?.phone || "No phone"} />
           </View>
         </View>
+
+        {isFetching ? (
+          <View className="py-4">
+            <ActivityIndicator color="#9EDD45" />
+          </View>
+        ) : null}
       </View>
-
-      <View className="bg-gray-100 rounded-lg p-3 mt-3">
-        <Text className="text-gray-800 font-semibold">
-          {richBooking?.session?.name || "Session"}
-        </Text>
-        <Text className="text-gray-600 text-sm">
-          {richBooking?.session?.start_time} - {richBooking?.session?.end_time}
-        </Text>
-        <Text className="text-gray-600 text-sm mt-1">
-          Price:{" "}
-          {Number(richBooking?.ticket?.price || 0) > 0
-            ? `${symbol} ${Number(richBooking?.ticket?.price || 0).toLocaleString()}`
-            : "Free"}
-        </Text>
-        <Text className="text-gray-600 text-sm mt-1">
-          Updates: {richBooking?.receive_updates === false ? "Off" : "On"}
-        </Text>
-      </View>
-
-      {isFetching && (
-        <View className="py-3">
-          <ActivityIndicator color="#9EDD45" />
-        </View>
-      )}
-
-      {hasOnlineAccess && (
-        <View className="bg-[#eef7df] rounded-lg p-3 mt-3">
-          <Text className="text-gray-900 font-semibold">Online Access</Text>
-          <Text className="text-gray-700 text-sm mt-2">
-            Format: {getAttendanceLabel(event)}
-          </Text>
-          <Text className="text-gray-700 text-sm mt-1">
-            Platform: {formatEnumLabel(event?.online_platform) || "Online"}
-          </Text>
-          <Text className="text-gray-700 text-sm mt-1">
-            Timezone: {event?.online_timezone || "Event timezone"}
-          </Text>
-          <Text className="text-gray-700 text-sm mt-1">
-            {getOnlineRevealLabel(event?.online_url_reveal)}
-          </Text>
-          {event?.online_access_instructions && (
-            <Text className="text-gray-700 text-sm mt-2 leading-5">
-              {event.online_access_instructions}
-            </Text>
-          )}
-          {canShowJoinLink ? (
-            <TouchableOpacity
-              className="bg-primary rounded-lg py-3 mt-3"
-              onPress={() => Linking.openURL(event.online_url)}
-            >
-              <Text className="text-background text-center font-semibold">
-                Join online event
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <Text className="text-gray-600 text-sm mt-3">
-              The join link is protected until it is available to confirmed
-              attendees.
-            </Text>
-          )}
-        </View>
-      )}
     </View>
   );
-};
+}
 
-const TicketScreen = () => {
+function InfoRow({ icon, value }: { icon: React.ReactNode; value: string }) {
+  return (
+    <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 flex-row items-center">
+      {icon}
+      <Text className="text-gray-300 ml-3 flex-1">{value}</Text>
+    </View>
+  );
+}
+
+export default function BookingDetailsScreen() {
   const { id } = useLocalSearchParams();
   const eventId = getStringParam(id);
   const router = useRouter();
-  const {
-    data: bookingData,
-    isLoading,
-    isError,
-    refetch,
-  } = useGetBookingDetailsQuery(eventId, {
-    refetchOnMountOrArgChange: true,
+  const { data, isError, isLoading, refetch } = useGetBookingDetailsQuery(eventId, {
     refetchOnFocus: true,
+    refetchOnMountOrArgChange: true,
   });
 
-  const bookings = Array.isArray(bookingData?.body)
-    ? bookingData.body
-    : bookingData?.body?.result || [];
+  const bookings = Array.isArray(data?.body) ? data.body : data?.body?.result || [];
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-black">
+      <View className="flex-1 justify-center items-center bg-background">
         <ActivityIndicator color="#9EDD45" />
       </View>
     );
   }
 
-  if (isError) {
-    return (
-      <View className="flex-1 justify-center items-center bg-black p-4">
-        <Text className="text-red-500 text-center text-lg mb-4">
-          Failed to load tickets. Please check your connection.
-        </Text>
-        <TouchableOpacity
-          onPress={refetch}
-          className="bg-white px-4 py-2 rounded"
-        >
-          <Text className="text-black font-bold">Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView className="bg-background flex-1">
-      <View className="flex-row items-center px-4 pt-8 pb-4">
+    <SafeAreaView className="flex-1 bg-background">
+      <View className="px-4 pt-4 pb-3 flex-row items-center justify-between">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="mr-4 bg-[#1A2432] p-2 rounded-full"
+          className="bg-[#1A2432] border border-[#2E3A4D] rounded-full p-3"
         >
-          <ArrowLeft color="white" size={24} />
+          <ArrowLeft color="#E5E7EB" size={21} />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Tickets</Text>
+        <Text className="text-white text-xl font-semibold">Ticket access</Text>
+        <TouchableOpacity
+          onPress={refetch}
+          className="bg-[#1A2432] border border-[#2E3A4D] rounded-full p-3"
+        >
+          <RefreshCcw color="#E5E7EB" size={19} />
+        </TouchableOpacity>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {bookings.length === 0 ? (
-          <Text className="text-gray-400 text-center mt-8">
-            No tickets found for this booking.
-          </Text>
-        ) : (
+
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+        {isError ? (
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl p-8 items-center">
+            <Text className="text-red-400 text-center">Failed to load tickets.</Text>
+            <TouchableOpacity className="bg-primary px-5 py-3 rounded-xl mt-4" onPress={refetch}>
+              <Text className="text-background font-bold">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {!isError && bookings.length ? (
           bookings.map((booking: any, index: number) => (
-            <TicketCard
-              key={`${booking.id || booking.code}-${index}`}
-              booking={booking}
-              index={index}
-            />
+            <TicketPass key={`${booking.id || booking.code}-${index}`} booking={booking} index={index} />
           ))
-        )}
+        ) : null}
+
+        {!isError && !bookings.length ? (
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl p-8 items-center">
+            <Ticket color="#8B6BFF" size={36} />
+            <Text className="text-white text-lg font-semibold mt-4">No tickets found</Text>
+            <Text className="text-gray-400 text-center mt-2">
+              Tickets for this booking group will appear here when they are available.
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
-};
-
-export default TicketScreen;
+}

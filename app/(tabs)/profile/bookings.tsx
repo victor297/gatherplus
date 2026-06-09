@@ -1,226 +1,408 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  Image,
   ActivityIndicator,
+  FlatList,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Calendar, TimerReset, Search } from "lucide-react-native";
 import {
-  useGetBookingsQuery,
-  useGetBookmarksQuery,
-} from "@/redux/api/eventsApiSlice";
+  ChevronDown,
+  ChevronRight,
+  Layers,
+  Link as LinkIcon,
+  Printer,
+  QrCode,
+  Search,
+  Ticket,
+  Video,
+} from "lucide-react-native";
+import ProfileFoundationScreen from "@/app/components/profile/ProfileFoundationScreen";
+import { useGetUserTicketBookingsQuery } from "@/redux/api/eventsApiSlice";
 import { formatDate } from "@/utils/formatDate";
-import { debounce } from "lodash";
+
+type WalletBooking = {
+  code?: string;
+  created_at?: string;
+  email?: string;
+  event?: Record<string, any>;
+  event_id?: number | string;
+  fullname?: string;
+  id: number;
+  invoice?: Record<string, any>;
+  questionnaire?: Record<string, any>[];
+  questionnairePending?: boolean;
+  secureBookingUrl?: string;
+  session?: Record<string, any>;
+  status?: string;
+  ticket?: Record<string, any>;
+};
+
+type WalletGroup = {
+  event?: Record<string, any>;
+  invoiceTotal?: number;
+  latestBookingAt?: string;
+  questionnairePending?: number;
+  ticketCount: number;
+  tickets: WalletBooking[];
+};
+
+type BookingTab = "events" | "resale";
+
+const PAGE_SIZE = 8;
+
+const normalizeCurrency = (value?: unknown) =>
+  String(value || "NGN").split(/[\s-]/)[0] || "NGN";
+
+const money = (value?: unknown, currency?: unknown) => {
+  const amount = Number(value || 0);
+  const code = normalizeCurrency(currency);
+  try {
+    return new Intl.NumberFormat("en-US", {
+      currency: code,
+      maximumFractionDigits: amount % 1 ? 2 : 0,
+      style: "currency",
+    }).format(amount);
+  } catch {
+    return `${code} ${amount.toLocaleString()}`;
+  }
+};
+
+const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
+
+function groupBookings(bookings: WalletBooking[]): WalletGroup[] {
+  const groups = new Map<string, WalletGroup>();
+
+  bookings.forEach((booking) => {
+    const event = booking.event || {};
+    const key = String(event.id || booking.event_id || "unknown");
+    const current = groups.get(key) || {
+      event,
+      invoiceTotal: 0,
+      latestBookingAt: booking.created_at,
+      questionnairePending: 0,
+      ticketCount: 0,
+      tickets: [],
+    };
+
+    current.tickets.push(booking);
+    current.ticketCount = current.tickets.length;
+    current.invoiceTotal =
+      Number(current.invoiceTotal || 0) + Number(booking.invoice?.finalAmount || booking.ticket?.price || 0);
+    current.questionnairePending =
+      Number(current.questionnairePending || 0) + (booking.questionnairePending ? 1 : 0);
+
+    const currentDate = current.latestBookingAt ? new Date(current.latestBookingAt).getTime() : 0;
+    const bookingDate = booking.created_at ? new Date(booking.created_at).getTime() : 0;
+    if (bookingDate > currentDate) current.latestBookingAt = booking.created_at;
+    groups.set(key, current);
+  });
+
+  return [...groups.values()].sort((a, b) => {
+    const left = a.latestBookingAt ? new Date(a.latestBookingAt).getTime() : 0;
+    const right = b.latestBookingAt ? new Date(b.latestBookingAt).getTime() : 0;
+    return right - left;
+  });
+}
+
+function parseWallet(data: any) {
+  const body = data?.body || {};
+  const rawGroups = getArray(body.ticketGroups);
+  const rawBookings = getArray(body.bookings).length
+    ? getArray(body.bookings)
+    : getArray(body.result).length
+      ? getArray(body.result)
+      : getArray(body);
+  const groups = rawGroups.length ? rawGroups : groupBookings(rawBookings as WalletBooking[]);
+  const bookings = rawBookings.length
+    ? rawBookings
+    : groups.flatMap((group: WalletGroup) => group.tickets || []);
+  const metrics = body.metrics || {};
+
+  return {
+    bookings: bookings as WalletBooking[],
+    groups: groups as WalletGroup[],
+    metrics,
+  };
+}
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"UPCOMING" | "PAST" | null>(
-    "UPCOMING"
-  );
+  const [activeTab, setActiveTab] = useState<BookingTab>("events");
+  const [expandedGroups, setExpandedGroups] = useState<(string | number)[]>([]);
   const [page, setPage] = useState(1);
-  const [size] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [allBookings, setAllBookings] = useState([]);
+  const [search, setSearch] = useState("");
 
-  const {
-    data: bookings,
-    isLoading,
-    error,
-    isFetching,
-  } = useGetBookingsQuery(
+  const { data, error, isFetching, isLoading, refetch } = useGetUserTicketBookingsQuery(
+    { page: 1, size: 250 },
     {
-      type: activeTab,
-      page,
-      size,
-      search: debouncedSearchQuery,
-    },
-    {
-      refetchOnMountOrArgChange: true,
       refetchOnFocus: true,
+      refetchOnMountOrArgChange: true,
     }
   );
 
-  // Debounce search input
-  const debouncedSearch = useCallback(
-    debounce((query: any) => {
-      setDebouncedSearchQuery(query);
-      setPage(1); // Reset to first page when searching
-    }, 500),
-    []
-  );
+  const wallet = useMemo(() => parseWallet(data), [data]);
+  const filteredGroups = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return wallet.groups;
+    return wallet.groups.filter((group) => {
+      const title = String(group.event?.title || "").toLowerCase();
+      const codes = (group.tickets || []).map((ticket) => ticket.code || "").join(" ").toLowerCase();
+      return title.includes(query) || codes.includes(query);
+    });
+  }, [search, wallet.groups]);
 
-  useEffect(() => {
-    debouncedSearch(searchQuery);
-    return () => debouncedSearch.cancel();
-  }, [searchQuery]);
+  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / PAGE_SIZE));
+  const pagedGroups = filteredGroups.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalTickets = wallet.bookings.length;
+  const pendingQuestionnaires = wallet.bookings.filter((booking) => booking.questionnairePending).length;
+  const onlineAccess = wallet.bookings.filter((booking) => booking.event?.online_access_available).length;
 
-  // Handle pagination and data accumulation
-  useEffect(() => {
-    if (bookings?.body) {
-      if (page === 1) {
-        setAllBookings(bookings.body);
-      } else {
-        setAllBookings((prev) => [...prev, ...bookings.body]);
-      }
-    }
-  }, [bookings]);
-
-  const loadMore = () => {
-    if (!isFetching && bookings?.body?.length === size) {
-      setPage((prev) => prev + 1);
-    }
-  };
-
-  const handleTabChange = (tab: any) => {
-    setActiveTab(tab);
-    setPage(1);
-    setAllBookings([]);
-  };
-
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      key={item?.id}
-      onPress={() => router.push(`/profile/${item?.id}/bookingdetails`)}
-      className="bg-[#1A2432] rounded-lg mb-4"
-    >
-      <Image
-        source={{ uri: item?.images?.[0] }}
-        className="w-full h-48 rounded-t-lg"
-        resizeMode="cover"
-      />
-      <View className="p-4">
-        <View className="flex-row justify-between mb-2">
-          <Text className="text-white text-lg font-bold flex-shrink mr-2">
-            {item?.title}
-          </Text>
-          <View className="flex-row items-center">
-            <Text className="text-amber-400 mr-1">★</Text>
-            <Text className="text-gray-400 text-sm">
-              {item?.likes} interested
-            </Text>
-          </View>
-        </View>
-
-        <View className="flex-row justify-between items-center">
-          <View className="flex-col gap-1">
-            <View className="flex-row items-center gap-2">
-              <Calendar color="#6B7280" size={18} />
-              <Text className="text-gray-400 text-sm">
-                {formatDate(item?.start_date)}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <TimerReset color="#6B7280" size={18} />
-              <Text className="text-gray-400 text-sm">{item?.time}</Text>
-            </View>
-          </View>
-
-          {item?.is_free ? (
-            <Text className="text-primary text-lg font-semibold">free</Text>
-          ) : (
-            <Text className="text-primary text-lg font-semibold">
-              {item?.currency?.split(" - ")[0] || "₦"} {item?.price}
-            </Text>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderFooter = () => {
-    if (!isFetching) return null;
-    return (
-      <View className="py-4">
-        <ActivityIndicator color="#9EDD45" />
-      </View>
+  const toggleGroup = (eventId: string | number) => {
+    setExpandedGroups((current) =>
+      current.includes(eventId)
+        ? current.filter((id) => id !== eventId)
+        : [...current, eventId]
     );
   };
 
   return (
-    <View className="flex-1 bg-background">
-      <View className="flex-row items-center px-4 pt-12 pb-4">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="mr-4 bg-[#1A2432] p-2 rounded-full"
-        >
-          <ArrowLeft color="white" size={24} />
-        </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">My Bookings</Text>
+    <ProfileFoundationScreen
+      isLoading={isLoading}
+      title="My bookings"
+      subtitle="Tickets, secure online links, invoices, and resale readiness."
+      stats={[
+        { label: "Tickets", value: totalTickets },
+        { label: "Event groups", value: wallet.groups.length },
+        { label: "Online access", value: onlineAccess },
+        { label: "Forms due", value: pendingQuestionnaires },
+      ]}
+    >
+      <View className="flex-row bg-[#111823] border border-[#243044] rounded-2xl p-1 mb-4">
+        {[
+          { key: "events", label: "Event tickets" },
+          { key: "resale", label: "Resale" },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            className={`flex-1 rounded-xl py-3 ${activeTab === tab.key ? "bg-primary" : ""}`}
+            onPress={() => setActiveTab(tab.key as BookingTab)}
+          >
+            <Text
+              className={`text-center font-semibold ${
+                activeTab === tab.key ? "text-background" : "text-gray-300"
+              }`}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Search Bar */}
-      <View className="px-4 pb-4">
-        <View className="flex-row items-center justify-center  bg-[#1A2432] rounded-lg px-3">
-          <Search color="#6B7280" size={20} />
-          <TextInput
-            className="flex-1 text-white ml-2 py-2 my-auto"
-            placeholder="Search bookings..."
-            placeholderTextColor="#6B7280"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+      {activeTab === "resale" ? (
+        <View className="bg-[#111823] border border-[#243044] rounded-2xl p-5 mb-5">
+          <Text className="text-white text-xl font-semibold">Ticket resale</Text>
+          <Text className="text-gray-400 mt-2 leading-6">
+            Paid, unused, upcoming tickets can be listed for resale when the backend marks them
+            eligible. Free tickets, checked-in tickets, cancelled tickets, and tickets from events
+            you organize are excluded for integrity.
+          </Text>
+          <TouchableOpacity
+            className="bg-primary rounded-xl py-3 mt-5"
+            onPress={() => router.push("/sell-tickets" as any)}
+          >
+            <Text className="text-background text-center font-bold">Open resale workspace</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      <View className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden">
+        <View className="p-4 border-b border-[#243044]">
+          <View className="flex-row items-start justify-between">
+            <View className="flex-1 pr-3">
+              <Text className="text-white text-2xl font-semibold">Booking library</Text>
+              <Text className="text-gray-400 mt-1">
+                {filteredGroups.length} group{filteredGroups.length === 1 ? "" : "s"} with{" "}
+                {totalTickets} ticket{totalTickets === 1 ? "" : "s"}.
+              </Text>
+            </View>
+            <View className="rounded-full border border-[#2E3A4D] px-3 py-2 flex-row items-center">
+              <QrCode color="#8B6BFF" size={15} />
+              <Text className="text-gray-300 text-xs font-semibold ml-2">Secure</Text>
+            </View>
+          </View>
+
+          <View className="flex-row items-center bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-3 mt-4">
+            <Search color="#8B6BFF" size={18} />
+            <TextInput
+              className="flex-1 text-white py-3 ml-2"
+              placeholder="Search event or booking code"
+              placeholderTextColor="#728097"
+              value={search}
+              onChangeText={(value) => {
+                setPage(1);
+                setSearch(value);
+              }}
+            />
+          </View>
+        </View>
+
+        {isFetching && !isLoading ? (
+          <View className="py-3">
+            <ActivityIndicator color="#9EDD45" />
+          </View>
+        ) : null}
+
+        {error ? (
+          <View className="p-6 items-center">
+            <Text className="text-red-400 text-center">Unable to load bookings.</Text>
+            <TouchableOpacity className="bg-primary px-5 py-3 rounded-xl mt-4" onPress={refetch}>
+              <Text className="text-background font-bold">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {!error && pagedGroups.length ? (
+          <FlatList
+            data={pagedGroups}
+            keyExtractor={(item, index) => String(item.event?.id || item.latestBookingAt || index)}
+            scrollEnabled={false}
+            renderItem={({ item }) => {
+              const eventId = item.event?.id || item.latestBookingAt || "event";
+              const expanded = expandedGroups.includes(eventId);
+              return (
+                <View className="border-b border-[#243044]">
+                  <TouchableOpacity
+                    className="p-4 flex-row items-center justify-between"
+                    onPress={() => toggleGroup(eventId)}
+                  >
+                    <View className="flex-row items-center flex-1 pr-3">
+                      <View className="w-12 h-12 rounded-full bg-white/10 items-center justify-center">
+                        <Layers color="#A993FF" size={21} />
+                      </View>
+                      <View className="ml-3 flex-1">
+                        <Text className="text-white text-lg font-semibold">
+                          {item.event?.title || "Untitled event"}
+                        </Text>
+                        <Text className="text-gray-400 mt-1">
+                          {item.ticketCount} ticket{item.ticketCount === 1 ? "" : "s"} ·{" "}
+                          {formatDate(item.event?.start_date)} · invoice{" "}
+                          {money(item.invoiceTotal || 0, item.event?.currency)}
+                        </Text>
+                      </View>
+                    </View>
+                    <View className="rounded-full border border-[#2E3A4D] px-3 py-2 flex-row items-center">
+                      <Text className="text-white text-sm font-semibold">
+                        {expanded ? "Hide" : "View"}
+                      </Text>
+                      {expanded ? (
+                        <ChevronDown color="#E5E7EB" size={16} />
+                      ) : (
+                        <ChevronRight color="#E5E7EB" size={16} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  {expanded ? (
+                    <View className="px-4 pb-4">
+                      {(item.tickets || []).map((booking) => (
+                        <View key={booking.id || booking.code} className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mb-3">
+                          <View className="flex-row flex-wrap items-center gap-2">
+                            <Text className="bg-primary/15 border border-primary/30 rounded-full px-3 py-1 text-primary font-mono text-xs">
+                              {booking.code || "No code"}
+                            </Text>
+                            <Text className="bg-white/10 rounded-full px-3 py-1 text-gray-300 text-xs font-semibold">
+                              {booking.status || "Booked"}
+                            </Text>
+                            {booking.questionnairePending ? (
+                              <Text className="bg-amber-500/15 rounded-full px-3 py-1 text-amber-300 text-xs font-semibold">
+                                Questionnaire due
+                              </Text>
+                            ) : null}
+                          </View>
+
+                          <Text className="text-white text-base font-semibold mt-3">
+                            {booking.fullname || "Guest attendee"}
+                          </Text>
+                          <Text className="text-gray-400 mt-1">
+                            {booking.ticket?.name || "Ticket"} · {booking.session?.name || "General admission"}
+                          </Text>
+
+                          {booking.event?.online_access_available ? (
+                            <View className="flex-row items-center mt-3">
+                              <Video color="#9EDD45" size={16} />
+                              <Text className="text-primary ml-2 font-semibold">Online access ready</Text>
+                            </View>
+                          ) : null}
+
+                          <View className="bg-[#111823] rounded-xl p-3 mt-4">
+                            <Text className="text-gray-400 text-xs uppercase tracking-[2px]">Invoice</Text>
+                            <Text className="text-white font-semibold mt-1">
+                              {booking.invoice?.reference || "Free access"}
+                            </Text>
+                            <Text className="text-gray-400 mt-1">
+                              {booking.invoice?.status || booking.status || "Booked"} ·{" "}
+                              {money(booking.invoice?.finalAmount || booking.ticket?.price || 0, booking.event?.currency)}
+                            </Text>
+                          </View>
+
+                          <View className="flex-row gap-2 mt-4">
+                            <TouchableOpacity
+                              className="bg-primary rounded-xl px-4 py-3 flex-row items-center"
+                              onPress={() => router.push(`/profile/${booking.event?.id || booking.event_id}/bookingdetails` as any)}
+                            >
+                              <Ticket color="#020817" size={16} />
+                              <Text className="text-background font-bold ml-2">View</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
+                              <LinkIcon color="#E5E7EB" size={16} />
+                              <Text className="text-white font-semibold ml-2">Link</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
+                              <Printer color="#E5E7EB" size={16} />
+                              <Text className="text-white font-semibold ml-2">Print</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            }}
           />
+        ) : null}
+
+        {!error && !isLoading && !pagedGroups.length ? (
+          <View className="p-8 items-center">
+            <Ticket color="#8B6BFF" size={36} />
+            <Text className="text-white text-lg font-semibold mt-4">No bookings yet</Text>
+            <Text className="text-gray-400 text-center mt-2">
+              Your tickets, invoices, online links, and forms will appear here after booking.
+            </Text>
+          </View>
+        ) : null}
+
+        <View className="flex-row items-center justify-between p-4">
+          <TouchableOpacity
+            className="bg-[#1A2432] rounded-xl px-4 py-3 disabled:opacity-40"
+            disabled={page <= 1}
+            onPress={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            <Text className="text-white font-semibold">Previous</Text>
+          </TouchableOpacity>
+          <Text className="text-gray-300">Page {page} of {totalPages}</Text>
+          <TouchableOpacity
+            className="bg-[#1A2432] rounded-xl px-4 py-3 disabled:opacity-40"
+            disabled={page >= totalPages}
+            onPress={() => setPage((current) => Math.min(totalPages, current + 1))}
+          >
+            <Text className="text-white font-semibold">Next</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <View className="flex-row px-4 border-b border-[#1A2432]">
-        <TouchableOpacity
-          className={`py-4 px-6 ${
-            activeTab === "UPCOMING" ? "border-b-2 border-primary" : ""
-          }`}
-          onPress={() => handleTabChange("UPCOMING")}
-        >
-          <Text
-            className={
-              activeTab === "UPCOMING" ? "text-primary" : "text-gray-400"
-            }
-          >
-            Upcoming
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`py-4 px-6 ${
-            activeTab === "PAST" ? "border-b-2 border-primary" : ""
-          }`}
-          onPress={() => handleTabChange("PAST")}
-        >
-          <Text
-            className={activeTab === "PAST" ? "text-primary" : "text-gray-400"}
-          >
-            Past Events
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={allBookings}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16 }}
-        ListEmptyComponent={
-          isLoading || isFetching ? (
-            <View className="py-4">
-              <ActivityIndicator color="#9EDD45" />
-            </View>
-          ) : error ? (
-            <View className="py-4 justify-center items-center">
-              <Text className="text-red-500">Error loading events</Text>
-            </View>
-          ) : (
-            <View className="py-4 justify-center items-center">
-              <Text className="text-gray-400">No bookings found</Text>
-            </View>
-          )
-        }
-        ListFooterComponent={renderFooter}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-      />
-    </View>
+    </ProfileFoundationScreen>
   );
 }

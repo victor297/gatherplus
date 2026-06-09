@@ -33,14 +33,54 @@ export interface PaymentRequestPayload {
 }
 
 export interface RevenueHistoryItem {
-  amount: number;
-  createdAt: string;
+  amount: number | string;
+  createdAt?: string;
+  created_at?: string;
   id: number;
+  recipient?: TransferRecipient;
+  recipient_code?: string;
+  rejection_reason?: string;
   status: string;
+  updatedAt?: string;
 }
 
 export interface UserWallet {
-  available_balance: number;
-  pending_balance: number;
+  available_balance: number | string;
+  pending_balance: number | string;
   user_id?: number;
+}
+
+export interface WalletCreditItem {
+  amount?: number | string;
+  booking?: Array<{
+    code?: string;
+    created_at?: string;
+    email?: string;
+    final_amount?: number | string;
+    fullname?: string;
+    id?: number;
+  }>;
+  created_at?: string;
+  event?: {
+    currency?: string;
+    id?: number;
+    start_date?: string;
+    title?: string;
+  };
+  final_amount?: number | string;
+  id: number;
+  status?: string;
+  txn_ref?: string;
+}
+
+export interface UserWalletLedger {
+  availableCredits: WalletCreditItem[];
+  pendingCredits: WalletCreditItem[];
+  payoutRequests: RevenueHistoryItem[];
+  totals?: {
+    availableBalance?: number | string;
+    pendingBalance?: number | string;
+    totalRequested?: number | string;
+  };
+  wallet?: UserWallet;
 }
