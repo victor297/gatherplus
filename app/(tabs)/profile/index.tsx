@@ -114,6 +114,18 @@ export default function ProfileScreen() {
       route: "/profile/events",
     },
     {
+      icon: <Ticket size={24} color="#6B7280" />,
+      title: "Promo Codes",
+      subtitle: "Discounts, limits, analytics",
+      route: "/profile/promo-codes",
+    },
+    {
+      icon: <Users size={24} color="#6B7280" />,
+      title: "Agent Workspace",
+      subtitle: "Codes, commissions, payouts",
+      route: "/profile/agent",
+    },
+    {
       icon: <Users size={24} color="#6B7280" />,
       title: "Attendee CRM",
       subtitle: "Segments, notes, and safe follow-ups",
@@ -154,6 +166,12 @@ export default function ProfileScreen() {
       title: "Chat",
       subtitle: "View all providers Chat",
       route: "/(provider)/(chats)/chats",
+    },
+    {
+      icon: <Book size={24} color="#6B7280" />,
+      title: "GatherPlux Blog",
+      subtitle: "Organizer tips and product updates",
+      route: "/blog",
     },
     {
       icon: <Calendar1Icon size={24} color="#6B7280" />,
