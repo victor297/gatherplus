@@ -44,6 +44,17 @@ export default function ReviewScreen() {
       return {};
     }
   });
+  const faqs = Array.isArray(formData?.faqs)
+    ? formData.faqs.filter((faq: any) => faq?.question || faq?.answer)
+    : [];
+  const hasExtraDetails = Boolean(
+    formData.tags ||
+      formData.door_time ||
+      formData.parking_info ||
+      formData.discount_info ||
+      formData.agenda_info ||
+      faqs.length
+  );
 
   const handleSubmit = async (published: boolean) => {
     try {
@@ -283,46 +294,50 @@ export default function ReviewScreen() {
             )}
           </View>
 
-          <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-2">
-              Extra Details
-            </Text>
-            <View className="bg-[#1A2432] rounded-lg p-4">
-              {!!formData.tags && (
-                <Text className="text-gray-400 mb-2">Tags: {formData.tags}</Text>
-              )}
-              {!!formData.door_time && (
-                <Text className="text-gray-400 mb-2">
-                  Door: {formData.door_time}
-                </Text>
-              )}
-              {!!formData.parking_info && (
-                <Text className="text-gray-400 mb-2">
-                  Parking: {formData.parking_info}
-                </Text>
-              )}
-              {!!formData.discount_info && (
-                <Text className="text-gray-400 mb-2">
-                  Lineup: {formData.discount_info}
-                </Text>
-              )}
-              {!!formData.agenda_info && (
-                <Text className="text-gray-400">
-                  Agenda: {formData.agenda_info}
-                </Text>
-              )}
-              {formData?.faqs?.length > 0 && (
-                <View className="mt-3">
-                  {formData.faqs.map((faq: any, index: number) => (
-                    <View key={index} className="mb-2">
-                      <Text className="text-white">{faq.question}</Text>
-                      <Text className="text-gray-400">{faq.answer}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
+          {hasExtraDetails && (
+            <View className="mb-6">
+              <Text className="text-white text-lg font-semibold mb-2">
+                Extra Details
+              </Text>
+              <View className="bg-[#1A2432] rounded-lg p-4">
+                {!!formData.tags && (
+                  <Text className="text-gray-400 mb-2">
+                    Tags: {formData.tags}
+                  </Text>
+                )}
+                {!!formData.door_time && (
+                  <Text className="text-gray-400 mb-2">
+                    Door: {formData.door_time}
+                  </Text>
+                )}
+                {!!formData.parking_info && (
+                  <Text className="text-gray-400 mb-2">
+                    Parking: {formData.parking_info}
+                  </Text>
+                )}
+                {!!formData.discount_info && (
+                  <Text className="text-gray-400 mb-2">
+                    Lineup: {formData.discount_info}
+                  </Text>
+                )}
+                {!!formData.agenda_info && (
+                  <Text className="text-gray-400">
+                    Agenda: {formData.agenda_info}
+                  </Text>
+                )}
+                {faqs.length > 0 && (
+                  <View className="mt-3">
+                    {faqs.map((faq: any, index: number) => (
+                      <View key={index} className="mb-2">
+                        <Text className="text-white">{faq.question}</Text>
+                        <Text className="text-gray-400">{faq.answer}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
 

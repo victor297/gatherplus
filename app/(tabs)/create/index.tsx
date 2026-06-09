@@ -14,7 +14,17 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ArrowLeft, Calendar, Clock, ChevronDown, Plus, Wand2 } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  ChevronDown,
+  HelpCircle,
+  MapPin,
+  Plus,
+  Tag,
+  Wand2,
+} from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
 import {
   useGetcategoriesQuery,
@@ -1367,113 +1377,203 @@ export default function CreateEventScreen() {
           </View>
 
           {/* Event Enhancements */}
-          <View className="bg-[#111823] p-3 rounded-lg">
-            <Text className="text-white my-2 font-bold">Extra Event Details</Text>
-
-            <Text className="text-white my-2">Tags</Text>
-            <TextInput
-              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
-              placeholder="music, brunch, tech"
-              placeholderTextColor="#6B7280"
-              value={formData.tags}
-              autoCapitalize="none"
-              onChangeText={(text) => setFormData({ ...formData, tags: text })}
-            />
-
-            <Text className="text-white my-2">Door Time</Text>
-            <TextInput
-              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
-              placeholder="Doors open at 6:00 PM"
-              placeholderTextColor="#6B7280"
-              value={formData.door_time}
-              onChangeText={(text) =>
-                setFormData({ ...formData, door_time: text })
-              }
-            />
-
-            <Text className="text-white my-2">Parking Info</Text>
-            <TextInput
-              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-20"
-              placeholder="Parking, drop-off, accessibility, transit"
-              placeholderTextColor="#6B7280"
-              multiline
-              textAlignVertical="top"
-              value={formData.parking_info}
-              onChangeText={(text) =>
-                setFormData({ ...formData, parking_info: text })
-              }
-            />
-
-            <Text className="text-white my-2">Lineup / Extra Info</Text>
-            <TextInput
-              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-20"
-              placeholder="Lineup, offers, discounts, or extra notes"
-              placeholderTextColor="#6B7280"
-              multiline
-              textAlignVertical="top"
-              value={formData.discount_info}
-              onChangeText={(text) =>
-                setFormData({ ...formData, discount_info: text })
-              }
-            />
-
-            <Text className="text-white my-2">Agenda</Text>
-            <TextInput
-              className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-24"
-              placeholder="Agenda, schedule, set times, or event flow"
-              placeholderTextColor="#6B7280"
-              multiline
-              textAlignVertical="top"
-              value={formData.agenda_info}
-              onChangeText={(text) =>
-                setFormData({ ...formData, agenda_info: text })
-              }
-            />
-          </View>
-
-          {/* FAQs */}
-          <View className="bg-[#111823] p-3 rounded-lg">
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-white font-bold">FAQs</Text>
-              <TouchableOpacity
-                className="bg-primary/20 border border-primary rounded-lg px-3 py-2"
-                onPress={addFaq}
-              >
-                <Text className="text-primary font-semibold">+ Add FAQ</Text>
-              </TouchableOpacity>
+          <View className="bg-[#0F1724] p-4 rounded-xl border border-primary/20">
+            <View className="flex-row items-start justify-between mb-4">
+              <View className="flex-1 pr-3">
+                <Text className="text-primary tracking-[3px] text-xs font-bold mb-1">
+                  OPTIONAL DETAILS
+                </Text>
+                <Text className="text-white text-lg font-bold">
+                  Event enhancements
+                </Text>
+                <Text className="text-gray-400 mt-1">
+                  Add the extra details attendees check before booking.
+                </Text>
+              </View>
+              <View className="bg-primary/20 p-3 rounded-full">
+                <Wand2 size={20} color="#9EDD45" />
+              </View>
             </View>
 
-            {(formData.faqs || []).map((faq: any, index: number) => (
-              <View
-                key={index}
-                className="bg-[#1A2432] rounded-lg p-3 mb-3 border border-gray-700"
-              >
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text className="text-white font-semibold">
-                    FAQ {index + 1}
-                  </Text>
-                  <TouchableOpacity onPress={() => removeFaq(index)}>
-                    <Text className="text-red-400">Remove</Text>
-                  </TouchableOpacity>
-                </View>
-                <TextInput
-                  className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-2"
-                  placeholder="Question"
-                  placeholderTextColor="#6B7280"
-                  value={faq.question}
-                  onChangeText={(text) => updateFaq(index, "question", text)}
-                />
-                <TextInput
-                  className="bg-[#111823] rounded-lg px-4 py-3 text-white h-20"
-                  placeholder="Answer"
-                  placeholderTextColor="#6B7280"
-                  multiline
-                  textAlignVertical="top"
-                  value={faq.answer}
-                  onChangeText={(text) => updateFaq(index, "answer", text)}
-                />
+            <View className="flex-row flex-wrap mb-3">
+              <View className="bg-[#1A2432] border border-[#2A3546] rounded-full px-3 py-2 mr-2 mb-2 flex-row items-center">
+                <Tag size={14} color="#9EDD45" />
+                <Text className="text-gray-300 ml-2 text-xs">Tags</Text>
               </View>
-            ))}
+              <View className="bg-[#1A2432] border border-[#2A3546] rounded-full px-3 py-2 mr-2 mb-2 flex-row items-center">
+                <Clock size={14} color="#9EDD45" />
+                <Text className="text-gray-300 ml-2 text-xs">Door time</Text>
+              </View>
+              <View className="bg-[#1A2432] border border-[#2A3546] rounded-full px-3 py-2 mr-2 mb-2 flex-row items-center">
+                <MapPin size={14} color="#9EDD45" />
+                <Text className="text-gray-300 ml-2 text-xs">Parking</Text>
+              </View>
+              <View className="bg-[#1A2432] border border-[#2A3546] rounded-full px-3 py-2 mr-2 mb-2 flex-row items-center">
+                <HelpCircle size={14} color="#9EDD45" />
+                <Text className="text-gray-300 ml-2 text-xs">FAQs</Text>
+              </View>
+            </View>
+
+            <View className="mb-4">
+              <View className="flex-row items-center mb-2">
+                <Tag size={16} color="#9EDD45" />
+                <Text className="text-white ml-2 font-semibold">
+                  Search tags
+                </Text>
+              </View>
+              <TextInput
+                className="bg-[#1A2432] rounded-lg px-4 py-3 text-white border border-[#2A3546]"
+                placeholder="music, brunch, tech"
+                placeholderTextColor="#6B7280"
+                value={formData.tags}
+                autoCapitalize="none"
+                onChangeText={(text) =>
+                  setFormData({ ...formData, tags: text })
+                }
+              />
+            </View>
+
+            <View className="mb-4">
+              <View className="flex-row items-center mb-2">
+                <Clock size={16} color="#9EDD45" />
+                <Text className="text-white ml-2 font-semibold">
+                  Door time
+                </Text>
+              </View>
+              <TextInput
+                className="bg-[#1A2432] rounded-lg px-4 py-3 text-white border border-[#2A3546]"
+                placeholder="Doors open at 6:00 PM"
+                placeholderTextColor="#6B7280"
+                value={formData.door_time}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, door_time: text })
+                }
+              />
+            </View>
+
+            <View className="mb-4">
+              <View className="flex-row items-center mb-2">
+                <MapPin size={16} color="#9EDD45" />
+                <Text className="text-white ml-2 font-semibold">
+                  Parking info
+                </Text>
+              </View>
+              <TextInput
+                className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-20 border border-[#2A3546]"
+                placeholder="Parking, drop-off, accessibility, transit"
+                placeholderTextColor="#6B7280"
+                multiline
+                textAlignVertical="top"
+                value={formData.parking_info}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, parking_info: text })
+                }
+              />
+            </View>
+
+            <View className="mb-4">
+              <View className="flex-row items-center mb-2">
+                <Wand2 size={16} color="#9EDD45" />
+                <Text className="text-white ml-2 font-semibold">
+                  Lineup / highlights
+                </Text>
+              </View>
+              <TextInput
+                className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-20 border border-[#2A3546]"
+                placeholder="Lineup, speakers, offers, discounts, or extra notes"
+                placeholderTextColor="#6B7280"
+                multiline
+                textAlignVertical="top"
+                value={formData.discount_info}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, discount_info: text })
+                }
+              />
+            </View>
+
+            <View className="mb-4">
+              <View className="flex-row items-center mb-2">
+                <Calendar size={16} color="#9EDD45" />
+                <Text className="text-white ml-2 font-semibold">Agenda</Text>
+              </View>
+              <TextInput
+                className="bg-[#1A2432] rounded-lg px-4 py-3 text-white h-24 border border-[#2A3546]"
+                placeholder="Agenda, schedule, set times, or event flow"
+                placeholderTextColor="#6B7280"
+                multiline
+                textAlignVertical="top"
+                value={formData.agenda_info}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, agenda_info: text })
+                }
+              />
+            </View>
+
+            <View className="border-t border-[#2A3546] pt-4">
+              <View className="flex-row justify-between items-center mb-3">
+                <View className="flex-row items-center">
+                  <HelpCircle size={16} color="#9EDD45" />
+                  <Text className="text-white ml-2 font-semibold">
+                    Frequently asked questions
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="bg-primary/20 border border-primary rounded-lg px-3 py-2 flex-row items-center"
+                  onPress={addFaq}
+                >
+                  <Plus size={14} color="#9EDD45" />
+                  <Text className="text-primary font-semibold ml-1">
+                    Add FAQ
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {(formData.faqs || []).length === 0 && (
+                <TouchableOpacity
+                  className="bg-[#1A2432] border border-dashed border-[#3A4658] rounded-lg p-4 mb-3"
+                  onPress={addFaq}
+                >
+                  <Text className="text-white font-semibold">
+                    Add your first FAQ
+                  </Text>
+                  <Text className="text-gray-400 mt-1">
+                    Example: parking, refunds, age rules, arrival time.
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {(formData.faqs || []).map((faq: any, index: number) => (
+                <View
+                  key={index}
+                  className="bg-[#1A2432] rounded-lg p-3 mb-3 border border-[#2A3546]"
+                >
+                  <View className="flex-row justify-between items-center mb-2">
+                    <Text className="text-white font-semibold">
+                      FAQ {index + 1}
+                    </Text>
+                    <TouchableOpacity onPress={() => removeFaq(index)}>
+                      <Text className="text-red-400">Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    className="bg-[#111823] rounded-lg px-4 py-3 text-white mb-2 border border-[#2A3546]"
+                    placeholder="Question"
+                    placeholderTextColor="#6B7280"
+                    value={faq.question}
+                    onChangeText={(text) => updateFaq(index, "question", text)}
+                  />
+                  <TextInput
+                    className="bg-[#111823] rounded-lg px-4 py-3 text-white h-20 border border-[#2A3546]"
+                    placeholder="Answer"
+                    placeholderTextColor="#6B7280"
+                    multiline
+                    textAlignVertical="top"
+                    value={faq.answer}
+                    onChangeText={(text) => updateFaq(index, "answer", text)}
+                  />
+                </View>
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

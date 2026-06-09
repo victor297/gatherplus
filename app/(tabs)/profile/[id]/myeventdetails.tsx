@@ -78,7 +78,7 @@ export default function EventDetailsScreen() {
     setShowOptions(false);
     switch (option) {
       case "edit":
-        router.push(`/home/event/${eventId}/update/updatecreate`);
+        router.push({ pathname: "/create", params: { eventId } });
         break;
       case "share":
         Alert.alert("Share", "Share functionality would go here");
