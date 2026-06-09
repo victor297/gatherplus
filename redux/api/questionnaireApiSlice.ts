@@ -1,6 +1,7 @@
 import type { ApiSuccessResponse } from "@/types/api";
 import type {
   AttachQuestionnaireItem,
+  AttendeeQuestionnaireBody,
   EventQuestionnaireItem,
   QuestionBankItem,
   QuestionnaireResponsesBody,
@@ -58,7 +59,7 @@ export const questionnaireApiSlice = apiSlice.injectEndpoints({
         { type: "Questionnaire", id: `responses-${eventId}` },
       ],
     }),
-    getEventQuestionnaire: builder.query<ApiSuccessResponse<unknown>, string>({
+    getEventQuestionnaire: builder.query<ApiSuccessResponse<AttendeeQuestionnaireBody>, string>({
       query: (responseId) => ({
         url: `questionnaire/${responseId}/questions`,
         method: "GET",

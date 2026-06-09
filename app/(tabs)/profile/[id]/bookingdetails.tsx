@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock,
+  ClipboardList,
   Download,
   Mail,
   MapPin,
@@ -68,6 +69,7 @@ function InfoTile({
 }
 
 function TicketPass({ booking, index }: { booking: any; index: number }) {
+  const router = useRouter();
   const ticketRef = useRef<View | null>(null);
   const { data: richBookingData, isFetching } = useGetBookingByIdQuery(booking?.id, {
     skip: !booking?.id,
@@ -79,6 +81,14 @@ function TicketPass({ booking, index }: { booking: any; index: number }) {
   const canShowJoinLink = canShowProtectedOnlineAccess(richBooking);
   const session = richBooking?.session || {};
   const ticket = richBooking?.ticket || {};
+  const questionnaireItems = Array.isArray(richBooking?.questionnaire)
+    ? richBooking.questionnaire
+    : Array.isArray(booking?.questionnaire)
+      ? booking.questionnaire
+      : [];
+  const questionnaire = questionnaireItems.find((item: any) => !item.completed) || questionnaireItems[0];
+  const hasQuestionnaire = Boolean(questionnaire?.id);
+  const questionnaireCompleted = Boolean(questionnaire?.completed || questionnaire?.submittedAt);
 
   const downloadTicket = async () => {
     try {
@@ -196,6 +206,36 @@ function TicketPass({ booking, index }: { booking: any; index: number }) {
                 The private join link is protected until the organizer allows access.
               </Text>
             )}
+          </View>
+        ) : null}
+
+        {hasQuestionnaire ? (
+          <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mt-4">
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 rounded-full bg-[#8B6BFF]/20 items-center justify-center">
+                <ClipboardList color="#A993FF" size={20} />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-white text-lg font-semibold">Questionnaire</Text>
+                <Text className="text-gray-400">
+                  {questionnaireCompleted ? "Submitted" : "Action needed"}
+                  {questionnaire?.answerCount ? ` · ${questionnaire.answerCount} answers` : ""}
+                </Text>
+              </View>
+            </View>
+            <Text className="text-gray-400 leading-6 mt-3">
+              {questionnaireCompleted
+                ? "Your answers are saved. You can review or update them before the event."
+                : "The organizer needs a few details before the event."}
+            </Text>
+            <TouchableOpacity
+              className={questionnaireCompleted ? "border border-[#2E3A4D] rounded-xl py-3 mt-4" : "bg-primary rounded-xl py-3 mt-4"}
+              onPress={() => router.push(`/questionnaire/${questionnaire.id}` as any)}
+            >
+              <Text className={questionnaireCompleted ? "text-white text-center font-semibold" : "text-background text-center font-bold"}>
+                {questionnaireCompleted ? "Review questionnaire" : "Complete questionnaire"}
+              </Text>
+            </TouchableOpacity>
           </View>
         ) : null}
 

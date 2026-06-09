@@ -1,7 +1,17 @@
-import React from "react";
-import { Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { BarChart3, CheckCircle2, Clock, HelpCircle, Mail, Ticket } from "lucide-react-native";
+import {
+  BarChart3,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  HelpCircle,
+  Mail,
+  Search,
+  Ticket,
+} from "lucide-react-native";
 import ProfileFoundationScreen from "@/app/components/profile/ProfileFoundationScreen";
 import { useGetQuestionnaireResponsesQuery } from "@/redux/api/questionnaireApiSlice";
 import { getStringParam } from "@/utils/routeParams";
@@ -11,16 +21,46 @@ import type {
   QuestionnaireQuestionInsight,
 } from "@/types/questionnaire";
 
+const PAGE_SIZE = 8;
+type ResponseFilter = "ALL" | "SUBMITTED" | "PENDING";
+
 export default function QuestionnaireResponsesScreen() {
   const { id } = useLocalSearchParams();
   const eventId = getStringParam(id);
+  const [filter, setFilter] = useState<ResponseFilter>("ALL");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
   const { data, isLoading, isFetching } = useGetQuestionnaireResponsesQuery(eventId, {
     skip: !eventId,
   });
   const body = data?.body;
   const analytics = body?.analytics;
-  const responses = body?.responses || [];
+  const responses = useMemo(() => body?.responses || [], [body?.responses]);
   const questions = analytics?.questions || [];
+  const filteredResponses = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return responses.filter((response) => {
+      const status = String(response.status || "PENDING").toUpperCase();
+      if (filter !== "ALL" && status !== filter) return false;
+      if (!query) return true;
+      const answerText = Object.values(response.answers || {})
+        .map((value) => (Array.isArray(value) ? value.join(" ") : String(value ?? "")))
+        .join(" ")
+        .toLowerCase();
+      return [
+        response.user?.name,
+        response.user?.email,
+        response.ticket?.name,
+        status,
+        answerText,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [filter, responses, search]);
+  const totalPages = Math.max(1, Math.ceil(filteredResponses.length / PAGE_SIZE));
+  const pagedResponses = filteredResponses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <ProfileFoundationScreen
@@ -53,16 +93,69 @@ export default function QuestionnaireResponsesScreen() {
       <View className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden">
         <View className="p-4 border-b border-[#243044]">
           <Text className="text-white text-xl font-semibold">Response library</Text>
-          <Text className="text-gray-400 mt-1">{responses.length} response rows found.</Text>
+          <Text className="text-gray-400 mt-1">
+            {filteredResponses.length} response row{filteredResponses.length === 1 ? "" : "s"} found.
+          </Text>
+          <View className="flex-row items-center bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-3 mt-4">
+            <Search color="#8B6BFF" size={18} />
+            <TextInput
+              className="flex-1 text-white py-3 ml-2"
+              placeholder="Search attendee, ticket, status, or answer"
+              placeholderTextColor="#728097"
+              value={search}
+              onChangeText={(value) => {
+                setPage(1);
+                setSearch(value);
+              }}
+            />
+          </View>
+          <View className="flex-row flex-wrap gap-2 mt-3">
+            {(["ALL", "SUBMITTED", "PENDING"] as const).map((status) => (
+              <TouchableOpacity
+                key={status}
+                className={`rounded-full px-4 py-2 border ${
+                  filter === status ? "bg-primary border-primary" : "border-[#2E3A4D]"
+                }`}
+                onPress={() => {
+                  setPage(1);
+                  setFilter(status);
+                }}
+              >
+                <Text className={filter === status ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                  {status === "ALL" ? "All" : status === "SUBMITTED" ? "Submitted" : "Pending"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {responses.length ? (
-          responses.map((response) => <ResponseRow key={response.id} response={response} />)
+        {pagedResponses.length ? (
+          pagedResponses.map((response) => <ResponseRow key={response.id} response={response} />)
         ) : (
           <View className="p-8">
             <EmptyText text="Responses will appear here after attendees submit their questionnaire." />
           </View>
         )}
+
+        <View className="flex-row items-center justify-between p-4">
+          <TouchableOpacity
+            className="bg-[#1A2432] rounded-xl px-4 py-3 flex-row items-center disabled:opacity-40"
+            disabled={page <= 1}
+            onPress={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            <ChevronLeft color="#E5E7EB" size={17} />
+            <Text className="text-white ml-1">Previous</Text>
+          </TouchableOpacity>
+          <Text className="text-gray-300">Page {page} of {totalPages}</Text>
+          <TouchableOpacity
+            className="bg-[#1A2432] rounded-xl px-4 py-3 flex-row items-center disabled:opacity-40"
+            disabled={page >= totalPages}
+            onPress={() => setPage((current) => Math.min(totalPages, current + 1))}
+          >
+            <Text className="text-white mr-1">Next</Text>
+            <ChevronRight color="#E5E7EB" size={17} />
+          </TouchableOpacity>
+        </View>
       </View>
     </ProfileFoundationScreen>
   );

@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import {
   ChevronDown,
   ChevronRight,
+  ClipboardList,
   Layers,
   Link as LinkIcon,
   Printer,
@@ -77,6 +78,11 @@ const money = (value?: unknown, currency?: unknown) => {
 };
 
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
+
+const getBookingQuestionnaire = (booking: WalletBooking) => {
+  const items = Array.isArray(booking.questionnaire) ? booking.questionnaire : [];
+  return items.find((item) => !item.completed) || items[0];
+};
 
 function groupBookings(bookings: WalletBooking[]): WalletGroup[] {
   const groups = new Map<string, WalletGroup>();
@@ -466,66 +472,101 @@ export default function BookingsScreen() {
 
                   {expanded ? (
                     <View className="px-4 pb-4">
-                      {(item.tickets || []).map((booking) => (
-                        <View key={booking.id || booking.code} className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mb-3">
-                          <View className="flex-row flex-wrap items-center gap-2">
-                            <Text className="bg-primary/15 border border-primary/30 rounded-full px-3 py-1 text-primary font-mono text-xs">
-                              {booking.code || "No code"}
-                            </Text>
-                            <Text className="bg-white/10 rounded-full px-3 py-1 text-gray-300 text-xs font-semibold">
-                              {booking.status || "Booked"}
-                            </Text>
-                            {booking.questionnairePending ? (
-                              <Text className="bg-amber-500/15 rounded-full px-3 py-1 text-amber-300 text-xs font-semibold">
-                                Questionnaire due
+                      {(item.tickets || []).map((booking) => {
+                        const questionnaire = getBookingQuestionnaire(booking);
+                        const questionnaireCompleted = Boolean(
+                          questionnaire?.completed || questionnaire?.submittedAt
+                        );
+
+                        return (
+                          <View key={booking.id || booking.code} className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mb-3">
+                            <View className="flex-row flex-wrap items-center gap-2">
+                              <Text className="bg-primary/15 border border-primary/30 rounded-full px-3 py-1 text-primary font-mono text-xs">
+                                {booking.code || "No code"}
                               </Text>
-                            ) : null}
-                          </View>
-
-                          <Text className="text-white text-base font-semibold mt-3">
-                            {booking.fullname || "Guest attendee"}
-                          </Text>
-                          <Text className="text-gray-400 mt-1">
-                            {booking.ticket?.name || "Ticket"} · {booking.session?.name || "General admission"}
-                          </Text>
-
-                          {booking.event?.online_access_available ? (
-                            <View className="flex-row items-center mt-3">
-                              <Video color="#9EDD45" size={16} />
-                              <Text className="text-primary ml-2 font-semibold">Online access ready</Text>
+                              <Text className="bg-white/10 rounded-full px-3 py-1 text-gray-300 text-xs font-semibold">
+                                {booking.status || "Booked"}
+                              </Text>
+                              {questionnaire?.id ? (
+                                <Text
+                                  className={
+                                    questionnaireCompleted
+                                      ? "bg-primary/15 rounded-full px-3 py-1 text-primary text-xs font-semibold"
+                                      : "bg-amber-500/15 rounded-full px-3 py-1 text-amber-300 text-xs font-semibold"
+                                  }
+                                >
+                                  {questionnaireCompleted ? "Form submitted" : "Questionnaire due"}
+                                </Text>
+                              ) : null}
                             </View>
-                          ) : null}
 
-                          <View className="bg-[#111823] rounded-xl p-3 mt-4">
-                            <Text className="text-gray-400 text-xs uppercase tracking-[2px]">Invoice</Text>
-                            <Text className="text-white font-semibold mt-1">
-                              {booking.invoice?.reference || "Free access"}
+                            <Text className="text-white text-base font-semibold mt-3">
+                              {booking.fullname || "Guest attendee"}
                             </Text>
                             <Text className="text-gray-400 mt-1">
-                              {booking.invoice?.status || booking.status || "Booked"} ·{" "}
-                              {money(booking.invoice?.finalAmount || booking.ticket?.price || 0, booking.event?.currency)}
+                              {booking.ticket?.name || "Ticket"} · {booking.session?.name || "General admission"}
                             </Text>
-                          </View>
 
-                          <View className="flex-row gap-2 mt-4">
-                            <TouchableOpacity
-                              className="bg-primary rounded-xl px-4 py-3 flex-row items-center"
-                              onPress={() => router.push(`/profile/${booking.event?.id || booking.event_id}/bookingdetails` as any)}
-                            >
-                              <Ticket color="#020817" size={16} />
-                              <Text className="text-background font-bold ml-2">View</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
-                              <LinkIcon color="#E5E7EB" size={16} />
-                              <Text className="text-white font-semibold ml-2">Link</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
-                              <Printer color="#E5E7EB" size={16} />
-                              <Text className="text-white font-semibold ml-2">Print</Text>
-                            </TouchableOpacity>
+                            {booking.event?.online_access_available ? (
+                              <View className="flex-row items-center mt-3">
+                                <Video color="#9EDD45" size={16} />
+                                <Text className="text-primary ml-2 font-semibold">Online access ready</Text>
+                              </View>
+                            ) : null}
+
+                            {questionnaire?.id ? (
+                              <TouchableOpacity
+                                className="bg-[#111823] border border-[#2E3A4D] rounded-xl p-3 mt-4 flex-row items-center"
+                                onPress={() => router.push(`/questionnaire/${questionnaire.id}` as any)}
+                              >
+                                <View className="w-9 h-9 rounded-full bg-[#8B6BFF]/20 items-center justify-center">
+                                  <ClipboardList color="#A993FF" size={18} />
+                                </View>
+                                <View className="ml-3 flex-1">
+                                  <Text className="text-white font-semibold">
+                                    {questionnaireCompleted ? "Review questionnaire" : "Complete questionnaire"}
+                                  </Text>
+                                  <Text className="text-gray-500 mt-1">
+                                    {questionnaireCompleted
+                                      ? "Answers saved for organizer review."
+                                      : "Action needed before the event."}
+                                  </Text>
+                                </View>
+                                <ChevronRight color="#E5E7EB" size={18} />
+                              </TouchableOpacity>
+                            ) : null}
+
+                            <View className="bg-[#111823] rounded-xl p-3 mt-4">
+                              <Text className="text-gray-400 text-xs uppercase tracking-[2px]">Invoice</Text>
+                              <Text className="text-white font-semibold mt-1">
+                                {booking.invoice?.reference || "Free access"}
+                              </Text>
+                              <Text className="text-gray-400 mt-1">
+                                {booking.invoice?.status || booking.status || "Booked"} ·{" "}
+                                {money(booking.invoice?.finalAmount || booking.ticket?.price || 0, booking.event?.currency)}
+                              </Text>
+                            </View>
+
+                            <View className="flex-row gap-2 mt-4">
+                              <TouchableOpacity
+                                className="bg-primary rounded-xl px-4 py-3 flex-row items-center"
+                                onPress={() => router.push(`/profile/${booking.event?.id || booking.event_id}/bookingdetails` as any)}
+                              >
+                                <Ticket color="#020817" size={16} />
+                                <Text className="text-background font-bold ml-2">View</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
+                                <LinkIcon color="#E5E7EB" size={16} />
+                                <Text className="text-white font-semibold ml-2">Link</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
+                                <Printer color="#E5E7EB" size={16} />
+                                <Text className="text-white font-semibold ml-2">Print</Text>
+                              </TouchableOpacity>
+                            </View>
                           </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </View>
                   ) : null}
                 </View>

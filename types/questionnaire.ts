@@ -71,3 +71,29 @@ export interface QuestionnaireResponsesBody {
   questions: QuestionnaireHeader[];
   responses: QuestionnaireAnswerRow[];
 }
+
+export interface AttendeeQuestionnaireQuestion {
+  answer?: unknown;
+  answered?: boolean;
+  defaultValue?: unknown;
+  description?: string | null;
+  id: string;
+  isRequired?: boolean;
+  label?: string;
+  options?: unknown;
+  order?: number;
+  section?: string | null;
+  settings?: Record<string, unknown> | null;
+  type?: string;
+  validation?: Record<string, unknown> | null;
+}
+
+export interface AttendeeQuestionnaireBody {
+  email?: string | null;
+  event?: { id?: number; title?: string };
+  name?: string | null;
+  questions: AttendeeQuestionnaireQuestion[];
+  responseId: string;
+  submittedAt?: string | null;
+  ticketId?: number | null;
+}
