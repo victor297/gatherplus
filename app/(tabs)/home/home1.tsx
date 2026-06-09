@@ -16,7 +16,6 @@ import {
   StarIcon,
   Globe2,
   ArrowRight,
-  CalendarDays,
   BookOpenText,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -284,121 +283,6 @@ export default function HomeScreen() {
           </Text>
         ) : (
           <>
-            <View className="px-4 mb-6">
-              <TouchableOpacity
-                className="bg-[#111823] border border-[#243044] rounded-2xl p-4"
-                onPress={() => router.push("/marketplace" as any)}
-              >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center flex-1">
-                    <View className="h-12 w-12 rounded-2xl bg-[#1A2432] items-center justify-center mr-3">
-                      <Globe2 color="#9EDD45" size={22} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-white text-lg font-bold">
-                        Public Marketplace
-                      </Text>
-                      <Text className="text-gray-400 mt-1" numberOfLines={2}>
-                        Explore active cities, planners, and public events.
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="h-10 w-10 rounded-full bg-[#1A2432] items-center justify-center ml-3">
-                    <ArrowRight color="#9EDD45" size={18} />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Blog */}
-            <View className="mb-6">
-              <View className="flex-row justify-between items-center px-4 mb-4">
-                <View className="flex-1 pr-3">
-                  <Text className="text-white text-xl font-bold">
-                    Latest from the blog
-                  </Text>
-                  <Text className="text-gray-400 mt-1">
-                    Tips for hosts, buyers, and planners.
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
-                  onPress={() => router.push("/blog" as any)}
-                >
-                  <Text className="text-primary font-semibold">View all</Text>
-                </TouchableOpacity>
-              </View>
-
-              {isBlogsLoading || isFetchingBlogs ? (
-                <View className="py-4">
-                  <ActivityIndicator color="#9EDD45" />
-                </View>
-              ) : blogPosts.length ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: 16 }}
-                >
-                  {blogPosts.map((post) => (
-                    <TouchableOpacity
-                      key={post.id}
-                      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mr-4 w-64"
-                      onPress={() => router.push(`/blog/${post.slug}` as any)}
-                    >
-                      <Image
-                        source={{ uri: blogImage(post) }}
-                        className="w-full h-32 bg-[#1A2432]"
-                        resizeMode="cover"
-                      />
-                      <View className="p-4">
-                        <View className="flex-row items-center mb-2">
-                          <BookOpenText color="#9EDD45" size={14} />
-                          <Text
-                            className="text-primary text-xs font-bold ml-2 flex-1"
-                            numberOfLines={1}
-                          >
-                            {post.category || "Story"}
-                          </Text>
-                          <CalendarDays color="#728097" size={13} />
-                          <Text className="text-gray-500 text-xs ml-1">
-                            {formatBlogDate(
-                              post.published_at || post.created_at
-                            )}
-                          </Text>
-                        </View>
-                        <Text
-                          className="text-white text-lg font-bold"
-                          numberOfLines={2}
-                        >
-                          {post.title}
-                        </Text>
-                        {!!post.excerpt && (
-                          <Text
-                            className="text-gray-400 text-sm leading-5 mt-2"
-                            numberOfLines={2}
-                          >
-                            {post.excerpt}
-                          </Text>
-                        )}
-                        <Text className="text-primary font-bold mt-3">
-                          Read story
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              ) : (
-                <View className="mx-4 bg-[#111823] border border-[#243044] rounded-2xl p-4">
-                  <Text className="text-white font-semibold">
-                    No stories published yet
-                  </Text>
-                  <Text className="text-gray-400 mt-1">
-                    New GatherPlux articles will appear here.
-                  </Text>
-                </View>
-              )}
-            </View>
-
             {/* Categories */}
             <Text className="text-white text-xl font-bold px-4 mb-4">
               Categories
@@ -465,7 +349,7 @@ export default function HomeScreen() {
               </View>
               {isupcomingLoading || isFetching ? (
                 <ActivityIndicator color="#9EDD45" />
-              ) : upcoming?.body?.events?.result <= 0 ? (
+              ) : (upcoming?.body?.events?.result?.length || 0) <= 0 ? (
                 <Text className="text-primary text-bold text-center">
                   No event found
                 </Text>
@@ -517,7 +401,7 @@ export default function HomeScreen() {
               </View>
               {isprovidersLoading || isFetchingproviders ? (
                 <ActivityIndicator color="#9EDD45" />
-              ) : providers?.body?.result <= 0 ? (
+              ) : (providers?.body?.result?.length || 0) <= 0 ? (
                 <Text className="text-primary text-bold text-center">
                   No event found
                 </Text>
@@ -584,7 +468,7 @@ export default function HomeScreen() {
               </View>
               {isliveLoading || isFetchinglive ? (
                 <ActivityIndicator color="#9EDD45" />
-              ) : live?.body?.events?.result <= 0 ? (
+              ) : (live?.body?.events?.result?.length || 0) <= 0 ? (
                 <Text className="text-primary text-bold text-center">
                   No event found
                 </Text>
@@ -639,6 +523,108 @@ export default function HomeScreen() {
                   </View>
                 </ScrollView>
               )}
+            </View>
+
+            <View className="px-4 mb-6">
+              <TouchableOpacity
+                className="bg-[#111823] border border-[#243044] rounded-2xl p-4"
+                onPress={() => router.push("/marketplace" as any)}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center flex-1">
+                    <View className="h-12 w-12 rounded-2xl bg-[#1A2432] items-center justify-center mr-3">
+                      <Globe2 color="#9EDD45" size={22} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-white text-lg font-bold">
+                        Public Marketplace
+                      </Text>
+                      <Text className="text-gray-400 mt-1" numberOfLines={2}>
+                        Explore active cities, planners, and public events.
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="h-10 w-10 rounded-full bg-[#1A2432] items-center justify-center ml-3">
+                    <ArrowRight color="#9EDD45" size={18} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Blog */}
+            <View className="mb-8">
+              <View className="flex-row justify-between items-center px-4 mb-3">
+                <View className="flex-1 pr-3">
+                  <Text className="text-white text-xl font-bold">
+                    Latest from the blog
+                  </Text>
+                  <Text className="text-gray-400 mt-1">
+                    Tips for hosts, buyers, and planners.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
+                  onPress={() => router.push("/blog" as any)}
+                >
+                  <Text className="text-primary font-semibold">View all</Text>
+                </TouchableOpacity>
+              </View>
+
+              {isBlogsLoading || isFetchingBlogs ? (
+                <View className="py-4">
+                  <ActivityIndicator color="#9EDD45" />
+                </View>
+              ) : blogPosts.length ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 16 }}
+                >
+                  {blogPosts.slice(0, 4).map((post) => (
+                    <TouchableOpacity
+                      key={post.id}
+                      className="bg-[#111823] border border-[#243044] rounded-xl overflow-hidden mr-3 w-52"
+                      onPress={() => router.push(`/blog/${post.slug}` as any)}
+                    >
+                      <Image
+                        source={{ uri: blogImage(post) }}
+                        className="w-full h-20 bg-[#1A2432]"
+                        resizeMode="cover"
+                      />
+                      <View className="p-3">
+                        <View className="flex-row items-center mb-2">
+                          <BookOpenText color="#9EDD45" size={12} />
+                          <Text
+                            className="text-primary text-[11px] font-bold ml-2 flex-1"
+                            numberOfLines={1}
+                          >
+                            {post.category || "Story"}
+                          </Text>
+                          <Text className="text-gray-500 text-[11px] ml-1">
+                            {formatBlogDate(
+                              post.published_at || post.created_at
+                            )}
+                          </Text>
+                        </View>
+                        <Text
+                          className="text-white text-sm font-bold leading-5"
+                          numberOfLines={2}
+                        >
+                          {post.title}
+                        </Text>
+                        {!!post.excerpt && (
+                          <Text
+                            className="text-gray-400 text-xs leading-4 mt-1"
+                            numberOfLines={2}
+                          >
+                            {post.excerpt}
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              ) : null}
             </View>
           </>
         )}
