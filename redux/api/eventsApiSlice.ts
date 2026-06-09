@@ -1,5 +1,5 @@
 import { compactParams } from "@/utils/api";
-import type { ParticipantBookingQuery } from "@/types/bookings";
+import type { OrganizerAttendeesQuery, ParticipantBookingQuery } from "@/types/bookings";
 import type { EventListParams } from "@/types/events";
 import { BASE_RESOURCE_URL, EVENT_URL } from "../constants";
 import { apiSlice } from "./apiSlice";
@@ -127,6 +127,30 @@ export const eventApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ["Booking"],
     }),
+    getOrganizerAttendees: builder.query<any, OrganizerAttendeesQuery | void>({
+      query: (params = {}) => ({
+        url: `${EVENT_URL}/booking/attendees`,
+        params: compactParams(params),
+      }),
+      providesTags: ["Booking"],
+    }),
+    saveAttendeeNote: builder.mutation<
+      any,
+      {
+        attendee_email?: string | null;
+        attendee_name?: string | null;
+        event_id?: number | string | null;
+        note: string;
+        pinned?: boolean;
+      }
+    >({
+      query: (body) => ({
+        url: `${EVENT_URL}/booking/attendees/note`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
     getBookingDetails: builder.query<any, EventId>({
       query: (id) => ({
         url: `${EVENT_URL}/booking/${id}/booking/me`,
@@ -236,12 +260,14 @@ export const {
   useGetMaxFreeTicketQuery,
   useGetMyEventBookingsQuery,
   useGetMyEventsQuery,
+  useGetOrganizerAttendeesQuery,
   useGetRepliesQuery,
   useGetStatesQuery,
   useGetUserTicketBookingsQuery,
   useGetcategoriesQuery,
   useLikeCommentMutation,
   useLikeEventMutation,
+  useSaveAttendeeNoteMutation,
   useUnlikeEventMutation,
   useUpdateventMutation,
   useValidatePromoCodeMutation,

@@ -15,6 +15,8 @@ export default function ProfileLayout() {
       <Stack.Screen name="events/[id]/check-in" />
       <Stack.Screen name="events/[id]/participants" />
       <Stack.Screen name="events/[id]/questionnaire-responses" />
+      <Stack.Screen name="attendees/index" />
+      <Stack.Screen name="attendees/[email]" />
       <Stack.Screen name="revenue" />
     </Stack>
   );

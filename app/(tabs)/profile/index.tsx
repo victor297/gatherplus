@@ -23,6 +23,7 @@ import {
   RecycleIcon,
   MessageCircleIcon,
   Calendar1Icon,
+  Users,
 } from "lucide-react-native";
 import { useGetProfileQuery } from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -111,6 +112,12 @@ export default function ProfileScreen() {
       title: "Organizer Workspace",
       subtitle: "Manage drafts, previews, attendees",
       route: "/profile/events",
+    },
+    {
+      icon: <Users size={24} color="#6B7280" />,
+      title: "Attendee CRM",
+      subtitle: "Segments, notes, and safe follow-ups",
+      route: "/profile/attendees",
     },
     {
       icon: <Star size={24} color="#6B7280" />,
