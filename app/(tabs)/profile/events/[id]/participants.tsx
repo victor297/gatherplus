@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Calendar,
   ChevronLeft,
   ChevronRight,
   Mail,
   Search,
+  ScanLine,
   Ticket,
   User,
 } from "lucide-react-native";
@@ -18,11 +19,13 @@ import { formatDate } from "@/utils/formatDate";
 const PAGE_SIZE = 12;
 
 export default function EventParticipantsScreen() {
+  const router = useRouter();
   const { id } = useLocalSearchParams();
   const eventId = getStringParam(id);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "PENDING">("ALL");
 
   const query = useMemo(
     () => ({
@@ -40,10 +43,16 @@ export default function EventParticipantsScreen() {
     skip: !eventId,
   });
   const body = data?.body || {};
-  const participants = Array.isArray(body.result) ? body.result : [];
+  const allParticipants = Array.isArray(body.result) ? body.result : [];
+  const participants = allParticipants.filter((participant: any) => {
+    if (statusFilter === "ALL") return true;
+    const status = String(participant.status || "").toUpperCase();
+    if (statusFilter === "COMPLETED") return status === "COMPLETED";
+    return status !== "COMPLETED";
+  });
   const totalItems = Number(body.totalItems || participants.length || 0);
   const totalPages = Math.max(1, Number(body.totalPages || 1));
-  const completed = participants.filter((item: any) => String(item.status || "").toUpperCase() === "COMPLETED").length;
+  const completed = allParticipants.filter((item: any) => String(item.status || "").toUpperCase() === "COMPLETED").length;
 
   return (
     <ProfileFoundationScreen
@@ -58,8 +67,19 @@ export default function EventParticipantsScreen() {
     >
       <View className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden">
         <View className="p-4 border-b border-[#243044]">
-          <Text className="text-white text-xl font-semibold">Participant library</Text>
-          <Text className="text-gray-400 mt-1">Search attendees by name, email, ticket, or booking code.</Text>
+          <View className="flex-row items-start justify-between">
+            <View className="flex-1 pr-3">
+              <Text className="text-white text-xl font-semibold">Participant library</Text>
+              <Text className="text-gray-400 mt-1">Search attendees by name, email, ticket, or booking code.</Text>
+            </View>
+            <TouchableOpacity
+              className="bg-primary rounded-xl px-4 py-3 flex-row items-center"
+              onPress={() => router.push(`/profile/events/${eventId}/check-in` as any)}
+            >
+              <ScanLine color="#020817" size={16} />
+              <Text className="text-background font-bold ml-2">Check-in</Text>
+            </TouchableOpacity>
+          </View>
           <View className="flex-row items-center bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-3 mt-4">
             <Search color="#8B6BFF" size={18} />
             <TextInput
@@ -73,17 +93,35 @@ export default function EventParticipantsScreen() {
               }}
             />
           </View>
-          <TouchableOpacity
-            className="self-start bg-[#1A2432] border border-[#2E3A4D] rounded-full px-4 py-2 mt-3"
-            onPress={() => {
-              setPage(1);
-              setSortDirection((current) => (current === "desc" ? "asc" : "desc"));
-            }}
-          >
-            <Text className="text-white font-semibold">
-              {sortDirection === "desc" ? "Newest first" : "Oldest first"}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row flex-wrap gap-2 mt-3">
+            {(["ALL", "COMPLETED", "PENDING"] as const).map((status) => (
+              <TouchableOpacity
+                key={status}
+                className={`rounded-full px-4 py-2 border ${
+                  statusFilter === status ? "bg-primary border-primary" : "border-[#2E3A4D]"
+                }`}
+                onPress={() => {
+                  setPage(1);
+                  setStatusFilter(status);
+                }}
+              >
+                <Text className={statusFilter === status ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                  {status === "ALL" ? "All" : status === "COMPLETED" ? "Completed" : "Pending"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              className="bg-[#1A2432] border border-[#2E3A4D] rounded-full px-4 py-2"
+              onPress={() => {
+                setPage(1);
+                setSortDirection((current) => (current === "desc" ? "asc" : "desc"));
+              }}
+            >
+              <Text className="text-white font-semibold">
+                {sortDirection === "desc" ? "Newest first" : "Oldest first"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isFetching && !isLoading ? (

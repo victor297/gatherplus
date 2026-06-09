@@ -146,6 +146,21 @@ export const eventApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Booking", "Event"],
     }),
+    getCheckInDashboard: builder.query<any, Record<string, unknown>>({
+      query: ({ eventId, ...params }) => ({
+        url: `${EVENT_URL}/booking/check-in/${eventId}`,
+        params: compactParams(params),
+      }),
+      providesTags: ["Booking"],
+    }),
+    checkInBooking: builder.mutation<any, Record<string, unknown>>({
+      query: (data) => ({
+        url: `${EVENT_URL}/booking/check-in`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
     LikeEvent: builder.mutation<any, EventId>({
       query: (id) => ({
         url: `${EVENT_URL}/${id}/like`,
@@ -203,6 +218,7 @@ export const userApiSlice = eventApiSlice;
 export const {
   useBookmarkeventMutation,
   useCreateBookingMutation,
+  useCheckInBookingMutation,
   useCompleteBookingPaymentMutation,
   useCreateCommentMutation,
   useCreateventMutation,
@@ -212,6 +228,7 @@ export const {
   useGetBookingByIdQuery,
   useGetBookingsQuery,
   useGetBookmarksQuery,
+  useGetCheckInDashboardQuery,
   useGetCommentsQuery,
   useGetCountriesQuery,
   useGetEventQuery,
