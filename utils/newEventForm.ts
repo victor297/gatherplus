@@ -1,4 +1,8 @@
 import type {
+  AiEventBuilderRequest,
+  AiEventDraft,
+} from "@/types/aiEventBuilder";
+import type {
   AttendanceMode,
   CreateEventV2Payload,
   EventFaq,
@@ -34,6 +38,8 @@ export const RECURRING_FREQUENCIES: RecurringFrequency[] = [
 ];
 
 export const DEFAULT_TIMEZONE = "Africa/Lagos";
+export const AI_EVENT_DRAFT_STORAGE_KEY = "gatherplus.aiEventDraft.v1";
+export const AI_EVENT_IMPORT_STORAGE_KEY = "gatherplus.aiEventImport.v1";
 
 const trim = (value: unknown) => String(value || "").trim();
 
@@ -93,6 +99,189 @@ export const needsVenue = (attendanceMode: AttendanceMode) =>
 
 export const needsOnline = (attendanceMode: AttendanceMode) =>
   attendanceMode === "ONLINE" || attendanceMode === "HYBRID";
+
+const readPath = (source: unknown, paths: string[]) => {
+  if (!source || typeof source !== "object") return "";
+
+  for (const path of paths) {
+    const value = path.split(".").reduce<unknown>((current, key) => {
+      if (!current || typeof current !== "object") return undefined;
+      return (current as Record<string, unknown>)[key];
+    }, source);
+
+    if (Array.isArray(value)) {
+      const compact = value.map((item) => trim(item)).filter(Boolean);
+      if (compact.length > 0) return compact;
+    }
+
+    if (value !== undefined && value !== null && trim(value)) return value;
+  }
+
+  return "";
+};
+
+const pickText = (...values: unknown[]) => {
+  for (const value of values) {
+    if (Array.isArray(value)) {
+      const compact = value.map((item) => trim(item)).filter(Boolean);
+      if (compact.length > 0) return compact.join(", ");
+    }
+
+    const text = trim(value);
+    if (text) return text;
+  }
+
+  return "";
+};
+
+const pickNumber = (...values: unknown[]) => {
+  for (const value of values) {
+    const parsed = Number(String(value || "").replace(/[^\d.]/g, ""));
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+
+  return 0;
+};
+
+const normalizeDateOnly = (value: unknown) => {
+  const text = trim(value);
+  if (!text) return "";
+
+  const direct = text.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+  if (direct) return direct;
+
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().split("T")[0];
+};
+
+const normalizeTimeText = (value: unknown, fallback = "") => {
+  const text = trim(value);
+  if (!text) return fallback;
+
+  const twentyFourHour = text.match(/^(\d{1,2}):(\d{2})/);
+  if (twentyFourHour) {
+    const hour = Number(twentyFourHour[1]);
+    const minute = twentyFourHour[2];
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minute} ${suffix}`;
+  }
+
+  return text;
+};
+
+const generateTags = (draft: AiEventDraft, request?: AiEventBuilderRequest) => {
+  const provided = parseTags(
+    pickText(
+      request?.tags,
+      readPath(draft, ["details.tags", "enhancements.tags", "tags"])
+    )
+  );
+
+  if (provided.length > 0) return provided.slice(0, 8).join(", ");
+
+  const source = `${pickText(
+    readPath(draft, ["details.title", "title"]),
+    request?.prompt,
+    request?.audience
+  )}`
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 4 && !["event", "people", "about", "with"].includes(word));
+
+  const unique = Array.from(new Set(source));
+  return unique.slice(0, 5).join(", ") || "community, gathering, experience";
+};
+
+const normalizeAiFaqs = (draft: AiEventDraft, request?: AiEventBuilderRequest) => {
+  const rawFaqs = readPath(draft, ["enhancements.faqs", "details.faqs", "faqs"]);
+  if (Array.isArray(rawFaqs)) {
+    const faqs = rawFaqs
+      .map((faq: any) => ({
+        question: trim(faq?.question || faq?.title || faq?.q),
+        answer: trim(faq?.answer || faq?.description || faq?.a),
+      }))
+      .filter((faq) => faq.question);
+
+    if (faqs.length > 0) return faqs;
+  }
+
+  const audience = pickText(request?.audience, "attendees");
+  return [
+    {
+      question: "Who should attend?",
+      answer: `This event is designed for ${audience}.`,
+    },
+    {
+      question: "Will I receive a ticket confirmation?",
+      answer: "Yes. GatherPlus sends a confirmation with your secure ticket access after booking.",
+    },
+    {
+      question: "Can I share my ticket?",
+      answer: "Use the secure booking link or ticket code provided after checkout.",
+    },
+  ];
+};
+
+const normalizeAiSessions = (draft: AiEventDraft, request?: AiEventBuilderRequest) => {
+  const rawSessions = readPath(draft, ["details.sessions", "sessions"]);
+  const sessionList = Array.isArray(rawSessions) ? rawSessions : [];
+  const date = normalizeDateOnly(
+    readPath(draft, ["details.start_date", "start_date", "date"]) || request?.dateHint
+  );
+
+  if (sessionList.length > 0) {
+    return sessionList.map((session: any, index) => ({
+      name: pickText(session?.name, session?.title, `Session ${index + 1}`),
+      startDate: normalizeDateOnly(session?.date || session?.start_date || date),
+      endDate: normalizeDateOnly(session?.end_date || session?.date || session?.start_date || date),
+      startTime: normalizeTimeText(session?.start_time || session?.startTime, request?.startTime || "6:00 PM"),
+      endTime: normalizeTimeText(session?.end_time || session?.endTime, request?.endTime || "8:00 PM"),
+      participants: Array.isArray(session?.participants) ? session.participants : [],
+    }));
+  }
+
+  return [
+    {
+      name: "Main session",
+      startDate: date,
+      endDate: date,
+      startTime: normalizeTimeText(request?.startTime, "6:00 PM"),
+      endTime: normalizeTimeText(request?.endTime, "8:00 PM"),
+      participants: [],
+    },
+  ];
+};
+
+const normalizeAiTickets = (draft: AiEventDraft, request?: AiEventBuilderRequest) => {
+  const rawTickets = readPath(draft, ["tickets.items", "tickets.tickets", "tickets"]);
+  const ticketList = Array.isArray(rawTickets) ? rawTickets : [];
+  const planText = pickText(request?.ticketPlan, request?.budget).toLowerCase();
+  const requestedPrice = pickNumber(request?.basePrice, readPath(draft, ["tickets.price", "tickets.basePrice"]));
+  const isFree = planText.includes("free") || (!requestedPrice && !planText.includes("paid"));
+  const quantity = pickNumber(request?.expectedGuests, readPath(draft, ["tickets.quantity"])) || 100;
+
+  if (ticketList.length > 0) {
+    return ticketList.map((ticket: any, index) => ({
+      name: pickText(ticket?.name, ticket?.title, index === 0 ? "General admission" : `Ticket ${index + 1}`),
+      price: isFree ? 0 : pickNumber(ticket?.price, ticket?.basePrice, requestedPrice),
+      quantity: pickNumber(ticket?.quantity, ticket?.capacity, quantity) || quantity,
+      seat_type: ticket?.seat_type || "SEAT",
+      no_per_seat_type: Number(ticket?.no_per_seat_type || 1),
+    }));
+  }
+
+  return [
+    {
+      name: pickText(request?.ticketName, "General admission"),
+      price: isFree ? 0 : requestedPrice,
+      quantity,
+      seat_type: "SEAT",
+      no_per_seat_type: 1,
+    },
+  ];
+};
 
 const normalizeParticipants = (participants: EventParticipant[] = []) =>
   participants
@@ -278,6 +467,98 @@ export const mapNewEventToMobileForm = (event: EventV2 | Record<string, any>) =>
           no_per_seat_type: Number(ticket.no_per_seat_type || 1),
         }))
       : [],
+    sessions,
+  };
+};
+
+export const mapAiDraftToMobileForm = (
+  draft: AiEventDraft,
+  request?: AiEventBuilderRequest
+) => {
+  const details = draft.details || {};
+  const enhancements = draft.enhancements || {};
+  const sessions = normalizeAiSessions(draft, request);
+  const tickets = normalizeAiTickets(draft, request);
+  const attendanceMode = normalizeAttendanceMode(
+    request?.attendanceMode || readPath(draft, ["details.attendance_mode", "details.attendanceMode"])
+  );
+  const isFree = tickets.every((ticket) => Number(ticket.price || 0) <= 0);
+  const title = pickText(
+    readPath(details, ["title", "eventTitle", "name"]),
+    readPath(draft, ["title"]),
+    "Untitled event"
+  );
+  const summary = pickText(
+    readPath(details, ["summary", "short_description", "shortDescription"]),
+    readPath(draft, ["summary"]),
+    request?.prompt
+  );
+  const description = pickText(
+    readPath(details, ["description", "long_description", "longDescription"]),
+    readPath(enhancements, ["description", "attendee_description", "attendeeDescription"]),
+    summary
+  );
+  const ageRule = pickText(request?.ageRule, readPath(details, ["age_rule", "ageRule"]));
+  const ageMatch = ageRule.match(/\d+/);
+
+  return {
+    title,
+    eventCategory: "",
+    category_id: pickText(
+      request?.categoryId,
+      readPath(details, ["category_id", "categoryId"])
+    ),
+    summary,
+    sessionType: sessions.length > 1 ? "multiple" : "single",
+    state_id: pickNumber(request?.stateId, readPath(details, ["state_id", "stateId"])),
+    city: pickText(request?.city, readPath(details, ["city"])),
+    country_code: pickText(
+      request?.country,
+      readPath(details, ["country_code", "countryCode", "country"])
+    ) || "NG",
+    description,
+    images: Array.isArray(draft.media?.images) ? draft.media.images : [],
+    start_date: sessions[0]?.startDate || "",
+    address: pickText(readPath(details, ["address", "venue", "location.address"])),
+    currency: isFree
+      ? ""
+      : pickText(request?.currencyLabel, request?.currency, readPath(draft, ["tickets.currency"])),
+    each_ticket_identity: true,
+    price: Number(tickets[0]?.price || 0),
+    age_restriction: ageMatch ? Number(ageMatch[0]) : 0,
+    guardian_required: /guardian|parent/i.test(ageRule),
+    is_free: isFree,
+    event_type: normalizeEventType(readPath(details, ["event_type", "eventType"])).toLowerCase(),
+    recurring_frequency: pickText(
+      readPath(details, ["recurring_frequency", "recurringFrequency"]),
+      "WEEKLY"
+    ),
+    attendance_mode: attendanceMode,
+    online_platform: normalizeOnlinePlatform(
+      request?.onlinePlatform || readPath(details, ["online_platform", "onlinePlatform"])
+    ),
+    online_url: pickText(readPath(details, ["online_url", "onlineUrl"])),
+    online_access_instructions: pickText(
+      request?.onlineAccessInstructions,
+      readPath(details, ["online_access_instructions", "onlineAccessInstructions"]),
+      needsOnline(attendanceMode) ? "Online access details will be shared after booking." : ""
+    ),
+    online_timezone: pickText(
+      request?.onlineTimezone,
+      readPath(details, ["online_timezone", "onlineTimezone"]),
+      DEFAULT_TIMEZONE
+    ),
+    online_url_reveal: "AFTER_BOOKING",
+    tags: generateTags(draft, request),
+    faqs: normalizeAiFaqs(draft, request),
+    door_time: pickText(readPath(enhancements, ["door_time", "doorTime"])),
+    parking_info: pickText(readPath(enhancements, ["parking_info", "parkingInfo"])),
+    discount_info: pickText(readPath(enhancements, ["lineup", "discount_info", "discountInfo"])),
+    agenda_info: pickText(readPath(enhancements, ["agenda_info", "agendaInfo", "agenda"])),
+    time: "",
+    absorb_fee: true,
+    ticketed: tickets.length > 0,
+    tickets,
     sessions,
   };
 };

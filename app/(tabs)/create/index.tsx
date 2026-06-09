@@ -10,9 +10,11 @@ import {
   ActivityIndicator,
   Image,
   KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Calendar, Clock, ChevronDown } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ArrowLeft, Calendar, Clock, ChevronDown, Plus, Wand2 } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
 import {
   useGetcategoriesQuery,
@@ -22,11 +24,10 @@ import {
 import { useGetNewEventQuery } from "@/redux/api/newEventsApiSlice";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from "expo-image-picker";
-import { Platform } from "react-native";
 import { useSelector } from "react-redux";
-import { Plus } from "lucide-react-native";
 import { uploadSingleFile } from "@/utils/upload";
 import {
+  AI_EVENT_IMPORT_STORAGE_KEY,
   ATTENDANCE_MODES,
   DEFAULT_TIMEZONE,
   ONLINE_PLATFORMS,
@@ -58,6 +59,7 @@ export default function CreateEventScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const eventId = Array.isArray(params.eventId) ? params.eventId[0] : params.eventId;
+  const source = Array.isArray(params.source) ? params.source[0] : params.source;
   const { userInfo } = useSelector((state: any) => state.auth);
 
   const [selectedCountry, setSelectedCountry] = useState<any>(null);
@@ -162,6 +164,30 @@ export default function CreateEventScreen() {
   const categories = categoriesData?.body || [];
   const countries = countryData?.body || [];
   const states = stateData?.body || [];
+
+  useEffect(() => {
+    if (source !== "ai" || eventId || params.formData) return;
+
+    const importAiDraft = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(AI_EVENT_IMPORT_STORAGE_KEY);
+        if (!raw) return;
+
+        const imported = JSON.parse(raw);
+        setFormData((prev: any) => ({ ...prev, ...imported }));
+        if (Array.isArray(imported.sessions) && imported.sessions.length > 0) {
+          setSessions(imported.sessions);
+        }
+        await AsyncStorage.removeItem(AI_EVENT_IMPORT_STORAGE_KEY);
+        Alert.alert("AI draft imported", "Review and complete any missing details before saving.");
+      } catch (error) {
+        console.error("Failed to import AI draft", error);
+        Alert.alert("AI import failed", "Please generate the draft again.");
+      }
+    };
+
+    importAiDraft();
+  }, [eventId, params.formData, source]);
 
   // Validate form whenever form data changes
   useEffect(() => {
@@ -520,6 +546,15 @@ export default function CreateEventScreen() {
         <Text className="text-white text-xl font-semibold">
           {eventId ? "Edit Event" : "Create Event"}
         </Text>
+        {!eventId ? (
+          <TouchableOpacity
+            className="ml-auto bg-[#1A2432] border border-[#2E3A4D] px-3 py-2 rounded-full flex-row items-center"
+            onPress={() => router.push("/create/ai")}
+          >
+            <Wand2 color="#9EDD45" size={16} />
+            <Text className="text-primary font-semibold ml-2">AI draft</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       <ProgressSteps currentStep={0} />
 
