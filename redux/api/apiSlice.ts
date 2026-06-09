@@ -4,7 +4,6 @@ import type { RootState } from "../store";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: appConfig.coreApiUrl,
-  credentials: "include",
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
     const token = state.auth?.userInfo?.accessToken;
