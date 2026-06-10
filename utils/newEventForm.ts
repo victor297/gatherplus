@@ -2,6 +2,12 @@ import type {
   AiEventBuilderRequest,
   AiEventDraft,
 } from "@/types/aiEventBuilder";
+import {
+  DEFAULT_TICKET_DESIGN_KEY,
+  normalizeTicketDesignConfig,
+  normalizeTicketDesignKey,
+  type TicketDesignKey,
+} from "@/components/tickets/TicketTemplates";
 import type {
   AttendanceMode,
   CreateEventV2Payload,
@@ -143,6 +149,28 @@ const pickNumber = (...values: unknown[]) => {
   return 0;
 };
 
+const inferTicketDesignKey = (...values: unknown[]): TicketDesignKey => {
+  const source = values.map((value) => pickText(value)).join(" ").toLowerCase();
+
+  if (/\b(vip|premium|exclusive|executive|gold|platinum)\b/.test(source)) {
+    return "vip_badge";
+  }
+
+  if (/\b(festival|concert|music|nightlife|show|party|live)\b/.test(source)) {
+    return "festival";
+  }
+
+  if (/\b(conference|business|corporate|meeting|workshop|seminar|professional)\b/.test(source)) {
+    return "minimal";
+  }
+
+  if (/\b(classic|admit|admission|ticket)\b/.test(source)) {
+    return "classic_ticket";
+  }
+
+  return DEFAULT_TICKET_DESIGN_KEY;
+};
+
 const normalizeDateOnly = (value: unknown) => {
   const text = trim(value);
   if (!text) return "";
@@ -269,6 +297,16 @@ const normalizeAiTickets = (draft: AiEventDraft, request?: AiEventBuilderRequest
       quantity: pickNumber(ticket?.quantity, ticket?.capacity, quantity) || quantity,
       seat_type: ticket?.seat_type || "SEAT",
       no_per_seat_type: Number(ticket?.no_per_seat_type || 1),
+      ticket_design_key: normalizeTicketDesignKey(
+        ticket?.ticket_design_key ||
+          ticket?.design_key ||
+          ticket?.design ||
+          ticket?.template ||
+          inferTicketDesignKey(ticket?.name, ticket?.title, request?.prompt, request?.audience)
+      ),
+      ticket_design_config: normalizeTicketDesignConfig(
+        ticket?.ticket_design_config || ticket?.design_config
+      ),
     }));
   }
 
@@ -279,6 +317,13 @@ const normalizeAiTickets = (draft: AiEventDraft, request?: AiEventBuilderRequest
       quantity,
       seat_type: "SEAT",
       no_per_seat_type: 1,
+      ticket_design_key: inferTicketDesignKey(
+        request?.ticketName,
+        request?.ticketPlan,
+        request?.prompt,
+        request?.audience
+      ),
+      ticket_design_config: {},
     },
   ];
 };
@@ -318,6 +363,8 @@ export const normalizeTicketsForPayload = (tickets: any[] = [], isFree = false):
       quantity: Number(ticket.quantity || 0),
       seat_type: ticket.seat_type === "TABLE" ? "TABLE" : "SEAT",
       no_per_seat_type: Number(ticket.no_per_seat_type || 1),
+      ticket_design_key: normalizeTicketDesignKey(ticket.ticket_design_key),
+      ticket_design_config: normalizeTicketDesignConfig(ticket.ticket_design_config),
     }));
 
 export const normalizeFaqsForPayload = (faqs: EventFaq[] = []) =>
@@ -465,6 +512,8 @@ export const mapNewEventToMobileForm = (event: EventV2 | Record<string, any>) =>
           quantity: Number(ticket.quantity || 0),
           seat_type: ticket.seat_type || "SEAT",
           no_per_seat_type: Number(ticket.no_per_seat_type || 1),
+          ticket_design_key: normalizeTicketDesignKey(ticket.ticket_design_key),
+          ticket_design_config: normalizeTicketDesignConfig(ticket.ticket_design_config),
         }))
       : [],
     sessions,

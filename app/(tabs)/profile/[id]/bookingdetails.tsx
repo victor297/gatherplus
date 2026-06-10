@@ -12,15 +12,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
-import QRCode from "react-native-qrcode-svg";
 import {
   ArrowLeft,
-  CalendarDays,
-  Clock,
   ClipboardList,
   Download,
   Mail,
-  MapPin,
   Monitor,
   Phone,
   RefreshCcw,
@@ -41,6 +37,10 @@ import {
   getOnlineRevealLabel,
 } from "@/utils/eventHelpers";
 import { formatDate } from "@/utils/formatDate";
+import {
+  MobileTicketPass,
+  getTicketDesignFromBooking,
+} from "@/components/tickets/TicketTemplates";
 
 const money = (value?: unknown, currency?: unknown) => {
   const amount = Number(value || 0);
@@ -48,25 +48,24 @@ const money = (value?: unknown, currency?: unknown) => {
   return amount > 0 ? `${code} ${amount.toLocaleString()}` : "Free";
 };
 
-function InfoTile({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+const formatTimeRange = (start?: unknown, end?: unknown) => {
+  const startText = String(start || "").trim();
+  const endText = String(end || "").trim();
+  if (startText && endText) return `${startText} - ${endText}`;
+  return startText || endText || "Event time";
+};
+
+const getBookingLocation = (event: Record<string, any> = {}) => {
+  if (String(event.attendance_mode || "").toUpperCase() === "ONLINE") {
+    return "Online event";
+  }
+
   return (
-    <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 flex-1 min-w-[46%]">
-      <View className="w-10 h-10 rounded-full bg-white/10 items-center justify-center mb-3">
-        {icon}
-      </View>
-      <Text className="text-gray-400 text-xs uppercase tracking-[2px]">{label}</Text>
-      <Text className="text-white font-semibold mt-1">{value}</Text>
-    </View>
+    [event.city, event.country_code].filter(Boolean).join(", ") ||
+    String(event.address || "").trim() ||
+    getAttendanceLabel(event)
   );
-}
+};
 
 function TicketPass({ booking, index }: { booking: any; index: number }) {
   const router = useRouter();
@@ -81,6 +80,7 @@ function TicketPass({ booking, index }: { booking: any; index: number }) {
   const canShowJoinLink = canShowProtectedOnlineAccess(richBooking);
   const session = richBooking?.session || {};
   const ticket = richBooking?.ticket || {};
+  const design = getTicketDesignFromBooking(richBooking);
   const questionnaireItems = Array.isArray(richBooking?.questionnaire)
     ? richBooking.questionnaire
     : Array.isArray(booking?.questionnaire)
@@ -110,73 +110,36 @@ function TicketPass({ booking, index }: { booking: any; index: number }) {
   };
 
   return (
-    <View
-      ref={ticketRef}
-      collapsable={false}
-      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mb-5"
-    >
-      <View className="p-5 border-b border-[#243044]">
-        <View className="flex-row items-start justify-between">
-          <View className="flex-1 pr-3">
-            <View className="flex-row items-center">
-              <View className="w-11 h-11 rounded-full bg-primary items-center justify-center">
-                <Ticket color="#020817" size={21} />
-              </View>
-              <Text className="text-[#8B6BFF] font-bold tracking-[4px] uppercase ml-3">
-                Secure pass
-              </Text>
-            </View>
-            <Text className="text-white text-2xl font-bold mt-4">
-              {event?.title || session?.name || `Ticket ${index + 1}`}
-            </Text>
-            <Text className="text-gray-400 mt-2">
-              {ticket?.name || ticket?.seat_type || "General admission"}
-            </Text>
-          </View>
-          <TouchableOpacity className="bg-[#1A2432] rounded-xl p-3" onPress={downloadTicket}>
-            <Download color="#E5E7EB" size={19} />
-          </TouchableOpacity>
-        </View>
+    <View className="mb-5">
+      <View className="flex-row items-center justify-between mb-2">
+        <Text className="text-white font-semibold">Pass {index + 1}</Text>
+        <TouchableOpacity
+          className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-3 py-2 flex-row items-center"
+          onPress={downloadTicket}
+        >
+          <Download color="#E5E7EB" size={16} />
+          <Text className="text-white font-semibold ml-2">Save</Text>
+        </TouchableOpacity>
       </View>
 
-      <View className="p-5">
-        <View className="items-center bg-white rounded-2xl p-5 mb-5">
-          <QRCode value={code} size={190} />
-          <Text className="text-[#5B4DFF] font-mono font-bold tracking-[3px] mt-4">
-            {code}
-          </Text>
-          <Text className="text-gray-500 text-center mt-2">
-            Scan this QR or show the code at check-in.
-          </Text>
-        </View>
+      <View ref={ticketRef} collapsable={false}>
+        <MobileTicketPass
+          attendeeName={richBooking?.fullname}
+          bookingCode={code}
+          dateLabel={formatDate(session?.date || event?.start_date)}
+          designConfig={design.designConfig}
+          designKey={design.designKey}
+          eventTitle={event?.title || session?.name || `Ticket ${index + 1}`}
+          locationLabel={getBookingLocation(event)}
+          priceLabel={money(ticket?.price || richBooking?.invoice?.finalAmount || richBooking?.final_amount, event?.currency || ticket?.currency)}
+          sessionLabel={session?.name || "General admission"}
+          statusLabel={richBooking?.status || "Booked"}
+          ticketName={ticket?.name || ticket?.seat_type || "General admission"}
+          timeLabel={formatTimeRange(session?.start_time, session?.end_time)}
+        />
+      </View>
 
-        <View className="flex-row flex-wrap gap-3">
-          <InfoTile
-            icon={<CalendarDays color="#A993FF" size={19} />}
-            label="Date"
-            value={formatDate(session?.date || event?.start_date)}
-          />
-          <InfoTile
-            icon={<Clock color="#A993FF" size={19} />}
-            label="Time"
-            value={`${session?.start_time || "Time"}${session?.end_time ? ` - ${session.end_time}` : ""}`}
-          />
-          <InfoTile
-            icon={<MapPin color="#A993FF" size={19} />}
-            label="Where"
-            value={
-              event?.attendance_mode === "ONLINE"
-                ? "Online event"
-                : event?.city || event?.address || getAttendanceLabel(event)
-            }
-          />
-          <InfoTile
-            icon={<Ticket color="#A993FF" size={19} />}
-            label="Price"
-            value={money(ticket?.price || richBooking?.final_amount, event?.currency || ticket?.currency)}
-          />
-        </View>
-
+      <View className="bg-[#111823] border border-[#243044] rounded-2xl p-5 mt-4">
         {hasOnlineAccess ? (
           <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mt-4">
             <View className="flex-row items-center">

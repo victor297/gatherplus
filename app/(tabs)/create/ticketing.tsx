@@ -19,6 +19,19 @@ import { ArrowLeft, X } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
 import { useGetCurrenciesQuery } from "@/redux/api/currencyAPI";
 import { useGetMaxFreeTicketQuery } from "@/redux/api/eventsApiSlice";
+import {
+  DEFAULT_TICKET_DESIGN_KEY,
+  TicketDesignSelector,
+  normalizeTicketDesignKey,
+} from "@/components/tickets/TicketTemplates";
+
+const withTicketDesignDefaults = (ticket: any = {}) => ({
+  ...ticket,
+  no_per_seat_type: Number(ticket.no_per_seat_type || 1),
+  seat_type: ticket.seat_type || "SEAT",
+  ticket_design_config: ticket.ticket_design_config || {},
+  ticket_design_key: normalizeTicketDesignKey(ticket.ticket_design_key),
+});
 
 export default function TicketingScreen() {
   const router = useRouter();
@@ -45,6 +58,9 @@ export default function TicketingScreen() {
       if (data.is_free === undefined) {
         data.is_free = false;
       }
+      data.tickets = Array.isArray(data.tickets)
+        ? data.tickets.map(withTicketDesignDefaults)
+        : [];
       return data;
     } catch (error) {
       console.error("Error parsing formData:", error);
@@ -177,6 +193,8 @@ export default function TicketingScreen() {
           quantity: "",
           seat_type: "SEAT",
           no_per_seat_type: 1,
+          ticket_design_config: {},
+          ticket_design_key: DEFAULT_TICKET_DESIGN_KEY,
         },
       ],
     }));
@@ -219,10 +237,11 @@ export default function TicketingScreen() {
 
   const handleSaveAndContinue = () => {
     if (!isFormValid) return;
+    const normalizedTickets = tickets.map(withTicketDesignDefaults);
 
     // Ensure all free tickets have price set to 0
     if (eventType === "free") {
-      const updatedTickets = tickets.map((ticket) => ({
+      const updatedTickets = normalizedTickets.map((ticket) => ({
         ...ticket,
         price: 0,
       }));
@@ -243,8 +262,8 @@ export default function TicketingScreen() {
           is_free: eventType === "free",
           tickets:
             eventType === "free"
-              ? tickets.map((ticket) => ({ ...ticket, price: 0 }))
-              : tickets,
+              ? normalizedTickets.map((ticket) => ({ ...ticket, price: 0 }))
+              : normalizedTickets,
         }),
         eventId: params.eventId || "",
       },
@@ -616,6 +635,17 @@ export default function TicketingScreen() {
                         parseInt(text) || 1
                       )
                     }
+                  />
+                </View>
+
+                <View>
+                  <Text className="text-white mb-2">Ticket appearance</Text>
+                  <Text className="text-gray-400 mb-3">
+                    Buyers keep this pass design after purchase.
+                  </Text>
+                  <TicketDesignSelector
+                    value={ticket.ticket_design_key}
+                    onChange={(key) => updateTicket(index, "ticket_design_key", key)}
                   />
                 </View>
               </View>

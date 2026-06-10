@@ -15,8 +15,19 @@ export interface UserTicketBooking {
   event_id: number;
   fullname?: string;
   id: number;
+  invoice?: Record<string, unknown>;
+  questionnaire?: Array<Record<string, unknown>>;
+  questionnairePending?: boolean;
+  secureBookingUrl?: string;
+  session?: Record<string, unknown>;
   status?: string;
-  ticket?: Record<string, unknown>;
+  ticket?: Record<string, unknown> & {
+    ticket_design_config?: Record<string, unknown> | string | null;
+    ticket_design_key?: string | null;
+  };
+  ticket_design_config?: Record<string, unknown> | string | null;
+  ticket_design_key?: string | null;
+  ticket_design_snapshot?: Record<string, unknown> | string | null;
 }
 
 export interface UserBookingGroup {

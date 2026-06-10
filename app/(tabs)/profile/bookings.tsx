@@ -29,6 +29,10 @@ import {
   useGetMyTicketExchangeQuery,
 } from "@/redux/api/ticketExchangeApiSlice";
 import { formatDate } from "@/utils/formatDate";
+import {
+  MobileTicketPass,
+  getTicketDesignFromBooking,
+} from "@/components/tickets/TicketTemplates";
 
 type WalletBooking = {
   code?: string;
@@ -78,6 +82,26 @@ const money = (value?: unknown, currency?: unknown) => {
 };
 
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
+
+const formatTimeRange = (start?: unknown, end?: unknown) => {
+  const startText = String(start || "").trim();
+  const endText = String(end || "").trim();
+  if (startText && endText) return `${startText} - ${endText}`;
+  return startText || endText || "Event time";
+};
+
+const getBookingLocation = (booking: WalletBooking) => {
+  const event = booking.event || {};
+  if (String(event.attendance_mode || "").toUpperCase() === "ONLINE") {
+    return "Online event";
+  }
+
+  return (
+    [event.city, event.country_code].filter(Boolean).join(", ") ||
+    String(event.address || "").trim() ||
+    "Event location"
+  );
+};
 
 const getBookingQuestionnaire = (booking: WalletBooking) => {
   const items = Array.isArray(booking.questionnaire) ? booking.questionnaire : [];
@@ -480,6 +504,32 @@ export default function BookingsScreen() {
 
                         return (
                           <View key={booking.id || booking.code} className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mb-3">
+                            {(() => {
+                              const design = getTicketDesignFromBooking(booking as any);
+                              return (
+                                <MobileTicketPass
+                                  attendeeName={booking.fullname}
+                                  bookingCode={booking.code}
+                                  dateLabel={formatDate(booking.session?.date || booking.event?.start_date)}
+                                  designConfig={design.designConfig}
+                                  designKey={design.designKey}
+                                  eventTitle={booking.event?.title}
+                                  locationLabel={getBookingLocation(booking)}
+                                  priceLabel={money(
+                                    booking.invoice?.finalAmount || booking.ticket?.price || 0,
+                                    booking.event?.currency
+                                  )}
+                                  sessionLabel={booking.session?.name || "General admission"}
+                                  statusLabel={booking.status || "Booked"}
+                                  ticketName={booking.ticket?.name || "Ticket"}
+                                  timeLabel={formatTimeRange(
+                                    booking.session?.start_time,
+                                    booking.session?.end_time
+                                  )}
+                                />
+                              );
+                            })()}
+
                             <View className="flex-row flex-wrap items-center gap-2">
                               <Text className="bg-primary/15 border border-primary/30 rounded-full px-3 py-1 text-primary font-mono text-xs">
                                 {booking.code || "No code"}

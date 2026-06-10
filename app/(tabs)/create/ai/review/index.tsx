@@ -35,6 +35,7 @@ import {
   AI_EVENT_IMPORT_STORAGE_KEY,
   mapAiDraftToMobileForm,
 } from "@/utils/newEventForm";
+import { getTicketDesignLabel } from "@/components/tickets/TicketTemplates";
 
 type StoredDraft = {
   draft: AiEventDraft;
@@ -210,7 +211,15 @@ export default function AiReviewScreen() {
         <PlanRow
           icon={<Ticket color="#7C5CFF" size={18} />}
           label="Tickets"
-          value={tickets.map((ticket: any) => `${ticket.name} · ${mappedForm.is_free ? "Free" : `${mappedForm.currency || ""} ${ticket.price || 0}`}`).join("\n")}
+          value={tickets
+            .map((ticket: any) =>
+              [
+                ticket.name,
+                mappedForm.is_free ? "Free" : `${mappedForm.currency || ""} ${ticket.price || 0}`,
+                getTicketDesignLabel(ticket.ticket_design_key),
+              ].join(" - ")
+            )
+            .join("\n")}
         />
         <PlanRow
           icon={<Tag color="#7C5CFF" size={18} />}

@@ -25,6 +25,8 @@ export interface EventTicket {
   quantity?: number;
   seat_type?: string;
   sold?: number;
+  ticket_design_config?: Record<string, unknown> | string | null;
+  ticket_design_key?: string | null;
   totalSold?: number;
   total_sold?: number;
 }

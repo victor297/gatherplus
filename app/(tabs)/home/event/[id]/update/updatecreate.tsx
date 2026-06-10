@@ -10,6 +10,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSelector } from 'react-redux';
 import { Platform } from 'react-native';
 import { uploadSingleFile } from '@/utils/upload';
+import {
+  normalizeTicketDesignConfig,
+  normalizeTicketDesignKey,
+} from '@/components/tickets/TicketTemplates';
 
 interface Participant {
   id?: string;
@@ -149,11 +153,14 @@ export default function UpdateEventScreen() {
         absorb_fee: eventData.absorb_fee,
         ticketed: eventData.ticketed,
         tickets: eventData.tickets.map((ticket: any) => ({
+          id: ticket?.id,
           name: ticket?.name,
           price: ticket?.price,
           quantity: ticket?.quantity,
           seat_type: ticket?.seat_type,
-          no_per_seat_type: ticket?.no_per_seat_type
+          no_per_seat_type: ticket?.no_per_seat_type,
+          ticket_design_config: normalizeTicketDesignConfig(ticket?.ticket_design_config),
+          ticket_design_key: normalizeTicketDesignKey(ticket?.ticket_design_key),
         })),
       });
 
