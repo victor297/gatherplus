@@ -23,10 +23,32 @@ import {
 } from "@/redux/api/blogApiSlice";
 
 const DEFAULT_IMAGE =
-  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
+  `${String(
+    process.env.EXPO_PUBLIC_WEB_URL || "https://www.gatherplux.com"
+  ).replace(/\/$/, "")}/gatherplux-default.jpg`;
+
+function resolveImageUri(value?: unknown) {
+  const uri = String(value || "").trim();
+  if (!uri) return null;
+  if (/^https?:\/\//i.test(uri)) return uri;
+  if (uri.startsWith("//")) return `https:${uri}`;
+  if (uri.startsWith("/")) {
+    return `${String(
+      process.env.EXPO_PUBLIC_WEB_URL || "https://www.gatherplux.com"
+    ).replace(/\/$/, "")}${uri}`;
+  }
+  return uri;
+}
 
 function postImage(post?: BlogPost) {
-  return post?.cover_image_url || post?.hero_image_url || DEFAULT_IMAGE;
+  return (
+    resolveImageUri(
+      post?.cover_image_url ||
+        post?.hero_image_url ||
+        (post as any)?.image_url ||
+        (post as any)?.cover_image
+    ) || DEFAULT_IMAGE
+  );
 }
 
 function formatDate(value?: string | null) {

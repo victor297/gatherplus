@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   ScrollView,
   Text,
   TextInput,
@@ -48,6 +49,33 @@ const money = (value?: unknown, currency?: unknown) => {
 };
 
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
+
+const WEB_ORIGIN = String(
+  process.env.EXPO_PUBLIC_WEB_URL || "https://www.gatherplux.com"
+).replace(/\/$/, "");
+
+const resolveImageUri = (value?: unknown) => {
+  const uri = String(value || "").trim();
+  if (!uri) return null;
+  if (/^https?:\/\//i.test(uri)) return uri;
+  if (uri.startsWith("//")) return `https:${uri}`;
+  if (uri.startsWith("/")) return `${WEB_ORIGIN}${uri}`;
+  return uri;
+};
+
+const eventImage = (event: any) =>
+  resolveImageUri(
+    event?.images?.[0] || event?.image || event?.cover_image || null
+  );
+
+const resaleImage = (listing: any) =>
+  eventImage(listing?.event) ||
+  resolveImageUri(
+    listing?.event_image ||
+      listing?.image ||
+      listing?.cover_image ||
+      listing?.booking?.event?.images?.[0]
+  );
 
 export default function TicketExchangeScreen() {
   const router = useRouter();
@@ -206,6 +234,22 @@ export default function TicketExchangeScreen() {
             }
             renderItem={({ item }: { item: any }) => (
               <View className="p-4 border-b border-[#243044]">
+                <View className="relative mb-4 overflow-hidden rounded-2xl">
+                  <Image
+                    source={
+                      resaleImage(item)
+                        ? { uri: resaleImage(item) as string }
+                        : require("../assets/images/landing.webp")
+                    }
+                    className="w-full h-40 bg-[#1A2432]"
+                    resizeMode="cover"
+                  />
+                  <View className="absolute left-3 top-3 bg-black/70 rounded-full px-3 py-1">
+                    <Text className="text-primary text-xs font-bold">
+                      Verified resale
+                    </Text>
+                  </View>
+                </View>
                 <View className="flex-row items-start justify-between">
                   <View className="flex-1 pr-3">
                     <Text className="text-white text-lg font-semibold">{item.event?.title || "Resale ticket"}</Text>

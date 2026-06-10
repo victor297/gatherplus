@@ -45,11 +45,30 @@ import {
 import { useGetTicketExchangeMarketplaceQuery } from "@/redux/api/ticketExchangeApiSlice";
 import { useGetRecommendedEventsQuery } from "@/redux/api/analyticsApiSlice";
 
+const WEB_ORIGIN = String(
+  process.env.EXPO_PUBLIC_WEB_URL || "https://www.gatherplux.com"
+).replace(/\/$/, "");
 const DEFAULT_BLOG_IMAGE =
-  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
+  `${WEB_ORIGIN}/gatherplux-default.jpg`;
+
+function resolveImageUri(value?: unknown) {
+  const uri = String(value || "").trim();
+  if (!uri) return null;
+  if (/^https?:\/\//i.test(uri)) return uri;
+  if (uri.startsWith("//")) return `https:${uri}`;
+  if (uri.startsWith("/")) return `${WEB_ORIGIN}${uri}`;
+  return uri;
+}
 
 function blogImage(post?: BlogPost) {
-  return post?.cover_image_url || post?.hero_image_url || DEFAULT_BLOG_IMAGE;
+  return (
+    resolveImageUri(
+      post?.cover_image_url ||
+        post?.hero_image_url ||
+        (post as any)?.image_url ||
+        (post as any)?.cover_image
+    ) || DEFAULT_BLOG_IMAGE
+  );
 }
 
 function formatBlogDate(value?: string | null) {
@@ -83,7 +102,18 @@ const money = (value?: unknown, currency?: unknown) => {
 };
 
 const eventImage = (event: any) =>
-  event?.images?.[0] || event?.image || event?.cover_image || null;
+  resolveImageUri(
+    event?.images?.[0] || event?.image || event?.cover_image || null
+  );
+
+const resaleImage = (listing: any) =>
+  eventImage(listing?.event) ||
+  resolveImageUri(
+    listing?.event_image ||
+      listing?.image ||
+      listing?.cover_image ||
+      listing?.booking?.event?.images?.[0]
+  );
 
 const eventLocation = (event: any) => {
   const mode = String(event?.attendance_mode || "").toUpperCase();
@@ -861,37 +891,55 @@ export default function HomeScreen() {
                   {resaleListings.map((listing: any) => (
                     <TouchableOpacity
                       key={listing.id}
-                      className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mr-3 w-56"
+                      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mr-3 w-56"
                       onPress={() => router.push("/ticket-exchange" as any)}
                     >
-                      <View className="flex-row items-center mb-3">
-                        <View className="h-10 w-10 rounded-2xl bg-primary/15 items-center justify-center mr-3">
-                          <Ticket color="#9EDD45" size={20} />
-                        </View>
-                        <View className="bg-primary/15 rounded-full px-3 py-1">
+                      <View className="relative">
+                        <Image
+                          source={
+                            resaleImage(listing)
+                              ? { uri: resaleImage(listing) as string }
+                              : require("../../../assets/images/landing.webp")
+                          }
+                          className="w-full h-28 bg-[#1A2432]"
+                          resizeMode="cover"
+                        />
+                        <View className="absolute left-3 top-3 bg-black/70 rounded-full px-3 py-1">
                           <Text className="text-primary text-xs font-bold">
-                            Verified
+                            Resale
                           </Text>
                         </View>
+                        <View className="absolute right-3 top-3 h-8 w-8 rounded-full bg-primary/90 items-center justify-center">
+                          <Ticket color="#06101F" size={16} />
+                        </View>
                       </View>
-                      <Text
-                        className="text-white text-base font-bold leading-5"
-                        numberOfLines={2}
-                      >
-                        {listing.event?.title || "Resale ticket"}
-                      </Text>
-                      <Text
-                        className="text-gray-400 text-sm mt-1"
-                        numberOfLines={1}
-                      >
-                        {listing.ticket?.name || "Ticket"}
-                      </Text>
-                      <Text className="text-primary text-lg font-black mt-3">
-                        {money(
-                          listing.buyer_total_amount || listing.price,
-                          listing.currency || listing.event?.currency
-                        )}
-                      </Text>
+                      <View className="p-3">
+                        <Text
+                          className="text-white text-base font-bold leading-5"
+                          numberOfLines={2}
+                        >
+                          {listing.event?.title || "Resale ticket"}
+                        </Text>
+                        <Text
+                          className="text-gray-400 text-sm mt-1"
+                          numberOfLines={1}
+                        >
+                          {listing.ticket?.name || "Ticket"}
+                        </Text>
+                        <View className="flex-row items-center justify-between mt-3">
+                          <Text className="text-primary text-lg font-black">
+                            {money(
+                              listing.buyer_total_amount || listing.price,
+                              listing.currency || listing.event?.currency
+                            )}
+                          </Text>
+                          <View className="bg-primary/15 rounded-full px-2.5 py-1">
+                            <Text className="text-primary text-[11px] font-bold">
+                              Verified
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>

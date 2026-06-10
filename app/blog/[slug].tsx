@@ -15,7 +15,22 @@ import { ArrowLeft, CalendarDays } from "lucide-react-native";
 import { useGetPublicBlogBySlugQuery } from "@/redux/api/blogApiSlice";
 
 const DEFAULT_IMAGE =
-  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
+  `${String(
+    process.env.EXPO_PUBLIC_WEB_URL || "https://www.gatherplux.com"
+  ).replace(/\/$/, "")}/gatherplux-default.jpg`;
+
+function resolveImageUri(value?: unknown) {
+  const uri = String(value || "").trim();
+  if (!uri) return null;
+  if (/^https?:\/\//i.test(uri)) return uri;
+  if (uri.startsWith("//")) return `https:${uri}`;
+  if (uri.startsWith("/")) {
+    return `${String(
+      process.env.EXPO_PUBLIC_WEB_URL || "https://www.gatherplux.com"
+    ).replace(/\/$/, "")}${uri}`;
+  }
+  return uri;
+}
 
 function formatDate(value?: string | null) {
   if (!value) return "GatherPlux";
@@ -41,7 +56,13 @@ export default function BlogDetailScreen() {
   );
 
   const post = data?.body;
-  const image = post?.hero_image_url || post?.cover_image_url || DEFAULT_IMAGE;
+  const image =
+    resolveImageUri(
+      post?.hero_image_url ||
+        post?.cover_image_url ||
+        (post as any)?.image_url ||
+        (post as any)?.cover_image
+    ) || DEFAULT_IMAGE;
   const content = post?.content || post?.excerpt || "";
 
   return (
