@@ -36,11 +36,14 @@ export interface RevenueHistoryItem {
   amount: number | string;
   createdAt?: string;
   created_at?: string;
+  gross_amount?: number | string;
   id: number;
+  net_amount?: number | string;
   recipient?: TransferRecipient;
   recipient_code?: string;
   rejection_reason?: string;
   status: string;
+  transfer_fee_amount?: number | string;
   updatedAt?: string;
 }
 

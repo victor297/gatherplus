@@ -32,6 +32,7 @@ import {
 } from "@/redux/api/paymentApiSlice";
 import { useGetUserWalletLedgerQuery, useGetUserWalletQuery } from "@/redux/api/usersApiSlice";
 import type { Bank, RevenueHistoryItem, TransferRecipient } from "@/types/revenue";
+import { payoutFeeBreakdown } from "@/utils/payoutFees";
 
 type LedgerType = "available" | "pending" | "requested";
 
@@ -50,6 +51,29 @@ const money = (value?: unknown, currency?: unknown) => {
   } catch {
     return `${code} ${amount.toLocaleString()}`;
   }
+};
+
+const payoutGross = (request: RevenueHistoryItem) =>
+  Number(
+    request.gross_amount ||
+      Number(request.amount || 0) + Number(request.transfer_fee_amount || 0)
+  );
+
+const payoutNet = (request: RevenueHistoryItem) =>
+  Number(request.net_amount || request.amount || 0);
+
+const payoutFee = (request: RevenueHistoryItem) =>
+  Number(request.transfer_fee_amount || Math.max(0, payoutGross(request) - payoutNet(request)));
+
+const statusStyle = (status?: string) => {
+  const normalized = String(status || "").toUpperCase();
+  if (["COMPLETED", "SUCCESS", "REMITTED"].includes(normalized)) {
+    return "bg-[#9EDD45]/15 text-[#9EDD45]";
+  }
+  if (["PENDING", "INITIATED"].includes(normalized)) {
+    return "bg-[#5B4DFF]/15 text-[#B9B3FF]";
+  }
+  return "bg-red-500/15 text-red-300";
 };
 
 const unwrapRecipient = (payload: any): TransferRecipient | null => {
@@ -110,8 +134,16 @@ export default function RevenueScreen() {
   const pending = Number(ledger?.totals?.pendingBalance ?? wallet?.pending_balance ?? 0);
   const requested = Number(
     ledger?.totals?.totalRequested ??
-      requests.reduce((sum, request) => sum + Number(request.amount || 0), 0)
+      requests.reduce((sum, request) => sum + payoutGross(request), 0)
   );
+  const requestGrossAmount = Number(requestAmount || 0);
+  const requestPayoutPreview = payoutFeeBreakdown(requestGrossAmount, currency);
+  const requestNetAmount = requestPayoutPreview.netAmount;
+  const canSubmitPayout =
+    !isRequesting &&
+    requestGrossAmount > 0 &&
+    requestGrossAmount <= available &&
+    requestNetAmount > 0;
 
   const latestRequests = useMemo(() => requests.slice(0, 5), [requests]);
   const loading = walletLoading || ledgerLoading || recipientLoading || requestsLoading;
@@ -181,6 +213,13 @@ export default function RevenueScreen() {
       Alert.alert("Invalid amount", "Enter an amount within your available balance.");
       return;
     }
+    if (requestNetAmount <= 0) {
+      Alert.alert(
+        "Amount too low",
+        "The requested amount must be greater than the Paystack payout fee reserve."
+      );
+      return;
+    }
 
     try {
       await requestPayment({
@@ -190,7 +229,13 @@ export default function RevenueScreen() {
       setRequestModalOpen(false);
       setRequestAmount("");
       refreshAll();
-      Alert.alert("Payout requested", "Your payout request has been submitted.");
+      Alert.alert(
+        "Payout requested",
+        `Gross request: ${money(requestPayoutPreview.grossAmount, currency)}\nPaystack fee reserve: ${money(
+          requestPayoutPreview.transferFeeAmount,
+          currency
+        )}\nNet payout: ${money(requestPayoutPreview.netAmount, currency)}`
+      );
     } catch {
       Alert.alert("Request failed", "We could not submit this payout request yet.");
     }
@@ -235,6 +280,26 @@ export default function RevenueScreen() {
           value={money(requested, currency)}
           onPress={() => openLedger("requested")}
         />
+      </View>
+
+      <View className="bg-[#111823] border border-[#243044] rounded-2xl p-5 mb-5">
+        <View className="flex-row items-start">
+          <View className="w-12 h-12 rounded-full bg-[#9EDD45] items-center justify-center">
+            <CheckCircle color="#020817" size={22} />
+          </View>
+          <View className="ml-3 flex-1">
+            <Text className="text-white text-xl font-semibold">Payout safeguards</Text>
+            <Text className="text-gray-400 mt-1">
+              Funds become withdrawable only after eligible sales clear internal checks.
+            </Text>
+          </View>
+        </View>
+        <View className="mt-4 gap-3">
+          <SafetyRow text="Pending event revenue is held until it is eligible for remittance." />
+          <SafetyRow text="Withdrawal requests reserve funds immediately, so the same balance cannot be requested twice." />
+          <SafetyRow text="Payout accounts must be verified before funds can be requested." />
+          <SafetyRow text="Paystack transfer fees are deducted from the requested funds before payout." />
+        </View>
       </View>
 
       <View className="gap-4">
@@ -290,7 +355,7 @@ export default function RevenueScreen() {
               </View>
               <View className="ml-3 flex-1">
                 <Text className="text-white text-xl font-semibold">Request payout</Text>
-                <Text className="text-gray-400 mt-1">Withdraw funds from your available balance.</Text>
+                <Text className="text-gray-400 mt-1">Withdraw available funds after payout fees are reserved.</Text>
               </View>
             </View>
             <TouchableOpacity
@@ -304,7 +369,7 @@ export default function RevenueScreen() {
           <View className="p-5">
             <Text className="text-gray-400">
               {recipient
-                ? `Ready to withdraw up to ${money(available, currency)}.`
+                ? `Ready to request up to ${money(available, currency)} gross. Paystack fee reserve is deducted from the request before payout.`
                 : "Add a payout account to enable withdrawal requests."}
             </Text>
           </View>
@@ -316,23 +381,32 @@ export default function RevenueScreen() {
             <Text className="text-gray-400 mt-1">Recent withdrawal requests and payout status.</Text>
           </View>
           {latestRequests.length ? (
-            latestRequests.map((request) => (
+            latestRequests.map((request) => {
+              const historyCurrency = request.recipient?.currency || currency;
+              return (
               <View key={request.id} className="p-4 border-b border-[#243044]">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-1 pr-3">
                     <Text className="text-white font-semibold">
-                      {money(request.amount, request.recipient?.currency || currency)}
+                      {money(payoutNet(request), historyCurrency)} net payout
                     </Text>
                     <Text className="text-gray-400 mt-1">
                       {request.createdAt || request.created_at || "Date not available"}
                     </Text>
+                    <Text className="text-gray-500 mt-1 text-xs">
+                      Gross {money(payoutGross(request), historyCurrency)} · Fee {money(
+                        payoutFee(request),
+                        historyCurrency
+                      )}
+                    </Text>
                   </View>
-                  <Text className="bg-white/10 rounded-full px-3 py-1 text-gray-200 text-xs font-semibold">
+                  <Text className={`${statusStyle(request.status)} rounded-full px-3 py-1 text-xs font-semibold`}>
                     {request.status}
                   </Text>
                 </View>
               </View>
-            ))
+            );
+            })
           ) : (
             <Text className="text-gray-400 p-5">No payout history found.</Text>
           )}
@@ -448,12 +522,34 @@ export default function RevenueScreen() {
                 keyboardType="decimal-pad"
                 value={requestAmount}
                 onChangeText={setRequestAmount}
-                placeholder="Amount"
+                placeholder="Gross amount to request"
                 placeholderTextColor="#728097"
               />
+              <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mb-4">
+                <Text className="text-gray-400 text-xs uppercase tracking-[2px] mb-3">
+                  Payout preview
+                </Text>
+                <PreviewRow
+                  label="Gross request"
+                  value={money(requestPayoutPreview.grossAmount, currency)}
+                />
+                <PreviewRow
+                  label="Paystack fee reserve"
+                  value={`-${money(requestPayoutPreview.transferFeeAmount, currency)}`}
+                />
+                <View className="h-px bg-[#2E3A4D] my-3" />
+                <PreviewRow
+                  label="Net payout"
+                  value={money(requestPayoutPreview.netAmount, currency)}
+                  strong
+                />
+                <Text className="text-gray-500 text-xs mt-3 leading-5">
+                  {requestPayoutPreview.feePolicy} The backend validates this again before reserving funds.
+                </Text>
+              </View>
               <TouchableOpacity
                 className="bg-primary rounded-xl py-4 disabled:opacity-50"
-                disabled={isRequesting}
+                disabled={!canSubmitPayout}
                 onPress={handleRequestPayout}
               >
                 <Text className="text-background text-center font-bold">
@@ -495,5 +591,37 @@ function BalanceCard({
       </View>
       <ArrowUpRight color="#8B6BFF" size={22} />
     </TouchableOpacity>
+  );
+}
+
+function SafetyRow({ text }: { text: string }) {
+  return (
+    <View className="flex-row items-start">
+      <View className="w-5 h-5 rounded-full bg-[#9EDD45]/15 items-center justify-center mt-0.5">
+        <View className="w-2 h-2 rounded-full bg-[#9EDD45]" />
+      </View>
+      <Text className="text-gray-300 flex-1 ml-3 leading-5">{text}</Text>
+    </View>
+  );
+}
+
+function PreviewRow({
+  label,
+  strong,
+  value,
+}: {
+  label: string;
+  strong?: boolean;
+  value: string;
+}) {
+  return (
+    <View className="flex-row items-center justify-between py-1">
+      <Text className={strong ? "text-white font-semibold" : "text-gray-400"}>
+        {label}
+      </Text>
+      <Text className={strong ? "text-[#9EDD45] font-bold" : "text-white"}>
+        {value}
+      </Text>
+    </View>
   );
 }
