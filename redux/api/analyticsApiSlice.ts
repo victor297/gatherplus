@@ -10,6 +10,11 @@ interface RecommendedEventsParams {
   size?: number | string;
 }
 
+interface OrganizerRoiParams {
+  event_id?: number | string;
+  range?: string;
+}
+
 export const analyticsApiSlice = apiSlice.injectEndpoints({
   overrideExisting: false,
   endpoints: (builder) => ({
@@ -24,7 +29,18 @@ export const analyticsApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ["Event"],
     }),
+    getOrganizerRoi: builder.query<any, OrganizerRoiParams | void>({
+      query: (params = {}) => ({
+        url: `${ANALYTICS_URL}/organizer/roi`,
+        params: compactParams({
+          range: "30d",
+          ...params,
+        }),
+      }),
+      providesTags: ["Event"],
+    }),
   }),
 });
 
-export const { useGetRecommendedEventsQuery } = analyticsApiSlice;
+export const { useGetOrganizerRoiQuery, useGetRecommendedEventsQuery } =
+  analyticsApiSlice;

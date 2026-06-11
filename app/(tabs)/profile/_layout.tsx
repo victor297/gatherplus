@@ -19,6 +19,7 @@ export default function ProfileLayout() {
       <Stack.Screen name="agent" />
       <Stack.Screen name="attendees/index" />
       <Stack.Screen name="attendees/[email]" />
+      <Stack.Screen name="insights" />
       <Stack.Screen name="revenue" />
     </Stack>
   );

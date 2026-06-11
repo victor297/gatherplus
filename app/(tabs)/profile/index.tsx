@@ -25,6 +25,7 @@ import {
   Calendar1Icon,
   Users,
   Globe2,
+  BarChart3,
 } from "lucide-react-native";
 import { useGetProfileQuery } from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -119,6 +120,12 @@ export default function ProfileScreen() {
       title: "Organizer Workspace",
       subtitle: "Manage drafts, previews, attendees",
       route: "/profile/events",
+    },
+    {
+      icon: <BarChart3 size={24} color="#6B7280" />,
+      title: "Insights",
+      subtitle: "ROI, conversion, check-in readiness",
+      route: "/profile/insights",
     },
     {
       icon: <Ticket size={24} color="#6B7280" />,
