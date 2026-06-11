@@ -26,6 +26,7 @@ import {
   Users,
   Globe2,
   BarChart3,
+  Send,
 } from "lucide-react-native";
 import { useGetProfileQuery } from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -126,6 +127,12 @@ export default function ProfileScreen() {
       title: "Insights",
       subtitle: "ROI, conversion, check-in readiness",
       route: "/profile/insights",
+    },
+    {
+      icon: <Send size={24} color="#6B7280" />,
+      title: "Delivery Log",
+      subtitle: "Email/SMS updates and retry status",
+      route: "/profile/delivery-log",
     },
     {
       icon: <Ticket size={24} color="#6B7280" />,

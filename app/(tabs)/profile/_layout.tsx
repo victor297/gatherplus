@@ -20,6 +20,7 @@ export default function ProfileLayout() {
       <Stack.Screen name="attendees/index" />
       <Stack.Screen name="attendees/[email]" />
       <Stack.Screen name="insights" />
+      <Stack.Screen name="delivery-log" />
       <Stack.Screen name="revenue" />
     </Stack>
   );
