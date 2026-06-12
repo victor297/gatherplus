@@ -22,6 +22,16 @@ import { getStringParam } from "@/utils/routeParams";
 
 const tabs = ["Updates", "Agenda", "Q&A", "Polls"] as const;
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
+type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "YES_NO" | "RATING" | "PERCENTAGE";
+
+function getPollTypeLabel(type?: PollType | string, fallback?: string) {
+  if (fallback) return fallback;
+  if (type === "MULTIPLE_CHOICE") return "Multi-select";
+  if (type === "YES_NO") return "Yes / No";
+  if (type === "RATING") return "Rating";
+  if (type === "PERCENTAGE") return "100% allocation";
+  return "Single select";
+}
 
 export default function AttendeeEngagementScreen() {
   const router = useRouter();
@@ -33,6 +43,7 @@ export default function AttendeeEngagementScreen() {
   const [attendeeEmail, setAttendeeEmail] = useState("");
   const [question, setQuestion] = useState("");
   const [selectedPollOptions, setSelectedPollOptions] = useState<Record<number, string[]>>({});
+  const [pollAllocations, setPollAllocations] = useState<Record<number, Record<string, number>>>({});
 
   const { data, isFetching, isLoading, refetch } = useGetAttendeeEngagementHubQuery(
     { eventId, booking_code: bookingCode },
@@ -84,20 +95,36 @@ export default function AttendeeEngagementScreen() {
       const selected = current[poll.id] || poll.myVoteOptionIds || [];
       const next = selected.includes(optionId)
         ? selected.filter((id) => id !== optionId)
-        : poll.allow_multiple
+        : poll.poll_type === "MULTIPLE_CHOICE" || poll.allow_multiple
           ? [...selected, optionId]
           : [optionId];
       return { ...current, [poll.id]: next };
     });
   };
 
+  const getAllocationDraft = (poll: any) => {
+    return (pollAllocations[poll.id] || poll.myVoteResponse?.allocations || {}) as Record<string, number>;
+  };
+
+  const setAllocation = (poll: any, optionId: string, value: string) => {
+    const parsed = Number(value);
+    setPollAllocations((current) => ({
+      ...current,
+      [poll.id]: {
+        ...getAllocationDraft(poll),
+        [optionId]: Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : 0,
+      },
+    }));
+  };
+
   const submitVote = async (poll: any) => {
     try {
       const optionIds = selectedPollOptions[poll.id] || poll.myVoteOptionIds || [];
+      const allocations = getAllocationDraft(poll);
       await votePoll({
         pollId: poll.id,
         booking_code: bookingCode,
-        option_ids: optionIds,
+        ...(poll.poll_type === "PERCENTAGE" ? { allocations } : { option_ids: optionIds }),
       }).unwrap();
       refetch();
       Alert.alert("Vote saved", "Your poll response has been recorded.");
@@ -274,32 +301,69 @@ export default function AttendeeEngagementScreen() {
             {polls.length ? (
               polls.map((poll: any) => {
                 const selected = selectedPollOptions[poll.id] || poll.myVoteOptionIds || [];
+                const allocationDraft = getAllocationDraft(poll);
+                const allocationTotal = Object.values(allocationDraft).reduce((sum, value) => sum + Number(value || 0), 0);
                 return (
                   <View key={poll.id} className="border-b border-[#243044] pb-4 mb-4">
                     <Text className="text-white font-semibold">{poll.question}</Text>
-                    <Text className="text-gray-500 mt-1">{poll.totalVotes || 0} voters - {poll.status}</Text>
-                    {(poll.options || []).map((option: any) => (
-                      <TouchableOpacity
-                        key={option.id}
-                        className={`rounded-xl border p-3 mt-3 ${
-                          selected.includes(option.id)
-                            ? "border-primary bg-primary/10"
-                            : "border-[#2E3A4D] bg-[#1A2432]"
-                        }`}
-                        onPress={() => togglePollOption(poll, option.id)}
-                      >
-                        <View className="flex-row items-center justify-between">
-                          <Text className="text-white font-semibold flex-1 pr-3">{option.text}</Text>
-                          <Text className="text-gray-400">{Math.round(option.percent || 0)}%</Text>
-                        </View>
-                        <View className="bg-[#0B1220] h-3 rounded-full mt-2 overflow-hidden">
-                          <View className="bg-[#8B6BFF] h-full rounded-full" style={{ width: `${Math.min(100, option.percent || 0)}%` }} />
-                        </View>
-                      </TouchableOpacity>
-                    ))}
+                    <Text className="text-gray-500 mt-1">
+                      {getPollTypeLabel(poll.poll_type, poll.typeLabel)} - {poll.totalVotes || 0} voters - {poll.status}
+                    </Text>
+                    {poll.poll_type === "RATING" ? (
+                      <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-3">
+                        <Text className="text-white font-bold">{poll.summary?.averageRating || 0} average</Text>
+                        <Text className="text-gray-500 mt-1">Out of {poll.summary?.maxRating || 5}</Text>
+                      </View>
+                    ) : null}
+                    {poll.poll_type === "PERCENTAGE" ? (
+                      <>
+                        {(poll.options || []).map((option: any) => (
+                          <View key={option.id} className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3 mt-3">
+                            <View className="flex-row items-center justify-between">
+                              <Text className="text-white font-semibold flex-1 pr-3">{option.text}</Text>
+                              <Text className="text-gray-400">{option.averageAllocation || option.percent || 0}% avg</Text>
+                            </View>
+                            <TextInput
+                              className="bg-[#0B1220] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3"
+                              placeholder="0"
+                              placeholderTextColor="#728097"
+                              value={allocationDraft[option.id] === undefined ? "" : String(allocationDraft[option.id])}
+                              onChangeText={(value) => setAllocation(poll, option.id, value)}
+                              keyboardType="numeric"
+                            />
+                            <View className="bg-[#0B1220] h-3 rounded-full mt-3 overflow-hidden">
+                              <View className="bg-[#8B6BFF] h-full rounded-full" style={{ width: `${Math.min(100, option.percent || 0)}%` }} />
+                            </View>
+                          </View>
+                        ))}
+                        <Text className={allocationTotal === 100 ? "text-primary font-bold mt-3" : "text-red-300 font-bold mt-3"}>
+                          Allocation total: {allocationTotal}%
+                        </Text>
+                      </>
+                    ) : (
+                      (poll.options || []).map((option: any) => (
+                        <TouchableOpacity
+                          key={option.id}
+                          className={`rounded-xl border p-3 mt-3 ${
+                            selected.includes(option.id)
+                              ? "border-primary bg-primary/10"
+                              : "border-[#2E3A4D] bg-[#1A2432]"
+                          }`}
+                          onPress={() => togglePollOption(poll, option.id)}
+                        >
+                          <View className="flex-row items-center justify-between">
+                            <Text className="text-white font-semibold flex-1 pr-3">{option.text}</Text>
+                            <Text className="text-gray-400">{Math.round(option.percent || 0)}%</Text>
+                          </View>
+                          <View className="bg-[#0B1220] h-3 rounded-full mt-2 overflow-hidden">
+                            <View className="bg-[#8B6BFF] h-full rounded-full" style={{ width: `${Math.min(100, option.percent || 0)}%` }} />
+                          </View>
+                        </TouchableOpacity>
+                      ))
+                    )}
                     <TouchableOpacity
                       className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
-                      disabled={isVoting || poll.status !== "LIVE"}
+                      disabled={isVoting || poll.status !== "LIVE" || (poll.poll_type === "PERCENTAGE" && allocationTotal !== 100)}
                       onPress={() => submitVote(poll)}
                     >
                       <Text className="text-background text-center font-bold">Save vote</Text>

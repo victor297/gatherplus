@@ -25,6 +25,20 @@ import { getStringParam } from "@/utils/routeParams";
 
 const tabs = ["Updates", "Q&A", "Polls", "Agenda"] as const;
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
+type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "YES_NO" | "RATING" | "PERCENTAGE";
+
+const pollTypeOptions: Array<{ value: PollType; label: string; defaultOptions: string }> = [
+  { value: "SINGLE_CHOICE", label: "Single", defaultOptions: "Yes\nNo" },
+  { value: "MULTIPLE_CHOICE", label: "Multi", defaultOptions: "Option A\nOption B\nOption C" },
+  { value: "YES_NO", label: "Yes / No", defaultOptions: "Yes\nNo" },
+  { value: "RATING", label: "Rating", defaultOptions: "" },
+  { value: "PERCENTAGE", label: "100%", defaultOptions: "Option A\nOption B\nOption C" },
+];
+
+function getPollTypeLabel(type?: string, fallback?: string) {
+  if (fallback) return fallback;
+  return pollTypeOptions.find((item) => item.value === type)?.label || "Single";
+}
 
 export default function OrganizerEngagementHubScreen() {
   const router = useRouter();
@@ -33,8 +47,10 @@ export default function OrganizerEngagementHubScreen() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Updates");
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementBody, setAnnouncementBody] = useState("");
+  const [pollType, setPollType] = useState<PollType>("SINGLE_CHOICE");
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState("Yes\nNo");
+  const [pollMaxRating, setPollMaxRating] = useState(5);
   const [answers, setAnswers] = useState<Record<number, string>>({});
 
   const { data, isFetching, isLoading, refetch } = useGetOrganizerEngagementHubQuery(
@@ -89,12 +105,19 @@ export default function OrganizerEngagementHubScreen() {
     try {
       await createPoll({
         eventId,
+        poll_type: pollType,
         question: pollQuestion,
-        options: pollOptions.split("\n").map((option) => option.trim()).filter(Boolean),
+        options: pollType === "RATING"
+          ? []
+          : pollOptions.split("\n").map((option) => option.trim()).filter(Boolean),
+        allow_multiple: pollType === "MULTIPLE_CHOICE",
+        settings: pollType === "RATING" ? { max_rating: pollMaxRating } : undefined,
         status: "LIVE",
       }).unwrap();
+      setPollType("SINGLE_CHOICE");
       setPollQuestion("");
       setPollOptions("Yes\nNo");
+      setPollMaxRating(5);
       refetch();
       Alert.alert("Poll launched", "Attendees can now vote with their booking code.");
     } catch (error: any) {
@@ -250,6 +273,24 @@ export default function OrganizerEngagementHubScreen() {
       {activeTab === "Polls" ? (
         <>
           <Section title="Launch poll" icon={<Vote color="#9EDD45" size={20} />}>
+            <View className="flex-row flex-wrap gap-2 mb-3">
+              {pollTypeOptions.map((type) => (
+                <TouchableOpacity
+                  key={type.value}
+                  className={`rounded-full px-3 py-2 border ${
+                    pollType === type.value ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                  }`}
+                  onPress={() => {
+                    setPollType(type.value);
+                    setPollOptions(type.defaultOptions);
+                  }}
+                >
+                  <Text className={pollType === type.value ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                    {type.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <TextInput
               className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white"
               placeholder="Poll question"
@@ -257,15 +298,34 @@ export default function OrganizerEngagementHubScreen() {
               value={pollQuestion}
               onChangeText={setPollQuestion}
             />
-            <TextInput
-              className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3 min-h-[110px]"
-              placeholder="One option per line"
-              placeholderTextColor="#728097"
-              value={pollOptions}
-              onChangeText={setPollOptions}
-              multiline
-              textAlignVertical="top"
-            />
+            {pollType === "RATING" ? (
+              <View className="flex-row gap-2 mt-3">
+                {[5, 7, 10].map((value) => (
+                  <TouchableOpacity
+                    key={value}
+                    className={`rounded-xl px-4 py-3 border ${
+                      pollMaxRating === value ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                    }`}
+                    onPress={() => setPollMaxRating(value)}
+                  >
+                    <Text className={pollMaxRating === value ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                      {value} point
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <TextInput
+                className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3 min-h-[110px]"
+                placeholder={pollType === "PERCENTAGE" ? "One allocation choice per line" : "One option per line"}
+                placeholderTextColor="#728097"
+                value={pollOptions}
+                onChangeText={setPollOptions}
+                editable={pollType !== "YES_NO"}
+                multiline
+                textAlignVertical="top"
+              />
+            )}
             <TouchableOpacity
               className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
               disabled={isCreatingPoll}
@@ -279,7 +339,12 @@ export default function OrganizerEngagementHubScreen() {
               polls.map((poll: any) => (
                 <View key={poll.id} className="border-b border-[#243044] pb-4 mb-4">
                   <View className="flex-row items-start justify-between">
-                    <Text className="text-white font-semibold flex-1 pr-3">{poll.question}</Text>
+                    <View className="flex-1 pr-3">
+                      <Text className="text-white font-semibold">{poll.question}</Text>
+                      <Text className="text-gray-500 mt-1">
+                        {getPollTypeLabel(poll.poll_type, poll.typeLabel)} - {poll.totalVotes || 0} voters
+                      </Text>
+                    </View>
                     <TouchableOpacity
                       className={poll.status === "LIVE" ? "bg-red-500/20 rounded-full px-3 py-1" : "bg-primary/20 rounded-full px-3 py-1"}
                       onPress={() => updatePollStatus({ pollId: poll.id, status: poll.status === "LIVE" ? "CLOSED" : "LIVE" })}
@@ -289,11 +354,23 @@ export default function OrganizerEngagementHubScreen() {
                       </Text>
                     </TouchableOpacity>
                   </View>
+                  {poll.poll_type === "RATING" ? (
+                    <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-3">
+                      <Text className="text-white font-bold">
+                        {poll.summary?.averageRating || 0} average
+                      </Text>
+                      <Text className="text-gray-500 mt-1">Out of {poll.summary?.maxRating || 5}</Text>
+                    </View>
+                  ) : null}
                   {(poll.options || []).map((option: any) => (
                     <ProgressItem
                       key={option.id}
                       title={option.text}
-                      subtitle={`${option.votes} votes`}
+                      subtitle={
+                        poll.poll_type === "PERCENTAGE"
+                          ? `${option.averageAllocation || option.percent || 0}% average allocation`
+                          : `${option.votes} votes`
+                      }
                       value={option.percent || 0}
                     />
                   ))}
