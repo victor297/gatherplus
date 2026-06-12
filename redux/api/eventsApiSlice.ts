@@ -183,6 +183,75 @@ export const eventApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ["Booking"],
     }),
+    getAttendeeEngagementHub: builder.query<any, Record<string, unknown>>({
+      query: ({ eventId, ...params }) => ({
+        url: `engagement/event/${eventId}/hub`,
+        params: compactParams(params),
+      }),
+      providesTags: ["Booking"],
+    }),
+    getOrganizerEngagementHub: builder.query<any, EventId>({
+      query: (eventId) => ({
+        url: `engagement/event/${eventId}/organizer`,
+      }),
+      providesTags: ["Booking"],
+    }),
+    createEngagementAnnouncement: builder.mutation<any, Record<string, unknown>>({
+      query: ({ eventId, ...data }) => ({
+        url: `engagement/event/${eventId}/announcements`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
+    submitEngagementQuestion: builder.mutation<any, Record<string, unknown>>({
+      query: ({ eventId, ...data }) => ({
+        url: `engagement/event/${eventId}/questions`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
+    answerEngagementQuestion: builder.mutation<any, Record<string, unknown>>({
+      query: ({ questionId, ...data }) => ({
+        url: `engagement/questions/${questionId}/answer`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
+    updateEngagementQuestionStatus: builder.mutation<any, Record<string, unknown>>({
+      query: ({ questionId, ...data }) => ({
+        url: `engagement/questions/${questionId}/status`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
+    createEngagementPoll: builder.mutation<any, Record<string, unknown>>({
+      query: ({ eventId, ...data }) => ({
+        url: `engagement/event/${eventId}/polls`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
+    updateEngagementPollStatus: builder.mutation<any, Record<string, unknown>>({
+      query: ({ pollId, ...data }) => ({
+        url: `engagement/polls/${pollId}/status`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
+    voteEngagementPoll: builder.mutation<any, Record<string, unknown>>({
+      query: ({ pollId, ...data }) => ({
+        url: `engagement/polls/${pollId}/vote`,
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Booking"],
+    }),
     checkInBooking: builder.mutation<any, Record<string, unknown>>({
       query: (data) => ({
         url: `${EVENT_URL}/booking/check-in`,
@@ -263,6 +332,8 @@ export const {
   useGetCommentsQuery,
   useGetCountriesQuery,
   useGetEventQuery,
+  useGetAttendeeEngagementHubQuery,
+  useGetOrganizerEngagementHubQuery,
   useGetEventsQuery,
   useGetMaxFreeTicketQuery,
   useGetMyEventBookingsQuery,
@@ -274,6 +345,13 @@ export const {
   useGetcategoriesQuery,
   useLikeCommentMutation,
   useLikeEventMutation,
+  useCreateEngagementAnnouncementMutation,
+  useCreateEngagementPollMutation,
+  useSubmitEngagementQuestionMutation,
+  useAnswerEngagementQuestionMutation,
+  useUpdateEngagementQuestionStatusMutation,
+  useUpdateEngagementPollStatusMutation,
+  useVoteEngagementPollMutation,
   useSaveAttendeeNoteMutation,
   useUnlikeEventMutation,
   useUpdateventMutation,

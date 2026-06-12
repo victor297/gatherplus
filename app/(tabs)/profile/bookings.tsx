@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Layers,
   Link as LinkIcon,
+  MessageSquare,
   Printer,
   QrCode,
   Search,
@@ -609,6 +610,15 @@ export default function BookingsScreen() {
                                 <LinkIcon color="#E5E7EB" size={16} />
                                 <Text className="text-white font-semibold ml-2">Link</Text>
                               </TouchableOpacity>
+                              {booking.event?.id || booking.event_id ? (
+                                <TouchableOpacity
+                                  className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center"
+                                  onPress={() => router.push(`/engagement/${booking.event?.id || booking.event_id}?code=${encodeURIComponent(booking.code || "")}` as any)}
+                                >
+                                  <MessageSquare color="#E5E7EB" size={16} />
+                                  <Text className="text-white font-semibold ml-2">Hub</Text>
+                                </TouchableOpacity>
+                              ) : null}
                               <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
                                 <Printer color="#E5E7EB" size={16} />
                                 <Text className="text-white font-semibold ml-2">Print</Text>

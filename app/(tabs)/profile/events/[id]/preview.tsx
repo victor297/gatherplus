@@ -6,6 +6,7 @@ import {
   Clock,
   Edit3,
   FileQuestion,
+  MessageSquare,
   Radar,
   ScanLine,
   MapPin,
@@ -99,6 +100,11 @@ export default function OrganizerEventPreviewScreen() {
               icon={<Radar color="#E5E7EB" size={16} />}
               label="Command"
               onPress={() => router.push(`/profile/events/${eventId}/command-center` as any)}
+            />
+            <ActionButton
+              icon={<MessageSquare color="#E5E7EB" size={16} />}
+              label="Engagement"
+              onPress={() => router.push(`/profile/events/${eventId}/engagement-hub` as any)}
             />
             <ActionButton
               icon={<FileQuestion color="#E5E7EB" size={16} />}
