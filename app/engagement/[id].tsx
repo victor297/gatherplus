@@ -18,6 +18,8 @@ import {
   useSubmitEngagementQuestionMutation,
   useVoteEngagementPollMutation,
 } from "@/redux/api/eventsApiSlice";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/redux/store";
 import { formatDate } from "@/utils/formatDate";
 import { getStringParam } from "@/utils/routeParams";
 
@@ -46,9 +48,14 @@ async function getEngagementDeviceKey() {
 
 export default function AttendeeEngagementScreen() {
   const router = useRouter();
-  const { id, code } = useLocalSearchParams();
+  const { id, code, poll, candidate } = useLocalSearchParams();
   const eventId = getStringParam(id);
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Updates");
+  const candidateParam = getStringParam(candidate);
+  const spotlightPollId = Number(getStringParam(poll) || 0);
+  const accessToken = useSelector((state: RootState) => state.auth.userInfo?.accessToken);
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>(
+    candidateParam ? "Polls" : "Updates"
+  );
   const [bookingCode, setBookingCode] = useState(getStringParam(code));
   const [attendeeName, setAttendeeName] = useState("");
   const [attendeeEmail, setAttendeeEmail] = useState("");
@@ -73,6 +80,20 @@ export default function AttendeeEngagementScreen() {
   const questions = getArray(body.questions);
   const polls = getArray(body.polls);
   const canParticipate = Boolean(body.attendeeContext?.canParticipate);
+  const spotlight = useMemo(() => {
+    if (!candidateParam) return null;
+    const campaignPoll = polls.find((item: any) =>
+      item.poll_type === "COMPETITION" &&
+      (!spotlightPollId || item.id === spotlightPollId) &&
+      getArray(item.options).some((option: any) => option.id === candidateParam)
+    );
+    const campaignCandidate = getArray(campaignPoll?.options).find(
+      (option: any) => option.id === candidateParam
+    );
+    return campaignPoll && campaignCandidate
+      ? { poll: campaignPoll, candidate: campaignCandidate }
+      : null;
+  }, [candidateParam, polls, spotlightPollId]);
 
   const stats = useMemo(
     () => [
@@ -135,7 +156,7 @@ export default function AttendeeEngagementScreen() {
       const deviceKey = await getEngagementDeviceKey();
       await votePoll({
         pollId: poll.id,
-        booking_code: bookingCode,
+        booking_code: bookingCode || undefined,
         device_key: deviceKey,
         ...(poll.poll_type === "COMPETITION"
           ? { candidate_id: candidateId }
@@ -148,6 +169,40 @@ export default function AttendeeEngagementScreen() {
     } catch (error: any) {
       Alert.alert("Unable to vote", error?.data?.body || "A valid booking code is required.");
     }
+  };
+
+  const getCompetitionVoteState = (poll: any) => {
+    const externalAllowed = Boolean(poll.summary?.allowExternalVoters);
+    const hasBookingCode = Boolean(bookingCode);
+    const loggedIn = Boolean(accessToken);
+    const needsLogin = !hasBookingCode && externalAllowed && !loggedIn;
+    const hasVoteIdentity = hasBookingCode || (externalAllowed && loggedIn);
+    const canVote =
+      poll.status === "LIVE" &&
+      (poll.summary?.votesRemainingToday || 0) > 0 &&
+      hasVoteIdentity &&
+      !isVoting;
+
+    return { externalAllowed, hasBookingCode, needsLogin, canVote };
+  };
+
+  const getVoteButtonText = (state: ReturnType<typeof getCompetitionVoteState>, votedToday: boolean, option: any) => {
+    if (state.needsLogin) return "Sign in to vote";
+    if (!state.hasBookingCode && !state.externalAllowed) return "Enter booking code";
+    if (votedToday) return "Vote again tomorrow";
+    if (option.isWinner) return "Winner";
+    if (option.isLeader) return state.hasBookingCode ? "Vote for leader" : "Vote with account";
+    return state.hasBookingCode ? "Vote with ticket" : "Vote with account";
+  };
+
+  const handleCompetitionVotePress = (poll: any, option: any) => {
+    const state = getCompetitionVoteState(poll);
+    if (state.needsLogin) {
+      router.push("/(auth)/login" as any);
+      return;
+    }
+    if (!state.canVote) return;
+    submitVote(poll, option.id);
   };
 
   return (
@@ -179,7 +234,7 @@ export default function AttendeeEngagementScreen() {
             <View className="ml-3 flex-1">
               <Text className="text-white text-lg font-semibold">Unlock attendee actions</Text>
               <Text className={canParticipate ? "text-primary mt-1" : "text-gray-400 mt-1"}>
-                {canParticipate ? "Booking code accepted." : "Booking code is needed for polls and attendee-only actions."}
+                {canParticipate ? "Booking code accepted." : "Use a booking code for attendee-only actions. Public campaign polls can also use sign in."}
               </Text>
             </View>
           </View>
@@ -206,6 +261,63 @@ export default function AttendeeEngagementScreen() {
             </View>
           ))}
         </View>
+
+        {spotlight ? (
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mb-4">
+            {spotlight.candidate.photo_url ? (
+              <Image source={{ uri: spotlight.candidate.photo_url }} className="w-full h-64" />
+            ) : (
+              <View className="w-full h-48 bg-primary/15 items-center justify-center">
+                <Text className="text-primary text-5xl font-bold">#{spotlight.candidate.rank || "-"}</Text>
+              </View>
+            )}
+            <View className="p-4">
+              <Text className="text-primary font-bold uppercase tracking-widest">Public campaign</Text>
+              <Text className="text-white text-2xl font-bold mt-2">{spotlight.candidate.text}</Text>
+              <Text className="text-gray-400 mt-1">{spotlight.poll.question}</Text>
+              {!!spotlight.candidate.bio && (
+                <Text className="text-gray-300 leading-6 mt-3">{spotlight.candidate.bio}</Text>
+              )}
+              <View className="flex-row gap-3 mt-4">
+                <View className="bg-[#1A2432] rounded-xl p-3 flex-1">
+                  <Text className="text-white text-xl font-bold">{spotlight.candidate.votes || 0}</Text>
+                  <Text className="text-gray-500 text-xs mt-1">Votes</Text>
+                </View>
+                <View className="bg-[#1A2432] rounded-xl p-3 flex-1">
+                  <Text className="text-white text-xl font-bold">#{spotlight.candidate.rank || "-"}</Text>
+                  <Text className="text-gray-500 text-xs mt-1">Rank</Text>
+                </View>
+                <View className="bg-[#1A2432] rounded-xl p-3 flex-1">
+                  <Text className="text-white text-xl font-bold">{spotlight.poll.summary?.votesRemainingToday ?? 0}</Text>
+                  <Text className="text-gray-500 text-xs mt-1">Votes left</Text>
+                </View>
+              </View>
+              <View className="bg-[#0B1220] h-3 rounded-full mt-4 overflow-hidden">
+                <View className="bg-[#8B6BFF] h-full rounded-full" style={{ width: `${Math.min(100, spotlight.candidate.percent || 0)}%` }} />
+              </View>
+              {(() => {
+                const state = getCompetitionVoteState(spotlight.poll);
+                const votedToday = getArray(spotlight.poll.myCompetitionCandidateIds).includes(spotlight.candidate.id);
+                return (
+                  <TouchableOpacity
+                    className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
+                    disabled={!state.needsLogin && !state.canVote}
+                    onPress={() => handleCompetitionVotePress(spotlight.poll, spotlight.candidate)}
+                  >
+                    <Text className="text-background text-center font-bold">
+                      {getVoteButtonText(state, votedToday, spotlight.candidate)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })()}
+              {!bookingCode && spotlight.poll.summary?.allowExternalVoters ? (
+                <Text className="text-gray-500 mt-3">
+                  Public campaign voting requires sign in. Ticket holders can also enter a booking code.
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
 
         <View className="flex-row flex-wrap gap-2 mb-4">
           {tabs.map((tab) => (
@@ -340,10 +452,7 @@ export default function AttendeeEngagementScreen() {
                     {poll.poll_type === "COMPETITION" ? (
                       (poll.options || []).map((option: any) => {
                         const votedToday = getArray(poll.myCompetitionCandidateIds).includes(option.id);
-                        const canVote =
-                          poll.status === "LIVE" &&
-                          (poll.summary?.votesRemainingToday || 0) > 0 &&
-                          !isVoting;
+                        const voteState = getCompetitionVoteState(poll);
                         return (
                           <View key={option.id} className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3 mt-3">
                             <View className="flex-row items-start">
@@ -365,11 +474,11 @@ export default function AttendeeEngagementScreen() {
                                 </View>
                                 <TouchableOpacity
                                   className="bg-primary rounded-xl py-3 mt-3 disabled:opacity-50"
-                                  disabled={!canVote}
-                                  onPress={() => submitVote(poll, option.id)}
+                                  disabled={!voteState.needsLogin && !voteState.canVote}
+                                  onPress={() => handleCompetitionVotePress(poll, option)}
                                 >
                                   <Text className="text-background text-center font-bold">
-                                    {votedToday ? "Vote again tomorrow" : option.isWinner ? "Winner" : option.isLeader ? "Vote for leader" : "Vote"}
+                                    {getVoteButtonText(voteState, votedToday, option)}
                                   </Text>
                                 </TouchableOpacity>
                               </View>

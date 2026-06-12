@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Share, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Bell,
@@ -71,6 +71,7 @@ export default function OrganizerEngagementHubScreen() {
   const [pollVoteLimit, setPollVoteLimit] = useState("3");
   const [pollClosesAt, setPollClosesAt] = useState("");
   const [allowRepeatCandidate, setAllowRepeatCandidate] = useState(false);
+  const [allowExternalVoters, setAllowExternalVoters] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string>>({});
 
   const { data, isFetching, isLoading, refetch } = useGetOrganizerEngagementHubQuery(
@@ -140,6 +141,8 @@ export default function OrganizerEngagementHubScreen() {
                 show_leaderboard: true,
                 show_winner_badge: true,
                 allow_repeat_candidate_per_day: allowRepeatCandidate,
+                allow_external_voters: allowExternalVoters,
+                external_voters_require_login: true,
               }
             : undefined,
         closes_at:
@@ -155,6 +158,7 @@ export default function OrganizerEngagementHubScreen() {
       setPollVoteLimit("3");
       setPollClosesAt("");
       setAllowRepeatCandidate(false);
+      setAllowExternalVoters(false);
       refetch();
       Alert.alert("Poll launched", "Attendees can now vote with their booking code.");
     } catch (error: any) {
@@ -174,6 +178,15 @@ export default function OrganizerEngagementHubScreen() {
     } catch (error: any) {
       Alert.alert("Unable to answer", error?.data?.body || "Please check the answer.");
     }
+  };
+
+  const shareCandidateLink = async (poll: any, option: any) => {
+    const url = `https://www.gatherplux.com/event-engagement/${eventId}?poll=${poll.id}&candidate=${option.id}`;
+    await Share.share({
+      message: `Vote for ${option.text}: ${url}`,
+      url,
+      title: `${option.text} campaign profile`,
+    });
   };
 
   return (
@@ -320,6 +333,7 @@ export default function OrganizerEngagementHubScreen() {
                   onPress={() => {
                     setPollType(type.value);
                     setPollOptions(type.defaultOptions);
+                    if (type.value !== "COMPETITION") setAllowExternalVoters(false);
                   }}
                 >
                   <Text className={pollType === type.value ? "text-background font-bold" : "text-gray-300 font-semibold"}>
@@ -389,6 +403,19 @@ export default function OrganizerEngagementHubScreen() {
                     {allowRepeatCandidate ? "Repeat candidate votes allowed" : "One vote per candidate per day"}
                   </Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  className={`rounded-xl px-4 py-3 border mt-3 ${
+                    allowExternalVoters ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                  }`}
+                  onPress={() => setAllowExternalVoters((value) => !value)}
+                >
+                  <Text className={allowExternalVoters ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                    {allowExternalVoters ? "Public campaign voting enabled" : "Attendee or ticket-holder voting only"}
+                  </Text>
+                  <Text className={allowExternalVoters ? "text-background mt-1" : "text-gray-500 mt-1"}>
+                    Public visitors can view candidate pages, but must sign in or enter a booking code before voting.
+                  </Text>
+                </TouchableOpacity>
               </>
             ) : (
               <TextInput
@@ -417,10 +444,15 @@ export default function OrganizerEngagementHubScreen() {
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1 pr-3">
                       <Text className="text-white font-semibold">{poll.question}</Text>
-                      <Text className="text-gray-500 mt-1">
-                        {getPollTypeLabel(poll.poll_type, poll.typeLabel)} - {poll.totalVotes || 0} voters
-                      </Text>
-                    </View>
+                        <Text className="text-gray-500 mt-1">
+                          {getPollTypeLabel(poll.poll_type, poll.typeLabel)} - {poll.totalVotes || 0} voters
+                        </Text>
+                        {poll.poll_type === "COMPETITION" ? (
+                          <Text className="text-gray-500 mt-1">
+                            {poll.summary?.allowExternalVoters ? "Public campaign enabled" : "Attendee voting only"} - {poll.summary?.voteLimitPerDay || 3} votes/day
+                          </Text>
+                        ) : null}
+                      </View>
                     <TouchableOpacity
                       className={poll.status === "LIVE" ? "bg-red-500/20 rounded-full px-3 py-1" : "bg-primary/20 rounded-full px-3 py-1"}
                       onPress={() => updatePollStatus({ pollId: poll.id, status: poll.status === "LIVE" ? "CLOSED" : "LIVE" })}
@@ -455,6 +487,14 @@ export default function OrganizerEngagementHubScreen() {
                           subtitle={`${option.percent || 0}% of competition votes`}
                           value={option.percent || 0}
                         />
+                        {poll.summary?.allowExternalVoters ? (
+                          <TouchableOpacity
+                            className="bg-primary/15 border border-primary/30 rounded-xl px-4 py-3 mt-3"
+                            onPress={() => shareCandidateLink(poll, option)}
+                          >
+                            <Text className="text-primary text-center font-bold">Share public profile</Text>
+                          </TouchableOpacity>
+                        ) : null}
                       </View>
                     ))
                   ) : (
