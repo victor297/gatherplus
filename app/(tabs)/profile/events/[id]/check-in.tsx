@@ -8,12 +8,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Radar,
   Search,
   ShieldAlert,
   Ticket,
@@ -33,6 +34,7 @@ const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
 
 export default function EventCheckInScreen() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const eventId = getStringParam(id);
   const [code, setCode] = useState("");
   const [notes, setNotes] = useState("");
@@ -119,6 +121,16 @@ export default function EventCheckInScreen() {
         { label: "Duplicates", value: metrics.duplicates || 0 },
       ]}
     >
+      <TouchableOpacity
+        className="bg-primary rounded-xl py-4 px-4 mb-4 flex-row items-center justify-center"
+        onPress={() => router.push(`/profile/events/${eventId}/command-center` as any)}
+      >
+        <Radar color="#020817" size={18} />
+        <Text className="text-background text-center font-bold ml-2">
+          Event-day Command Center
+        </Text>
+      </TouchableOpacity>
+
       <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
         <View className="flex-row items-start">
           <View className="w-12 h-12 rounded-2xl bg-primary items-center justify-center">

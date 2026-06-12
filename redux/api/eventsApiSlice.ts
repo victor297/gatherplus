@@ -177,6 +177,12 @@ export const eventApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ["Booking"],
     }),
+    getEventCommandCenter: builder.query<any, EventId>({
+      query: (eventId) => ({
+        url: `${EVENT_URL}/booking/command-center/${eventId}`,
+      }),
+      providesTags: ["Booking"],
+    }),
     checkInBooking: builder.mutation<any, Record<string, unknown>>({
       query: (data) => ({
         url: `${EVENT_URL}/booking/check-in`,
@@ -253,6 +259,7 @@ export const {
   useGetBookingsQuery,
   useGetBookmarksQuery,
   useGetCheckInDashboardQuery,
+  useGetEventCommandCenterQuery,
   useGetCommentsQuery,
   useGetCountriesQuery,
   useGetEventQuery,
