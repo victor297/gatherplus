@@ -107,6 +107,8 @@ export interface EventV2 {
   ticketed?: boolean;
   tickets?: EventTicket[];
   title?: string;
+  totalTicketsSold?: number;
+  total_sold?: number;
 }
 
 export interface CreateEventV2Payload
@@ -114,4 +116,10 @@ export interface CreateEventV2Payload
   sessions: EventSession[];
   tickets: EventTicket[];
   faqs?: EventFaq[];
+  sold_event_notification?: {
+    channels: Array<"email" | "sms">;
+    organizer_note?: string;
+    source?: string;
+    urgent?: boolean;
+  };
 }

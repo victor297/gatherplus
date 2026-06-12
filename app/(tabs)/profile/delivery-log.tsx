@@ -436,6 +436,29 @@ function DeliveryBatchCard({
         </TouchableOpacity>
       </View>
 
+      {batch.notificationReview && (
+        <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-4">
+          <View className="flex-row flex-wrap items-center gap-2">
+            {batch.notificationReview.urgent && (
+              <View className="rounded-full bg-[#F59E0B]/15 px-3 py-1">
+                <Text className="text-[#F59E0B] text-xs font-bold">Urgent</Text>
+              </View>
+            )}
+            <View className="rounded-full bg-[#243044] px-3 py-1">
+              <Text className="text-gray-300 text-xs font-bold">
+                Channels:{" "}
+                {(batch.notificationReview.channels || ["email", "sms"]).join(", ")}
+              </Text>
+            </View>
+          </View>
+          {!!batch.notificationReview.organizerNote && (
+            <Text className="text-gray-300 text-sm mt-2">
+              Organizer note: {batch.notificationReview.organizerNote}
+            </Text>
+          )}
+        </View>
+      )}
+
       <View className="flex-row gap-3 mt-4">
         <ChannelCard
           icon={<Mail color="#8B6BFF" size={17} />}

@@ -49,6 +49,14 @@ export type NotificationDeliveryChange = {
   label: string;
 };
 
+export type NotificationDeliveryReview = {
+  channels?: Array<"email" | "sms" | string>;
+  organizerNote?: string | null;
+  reviewedAt?: string;
+  source?: string;
+  urgent?: boolean;
+};
+
 export type NotificationDeliveryBatch = {
   auditId: number;
   canRetry: boolean;
@@ -61,6 +69,7 @@ export type NotificationDeliveryBatch = {
     user_id?: number | null;
   };
   initialDelivery: NotificationDeliverySummary;
+  notificationReview?: NotificationDeliveryReview | null;
   retryCount: number;
   retryable: {
     emailBookingCount: number;
