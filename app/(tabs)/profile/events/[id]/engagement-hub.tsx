@@ -25,7 +25,7 @@ import { getStringParam } from "@/utils/routeParams";
 
 const tabs = ["Updates", "Q&A", "Polls", "Agenda"] as const;
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
-type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "YES_NO" | "RATING" | "PERCENTAGE";
+type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "YES_NO" | "RATING" | "PERCENTAGE" | "COMPETITION";
 
 const pollTypeOptions: Array<{ value: PollType; label: string; defaultOptions: string }> = [
   { value: "SINGLE_CHOICE", label: "Single", defaultOptions: "Yes\nNo" },
@@ -33,11 +33,28 @@ const pollTypeOptions: Array<{ value: PollType; label: string; defaultOptions: s
   { value: "YES_NO", label: "Yes / No", defaultOptions: "Yes\nNo" },
   { value: "RATING", label: "Rating", defaultOptions: "" },
   { value: "PERCENTAGE", label: "100%", defaultOptions: "Option A\nOption B\nOption C" },
+  { value: "COMPETITION", label: "Award", defaultOptions: "Candidate A\nCandidate B\nCandidate C" },
 ];
 
 function getPollTypeLabel(type?: string, fallback?: string) {
   if (fallback) return fallback;
   return pollTypeOptions.find((item) => item.value === type)?.label || "Single";
+}
+
+function parsePollOptionsInput(value: string, type: PollType) {
+  return value
+    .split("\n")
+    .map((option) => option.trim())
+    .filter(Boolean)
+    .map((option) => {
+      if (type !== "COMPETITION") return option;
+      const [text, photo_url, bio] = option.split("|").map((part) => part.trim());
+      return {
+        text,
+        ...(photo_url ? { photo_url } : {}),
+        ...(bio ? { bio } : {}),
+      };
+    });
 }
 
 export default function OrganizerEngagementHubScreen() {
@@ -51,6 +68,9 @@ export default function OrganizerEngagementHubScreen() {
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState("Yes\nNo");
   const [pollMaxRating, setPollMaxRating] = useState(5);
+  const [pollVoteLimit, setPollVoteLimit] = useState("3");
+  const [pollClosesAt, setPollClosesAt] = useState("");
+  const [allowRepeatCandidate, setAllowRepeatCandidate] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string>>({});
 
   const { data, isFetching, isLoading, refetch } = useGetOrganizerEngagementHubQuery(
@@ -103,21 +123,38 @@ export default function OrganizerEngagementHubScreen() {
 
   const submitPoll = async () => {
     try {
+      const parsedDeadline = pollClosesAt ? new Date(pollClosesAt) : null;
       await createPoll({
         eventId,
         poll_type: pollType,
         question: pollQuestion,
         options: pollType === "RATING"
           ? []
-          : pollOptions.split("\n").map((option) => option.trim()).filter(Boolean),
+          : parsePollOptionsInput(pollOptions, pollType),
         allow_multiple: pollType === "MULTIPLE_CHOICE",
-        settings: pollType === "RATING" ? { max_rating: pollMaxRating } : undefined,
+        settings: pollType === "RATING"
+          ? { max_rating: pollMaxRating }
+          : pollType === "COMPETITION"
+            ? {
+                vote_limit_per_day: Number(pollVoteLimit) || 3,
+                show_leaderboard: true,
+                show_winner_badge: true,
+                allow_repeat_candidate_per_day: allowRepeatCandidate,
+              }
+            : undefined,
+        closes_at:
+          parsedDeadline && !Number.isNaN(parsedDeadline.getTime())
+            ? parsedDeadline.toISOString()
+            : undefined,
         status: "LIVE",
       }).unwrap();
       setPollType("SINGLE_CHOICE");
       setPollQuestion("");
       setPollOptions("Yes\nNo");
       setPollMaxRating(5);
+      setPollVoteLimit("3");
+      setPollClosesAt("");
+      setAllowRepeatCandidate(false);
       refetch();
       Alert.alert("Poll launched", "Attendees can now vote with their booking code.");
     } catch (error: any) {
@@ -314,6 +351,45 @@ export default function OrganizerEngagementHubScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            ) : pollType === "COMPETITION" ? (
+              <>
+                <TextInput
+                  className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3 min-h-[130px]"
+                  placeholder={"One candidate per line\nName | Photo URL | Short bio"}
+                  placeholderTextColor="#728097"
+                  value={pollOptions}
+                  onChangeText={setPollOptions}
+                  multiline
+                  textAlignVertical="top"
+                />
+                <View className="flex-row gap-2 mt-3">
+                  <TextInput
+                    className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white flex-1"
+                    placeholder="Votes/day"
+                    placeholderTextColor="#728097"
+                    value={pollVoteLimit}
+                    onChangeText={setPollVoteLimit}
+                    keyboardType="numeric"
+                  />
+                  <TextInput
+                    className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white flex-[2]"
+                    placeholder="Deadline ISO optional"
+                    placeholderTextColor="#728097"
+                    value={pollClosesAt}
+                    onChangeText={setPollClosesAt}
+                  />
+                </View>
+                <TouchableOpacity
+                  className={`rounded-xl px-4 py-3 border mt-3 ${
+                    allowRepeatCandidate ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                  }`}
+                  onPress={() => setAllowRepeatCandidate((value) => !value)}
+                >
+                  <Text className={allowRepeatCandidate ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                    {allowRepeatCandidate ? "Repeat candidate votes allowed" : "One vote per candidate per day"}
+                  </Text>
+                </TouchableOpacity>
+              </>
             ) : (
               <TextInput
                 className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3 min-h-[110px]"
@@ -362,18 +438,39 @@ export default function OrganizerEngagementHubScreen() {
                       <Text className="text-gray-500 mt-1">Out of {poll.summary?.maxRating || 5}</Text>
                     </View>
                   ) : null}
-                  {(poll.options || []).map((option: any) => (
-                    <ProgressItem
-                      key={option.id}
-                      title={option.text}
-                      subtitle={
-                        poll.poll_type === "PERCENTAGE"
-                          ? `${option.averageAllocation || option.percent || 0}% average allocation`
-                          : `${option.votes} votes`
-                      }
-                      value={option.percent || 0}
-                    />
-                  ))}
+                  {poll.poll_type === "COMPETITION" ? (
+                    (poll.options || []).map((option: any) => (
+                      <View key={option.id} className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-3">
+                        <View className="flex-row items-center justify-between">
+                          <Text className="text-white font-semibold flex-1 pr-3">
+                            #{option.rank || "-"} {option.text}
+                          </Text>
+                          <Text className={option.isWinner || option.isLeader ? "text-primary font-bold" : "text-gray-400"}>
+                            {option.isWinner ? "Winner" : option.isLeader ? "Leading" : `${option.percent || 0}%`}
+                          </Text>
+                        </View>
+                        {!!option.bio && <Text className="text-gray-500 mt-1">{option.bio}</Text>}
+                        <ProgressItem
+                          title={`${option.votes || 0} votes`}
+                          subtitle={`${option.percent || 0}% of competition votes`}
+                          value={option.percent || 0}
+                        />
+                      </View>
+                    ))
+                  ) : (
+                    (poll.options || []).map((option: any) => (
+                      <ProgressItem
+                        key={option.id}
+                        title={option.text}
+                        subtitle={
+                          poll.poll_type === "PERCENTAGE"
+                            ? `${option.averageAllocation || option.percent || 0}% average allocation`
+                            : `${option.votes} votes`
+                        }
+                        value={option.percent || 0}
+                      />
+                    ))
+                  )}
                 </View>
               ))
             ) : (

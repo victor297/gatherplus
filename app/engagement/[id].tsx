@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -22,7 +23,7 @@ import { getStringParam } from "@/utils/routeParams";
 
 const tabs = ["Updates", "Agenda", "Q&A", "Polls"] as const;
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
-type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "YES_NO" | "RATING" | "PERCENTAGE";
+type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "YES_NO" | "RATING" | "PERCENTAGE" | "COMPETITION";
 
 function getPollTypeLabel(type?: PollType | string, fallback?: string) {
   if (fallback) return fallback;
@@ -30,7 +31,17 @@ function getPollTypeLabel(type?: PollType | string, fallback?: string) {
   if (type === "YES_NO") return "Yes / No";
   if (type === "RATING") return "Rating";
   if (type === "PERCENTAGE") return "100% allocation";
+  if (type === "COMPETITION") return "Competition";
   return "Single select";
+}
+
+async function getEngagementDeviceKey() {
+  const storageKey = "gatherplux_engagement_device";
+  const existing = await AsyncStorage.getItem(storageKey);
+  if (existing) return existing;
+  const generated = `mobile_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  await AsyncStorage.setItem(storageKey, generated);
+  return generated;
 }
 
 export default function AttendeeEngagementScreen() {
@@ -117,14 +128,20 @@ export default function AttendeeEngagementScreen() {
     }));
   };
 
-  const submitVote = async (poll: any) => {
+  const submitVote = async (poll: any, candidateId?: string) => {
     try {
       const optionIds = selectedPollOptions[poll.id] || poll.myVoteOptionIds || [];
       const allocations = getAllocationDraft(poll);
+      const deviceKey = await getEngagementDeviceKey();
       await votePoll({
         pollId: poll.id,
         booking_code: bookingCode,
-        ...(poll.poll_type === "PERCENTAGE" ? { allocations } : { option_ids: optionIds }),
+        device_key: deviceKey,
+        ...(poll.poll_type === "COMPETITION"
+          ? { candidate_id: candidateId }
+          : poll.poll_type === "PERCENTAGE"
+            ? { allocations }
+            : { option_ids: optionIds }),
       }).unwrap();
       refetch();
       Alert.alert("Vote saved", "Your poll response has been recorded.");
@@ -309,13 +326,58 @@ export default function AttendeeEngagementScreen() {
                     <Text className="text-gray-500 mt-1">
                       {getPollTypeLabel(poll.poll_type, poll.typeLabel)} - {poll.totalVotes || 0} voters - {poll.status}
                     </Text>
+                    {poll.poll_type === "COMPETITION" ? (
+                      <Text className="text-gray-500 mt-1">
+                        {poll.summary?.votesRemainingToday ?? 0} of {poll.summary?.voteLimitPerDay || 3} votes left today
+                      </Text>
+                    ) : null}
                     {poll.poll_type === "RATING" ? (
                       <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-3">
                         <Text className="text-white font-bold">{poll.summary?.averageRating || 0} average</Text>
                         <Text className="text-gray-500 mt-1">Out of {poll.summary?.maxRating || 5}</Text>
                       </View>
                     ) : null}
-                    {poll.poll_type === "PERCENTAGE" ? (
+                    {poll.poll_type === "COMPETITION" ? (
+                      (poll.options || []).map((option: any) => {
+                        const votedToday = getArray(poll.myCompetitionCandidateIds).includes(option.id);
+                        const canVote =
+                          poll.status === "LIVE" &&
+                          (poll.summary?.votesRemainingToday || 0) > 0 &&
+                          !isVoting;
+                        return (
+                          <View key={option.id} className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3 mt-3">
+                            <View className="flex-row items-start">
+                              {option.photo_url ? (
+                                <Image source={{ uri: option.photo_url }} className="w-14 h-14 rounded-xl mr-3" />
+                              ) : (
+                                <View className="w-14 h-14 rounded-xl bg-primary/20 items-center justify-center mr-3">
+                                  <Text className="text-primary font-bold">#{option.rank || "-"}</Text>
+                                </View>
+                              )}
+                              <View className="flex-1">
+                                <Text className="text-white font-semibold">{option.text}</Text>
+                                <Text className="text-gray-500 mt-1">
+                                  Rank #{option.rank || "-"} - {option.votes || 0} votes - {option.percent || 0}%
+                                </Text>
+                                {!!option.bio && <Text className="text-gray-400 mt-1">{option.bio}</Text>}
+                                <View className="bg-[#0B1220] h-3 rounded-full mt-3 overflow-hidden">
+                                  <View className="bg-[#8B6BFF] h-full rounded-full" style={{ width: `${Math.min(100, option.percent || 0)}%` }} />
+                                </View>
+                                <TouchableOpacity
+                                  className="bg-primary rounded-xl py-3 mt-3 disabled:opacity-50"
+                                  disabled={!canVote}
+                                  onPress={() => submitVote(poll, option.id)}
+                                >
+                                  <Text className="text-background text-center font-bold">
+                                    {votedToday ? "Vote again tomorrow" : option.isWinner ? "Winner" : option.isLeader ? "Vote for leader" : "Vote"}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          </View>
+                        );
+                      })
+                    ) : poll.poll_type === "PERCENTAGE" ? (
                       <>
                         {(poll.options || []).map((option: any) => (
                           <View key={option.id} className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3 mt-3">
@@ -361,13 +423,15 @@ export default function AttendeeEngagementScreen() {
                         </TouchableOpacity>
                       ))
                     )}
-                    <TouchableOpacity
-                      className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
-                      disabled={isVoting || poll.status !== "LIVE" || (poll.poll_type === "PERCENTAGE" && allocationTotal !== 100)}
-                      onPress={() => submitVote(poll)}
-                    >
-                      <Text className="text-background text-center font-bold">Save vote</Text>
-                    </TouchableOpacity>
+                    {poll.poll_type !== "COMPETITION" ? (
+                      <TouchableOpacity
+                        className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
+                        disabled={isVoting || poll.status !== "LIVE" || (poll.poll_type === "PERCENTAGE" && allocationTotal !== 100)}
+                        onPress={() => submitVote(poll)}
+                      >
+                        <Text className="text-background text-center font-bold">Save vote</Text>
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 );
               })
