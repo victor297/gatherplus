@@ -28,6 +28,7 @@ import {
   Send,
   Briefcase,
   Sparkles,
+  Pencil,
 } from "lucide-react-native";
 import { useGetProfileQuery } from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -270,7 +271,7 @@ export default function ProfileScreen() {
                     userProfile?.body?.image_url ||
                     "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
                 }}
-                className="w-16 h-16 rounded-full border-2 border-[#48A7FF]"
+                className="w-16 h-16 rounded-full border-2 border-[#9EDD45]"
               />
               <TouchableOpacity
                 className="ml-3 flex-1"
@@ -287,10 +288,12 @@ export default function ProfileScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="rounded-full bg-[#2F86D8] px-4 py-3"
+                className="h-12 w-12 items-center justify-center rounded-full border border-[#9EDD45]/40 bg-[#9EDD45]/15"
                 onPress={() => router.push("/profile/edit-profile")}
+                accessibilityRole="button"
+                accessibilityLabel="Edit profile"
               >
-                <Text className="text-white font-bold">Edit Profile</Text>
+                <Pencil color="#9EDD45" size={20} />
               </TouchableOpacity>
             </View>
           </View>
