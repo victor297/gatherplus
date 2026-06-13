@@ -16,6 +16,7 @@ import {
 } from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  AlertTriangle,
   CalendarDays,
   Camera,
   CheckCircle2,
@@ -86,6 +87,9 @@ export default function EventCheckInScreen() {
 
   const body = data?.body || {};
   const metrics = body.metrics || {};
+  const checkInPolicy = body.checkInPolicy || {};
+  const policy = checkInPolicy.policy || {};
+  const policyWarnings = getArray(checkInPolicy.warnings);
   const sessionStats = getArray(body.sessionStats);
   const history = body.history || {};
   const rows = getArray(history.result);
@@ -116,7 +120,9 @@ export default function EventCheckInScreen() {
         method: override ? "MANUAL_OVERRIDE" : checkInMethod,
         notes: notes.trim() || undefined,
         override,
-        override_reason: override ? "Organizer manual duplicate override" : undefined,
+        override_reason: override
+          ? notes.trim() || "Organizer verified duplicate at the check-in desk"
+          : undefined,
         session_id: sessionId,
       }).unwrap();
       const booking = response?.body?.booking || {};
@@ -129,7 +135,14 @@ export default function EventCheckInScreen() {
       );
     } catch (error: any) {
       const bodyError = error?.data?.body;
-      if (bodyError?.duplicate) {
+      if (bodyError?.duplicate || bodyError?.code === "DUPLICATE_CHECK_IN") {
+        if (bodyError?.canOverride === false) {
+          Alert.alert(
+            "Check-in blocked",
+            bodyError?.message || "Duplicate override is disabled for this event."
+          );
+          return;
+        }
         Alert.alert(
           "Already checked in",
           "This ticket has already been checked in. Only override if a trusted organizer verified the attendee.",
@@ -144,7 +157,10 @@ export default function EventCheckInScreen() {
         );
         return;
       }
-      Alert.alert("Check-in failed", bodyError?.message || bodyError || "Please verify the booking code.");
+      Alert.alert(
+        bodyError?.code ? "Check-in blocked" : "Check-in failed",
+        bodyError?.message || bodyError || "Please verify the booking code."
+      );
     }
   };
 
@@ -187,6 +203,7 @@ export default function EventCheckInScreen() {
         { label: "Checked in", value: metrics.checkedInCount || 0 },
         { label: "Remaining", value: metrics.remaining || 0 },
         { label: "Duplicates", value: metrics.duplicates || 0 },
+        { label: "Blocked", value: metrics.blockedAttempts || 0 },
       ]}
     >
       <TouchableOpacity
@@ -198,6 +215,86 @@ export default function EventCheckInScreen() {
           Event-day Command Center
         </Text>
       </TouchableOpacity>
+
+      <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="text-primary text-xs font-bold tracking-widest uppercase">
+              Entry policy
+            </Text>
+            <Text className="text-white text-xl font-semibold mt-1">
+              {policy.enabled === false ? "Check-in disabled" : "Scanner rules active"}
+            </Text>
+            <Text className="text-gray-400 mt-1 leading-6">
+              Confirmed tickets are required. Session, questionnaire, duplicate, age, and identity rules are enforced here.
+            </Text>
+          </View>
+          <View
+            className={`rounded-full px-3 py-1 ${
+              policy.enabled === false || checkInPolicy.active === false
+                ? "bg-amber-500/20"
+                : "bg-primary/20"
+            }`}
+          >
+            <Text
+              className={`text-xs font-bold ${
+                policy.enabled === false || checkInPolicy.active === false
+                  ? "text-amber-300"
+                  : "text-primary"
+              }`}
+            >
+              {policy.enabled === false
+                ? "OFF"
+                : checkInPolicy.active === false
+                  ? "WAIT"
+                  : "READY"}
+            </Text>
+          </View>
+        </View>
+        <View className="flex-row flex-wrap gap-2 mt-4">
+          <PolicyChip label="Tickets" value="Confirmed only" />
+          <PolicyChip
+            label="Session"
+            value={policy.enforceSession === false ? "Flexible" : "Match required"}
+          />
+          <PolicyChip
+            label="Questionnaire"
+            value={policy.requireQuestionnaire ? "Required" : "Optional"}
+          />
+          <PolicyChip
+            label="Override"
+            value={policy.allowDuplicateOverride === false ? "Disabled" : "Reason required"}
+          />
+        </View>
+        {checkInPolicy.activeWindow || checkInPolicy.nextWindow ? (
+          <Text className="text-gray-400 mt-4 leading-6">
+            {checkInPolicy.activeWindow
+              ? `Active window: ${checkInPolicy.activeWindow.sessionName || "Event"}`
+              : `Next window: ${checkInPolicy.nextWindow?.sessionName || "Event"}`}
+            {(checkInPolicy.activeWindow?.opensAt || checkInPolicy.nextWindow?.opensAt)
+              ? ` from ${formatDate(checkInPolicy.activeWindow?.opensAt || checkInPolicy.nextWindow?.opensAt)}`
+              : ""}
+            {(checkInPolicy.activeWindow?.closesAt || checkInPolicy.nextWindow?.closesAt)
+              ? ` to ${formatDate(checkInPolicy.activeWindow?.closesAt || checkInPolicy.nextWindow?.closesAt)}`
+              : ""}
+          </Text>
+        ) : null}
+        {policyWarnings.length ? (
+          <View className="mt-4">
+            {policyWarnings.map((warning: any) => (
+              <View
+                key={warning.code || warning.message}
+                className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-2 flex-row"
+              >
+                <AlertTriangle color="#F59E0B" size={18} />
+                <Text className="text-amber-100 font-semibold ml-2 flex-1 leading-5">
+                  {warning.message}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
 
       <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
         <View className="flex-row items-start">
@@ -431,6 +528,17 @@ function Info({ icon, text }: { icon: React.ReactNode; text: string }) {
     <View className="flex-row items-center mt-2">
       {icon}
       <Text className="text-gray-400 ml-2 flex-1">{text}</Text>
+    </View>
+  );
+}
+
+function PolicyChip({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-3 py-2 min-w-[46%] flex-1">
+      <Text className="text-primary text-[10px] font-bold tracking-widest uppercase">
+        {label}
+      </Text>
+      <Text className="text-white font-semibold mt-1">{value}</Text>
     </View>
   );
 }

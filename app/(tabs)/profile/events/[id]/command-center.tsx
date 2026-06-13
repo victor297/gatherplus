@@ -57,6 +57,7 @@ export default function EventCommandCenterScreen() {
   const sessions = getArray(body.sessionStats);
   const tickets = getArray(body.ticketStats);
   const scans = getArray(body.recentScans);
+  const blockedAttempts = getArray(body.recentBlockedAttempts);
   const issues = getArray(body.attendeeIssues);
   const checkInRate = getNumber(metrics.checkInRate);
   const capacityRate = getNumber(metrics.capacityUsedRate);
@@ -69,7 +70,7 @@ export default function EventCommandCenterScreen() {
       },
       { label: "Outside", value: getNumber(metrics.remainingToCheckIn) },
       { label: "Duplicates", value: getNumber(metrics.duplicateOverrides) },
-      { label: "Pending", value: getNumber(metrics.pendingBookings) },
+      { label: "Blocked", value: getNumber(metrics.blockedAttempts) },
     ],
     [metrics]
   );
@@ -185,6 +186,14 @@ export default function EventCommandCenterScreen() {
           ) : (
             <EmptyState text="Recent check-ins and duplicate overrides will appear here." />
           )}
+          {blockedAttempts.length ? (
+            <View className="mt-2 border-t border-[#243044] pt-4">
+              <Text className="text-white text-lg font-semibold mb-3">Blocked attempts</Text>
+              {blockedAttempts.map((attempt: any) => (
+                <BlockedAttemptRow key={attempt.id} attempt={attempt} />
+              ))}
+            </View>
+          ) : null}
         </Section>
       ) : null}
 
@@ -272,6 +281,11 @@ function MetricGrid({
       icon: <ShieldAlert color="#F87171" size={21} />,
       label: "Duplicate risk",
       value: getNumber(metrics.duplicateOverrides),
+    },
+    {
+      icon: <AlertTriangle color="#F59E0B" size={21} />,
+      label: "Blocked",
+      value: getNumber(metrics.blockedAttempts),
     },
     {
       icon: <Ticket color="#8B6BFF" size={21} />,
@@ -384,6 +398,40 @@ function ScanRow({ scan }: { scan: any }) {
           </Text>
           <Text className="text-gray-500 mt-1">
             {booking.session?.name || "Session"} - {scan.method || "QR"} - {formatDate(scan.checked_in_at)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function BlockedAttemptRow({ attempt }: { attempt: any }) {
+  const booking = attempt.booking || {};
+  return (
+    <View className="border-b border-[#243044] pb-4 mb-4">
+      <View className="flex-row items-start">
+        <View className="w-11 h-11 rounded-xl bg-amber-500/20 items-center justify-center">
+          <AlertTriangle color="#F59E0B" size={20} />
+        </View>
+        <View className="ml-3 flex-1">
+          <View className="flex-row items-start justify-between">
+            <Text className="text-white font-semibold flex-1 pr-2">
+              {booking.fullname || booking.email || "Unknown attendee"}
+            </Text>
+            <View className="bg-amber-500/20 rounded-full px-3 py-1">
+              <Text className="text-amber-300 text-xs font-bold">
+                {attempt.status || "BLOCKED"}
+              </Text>
+            </View>
+          </View>
+          <Text className="text-gray-400 mt-2">
+            {booking.code || "No code"} - {attempt.reason_code || "POLICY"}
+          </Text>
+          <Text className="text-gray-500 mt-1 leading-5">
+            {attempt.reason_message || "This scan was blocked by event check-in policy."}
+          </Text>
+          <Text className="text-gray-500 mt-1">
+            {attempt.method || "UNKNOWN"} - {formatDate(attempt.created_at)}
           </Text>
         </View>
       </View>
