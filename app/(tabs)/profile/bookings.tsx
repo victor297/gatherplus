@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -504,7 +505,10 @@ export default function BookingsScreen() {
                         );
 
                         return (
-                          <View key={booking.id || booking.code} className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-4 mb-3">
+                          <View
+                            key={booking.id || booking.code}
+                            className="bg-[#152032] border border-[#324057] rounded-2xl p-3 mb-4 overflow-hidden"
+                          >
                             {(() => {
                               const design = getTicketDesignFromBooking(booking as any);
                               return (
@@ -598,31 +602,45 @@ export default function BookingsScreen() {
                               </Text>
                             </View>
 
-                            <View className="flex-row gap-2 mt-4">
-                              <TouchableOpacity
-                                className="bg-primary rounded-xl px-4 py-3 flex-row items-center"
-                                onPress={() => router.push(`/profile/${booking.event?.id || booking.event_id}/bookingdetails` as any)}
+                            <View className="bg-[#0F1726] border border-[#2E3A4D] rounded-2xl p-2 mt-4">
+                              <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{ gap: 8, paddingRight: 6 }}
                               >
-                                <Ticket color="#020817" size={16} />
-                                <Text className="text-background font-bold ml-2">View</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
-                                <LinkIcon color="#E5E7EB" size={16} />
-                                <Text className="text-white font-semibold ml-2">Link</Text>
-                              </TouchableOpacity>
-                              {booking.event?.id || booking.event_id ? (
                                 <TouchableOpacity
-                                  className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center"
-                                  onPress={() => router.push(`/engagement/${booking.event?.id || booking.event_id}?code=${encodeURIComponent(booking.code || "")}` as any)}
+                                  className="bg-primary rounded-xl px-4 py-3 flex-row items-center justify-center"
+                                  style={{ minWidth: 92 }}
+                                  onPress={() => router.push(`/profile/${booking.event?.id || booking.event_id}/bookingdetails` as any)}
                                 >
-                                  <MessageSquare color="#E5E7EB" size={16} />
-                                  <Text className="text-white font-semibold ml-2">Hub</Text>
+                                  <Ticket color="#020817" size={16} />
+                                  <Text className="text-background font-bold ml-2">View</Text>
                                 </TouchableOpacity>
-                              ) : null}
-                              <TouchableOpacity className="bg-[#111823] border border-[#2E3A4D] rounded-xl px-4 py-3 flex-row items-center">
-                                <Printer color="#E5E7EB" size={16} />
-                                <Text className="text-white font-semibold ml-2">Print</Text>
-                              </TouchableOpacity>
+                                <TouchableOpacity
+                                  className="bg-[#182337] border border-[#35435A] rounded-xl px-4 py-3 flex-row items-center justify-center"
+                                  style={{ minWidth: 92 }}
+                                >
+                                  <LinkIcon color="#E5E7EB" size={16} />
+                                  <Text className="text-white font-semibold ml-2">Link</Text>
+                                </TouchableOpacity>
+                                {booking.event?.id || booking.event_id ? (
+                                  <TouchableOpacity
+                                    className="bg-[#182337] border border-[#35435A] rounded-xl px-4 py-3 flex-row items-center justify-center"
+                                    style={{ minWidth: 92 }}
+                                    onPress={() => router.push(`/engagement/${booking.event?.id || booking.event_id}?code=${encodeURIComponent(booking.code || "")}` as any)}
+                                  >
+                                    <MessageSquare color="#E5E7EB" size={16} />
+                                    <Text className="text-white font-semibold ml-2">Hub</Text>
+                                  </TouchableOpacity>
+                                ) : null}
+                                <TouchableOpacity
+                                  className="bg-[#182337] border border-[#35435A] rounded-xl px-4 py-3 flex-row items-center justify-center"
+                                  style={{ minWidth: 92 }}
+                                >
+                                  <Printer color="#E5E7EB" size={16} />
+                                  <Text className="text-white font-semibold ml-2">Print</Text>
+                                </TouchableOpacity>
+                              </ScrollView>
                             </View>
                           </View>
                         );
