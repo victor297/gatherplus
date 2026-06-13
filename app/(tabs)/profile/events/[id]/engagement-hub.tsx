@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Alert, Share, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  AlertTriangle,
   Bell,
   CalendarDays,
   HelpCircle,
@@ -9,6 +10,7 @@ import {
   MessageSquare,
   Plus,
   RefreshCw,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Users,
@@ -19,6 +21,7 @@ import {
   useAnswerEngagementQuestionMutation,
   useCreateEngagementAnnouncementMutation,
   useCreateEngagementPollMutation,
+  useGetCompetitionVoteAuditQuery,
   useGetOrganizerEngagementHubQuery,
   useUpdateEngagementPollStatusMutation,
   useUpdateEngagementQuestionStatusMutation,
@@ -26,7 +29,7 @@ import {
 import { formatDate } from "@/utils/formatDate";
 import { getStringParam } from "@/utils/routeParams";
 
-const tabs = ["Updates", "Q&A", "Polls", "Agenda"] as const;
+const tabs = ["Updates", "Q&A", "Polls", "Vote Audit", "Agenda"] as const;
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
 type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "YES_NO" | "RATING" | "PERCENTAGE" | "COMPETITION";
 type PollWorkspaceTab = "launch" | "control";
@@ -114,6 +117,18 @@ export default function OrganizerEngagementHubScreen() {
       pollingInterval: 30000,
     }
   );
+  const {
+    data: auditData,
+    isFetching: isAuditFetching,
+    isLoading: isAuditLoading,
+    refetch: refetchAudit,
+  } = useGetCompetitionVoteAuditQuery(
+    { eventId, limit: 300 },
+    {
+      skip: !eventId || activeTab !== "Vote Audit",
+      pollingInterval: activeTab === "Vote Audit" ? 30000 : 0,
+    }
+  );
   const [createAnnouncement, { isLoading: isCreatingAnnouncement }] =
     useCreateEngagementAnnouncementMutation();
   const [createPoll, { isLoading: isCreatingPoll }] = useCreateEngagementPollMutation();
@@ -123,6 +138,7 @@ export default function OrganizerEngagementHubScreen() {
   const [updatePollStatus] = useUpdateEngagementPollStatusMutation();
 
   const body = data?.body || {};
+  const auditBody = auditData?.body || {};
   const announcements = getArray(body.announcements);
   const questions = getArray(body.questions);
   const polls = getArray(body.polls);
@@ -677,6 +693,15 @@ export default function OrganizerEngagementHubScreen() {
         </>
       ) : null}
 
+      {activeTab === "Vote Audit" ? (
+        <VoteAuditPanel
+          auditBody={auditBody}
+          isFetching={isAuditFetching}
+          isLoading={isAuditLoading}
+          onRefresh={() => refetchAudit()}
+        />
+      ) : null}
+
       {activeTab === "Agenda" ? (
         <Section title="Agenda" icon={<CalendarDays color="#8B6BFF" size={20} />}>
           {sessions.length ? (
@@ -699,6 +724,151 @@ export default function OrganizerEngagementHubScreen() {
         </Section>
       ) : null}
     </ProfileFoundationScreen>
+  );
+}
+
+function VoteAuditPanel({
+  auditBody,
+  isFetching,
+  isLoading,
+  onRefresh,
+}: {
+  auditBody: any;
+  isFetching: boolean;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const audits = getArray(auditBody.polls);
+  const totals = auditBody.totals || {};
+  const rows = audits
+    .flatMap((audit: any) =>
+      getArray(audit.rows).map((row: any) => ({
+        ...row,
+        pollQuestion: audit.poll?.question || "Competition poll",
+      })),
+    )
+    .slice(0, 80);
+  const stats = [
+    { label: "Votes", value: totals.total_votes || 0 },
+    { label: "Flagged", value: totals.flagged_votes || 0 },
+    { label: "Public", value: totals.public_account_votes || 0 },
+    { label: "High risk", value: totals.high_risk_votes || 0 },
+  ];
+
+  if (isLoading) {
+    return (
+      <Section title="Vote audit" icon={<ShieldCheck color="#9EDD45" size={20} />}>
+        <View className="py-8 items-center">
+          <RefreshCw color="#8B6BFF" size={28} />
+          <Text className="text-gray-400 mt-3">Loading vote audit...</Text>
+        </View>
+      </Section>
+    );
+  }
+
+  if (!audits.length) {
+    return (
+      <Section title="Vote audit" icon={<ShieldCheck color="#9EDD45" size={20} />}>
+        <EmptyText text="No competition audit yet. Launch a competition poll to track voters, vote limits, duplicate signals, and winner lock status." />
+      </Section>
+    );
+  }
+
+  return (
+    <>
+      <View className="flex-row items-center justify-between mb-3">
+        <View className="flex-1 pr-3">
+          <Text className="text-white text-xl font-semibold">Vote audit</Text>
+          <Text className="text-gray-500 mt-1">
+            Source, daily limit, duplicate signals, risk score, and winner state.
+          </Text>
+        </View>
+        <TouchableOpacity
+          className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-3 py-2 flex-row items-center"
+          onPress={onRefresh}
+        >
+          <RefreshCw color="#E5E7EB" size={16} />
+          <Text className="text-white font-semibold ml-2">{isFetching ? "Refreshing" : "Refresh"}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View className="flex-row flex-wrap gap-2 mb-4">
+        {stats.map((item) => (
+          <View key={item.label} className="bg-[#111823] border border-[#243044] rounded-2xl p-4 flex-1 min-w-[45%]">
+            <Text className="text-gray-500 text-xs uppercase tracking-widest">{item.label}</Text>
+            <Text className="text-white text-2xl font-bold mt-2">{item.value}</Text>
+          </View>
+        ))}
+      </View>
+
+      {audits.map((audit: any) => {
+        const leader = audit.summary?.leader;
+        const lockedWinner = audit.summary?.locked_winner;
+        return (
+          <Section key={audit.poll?.id} title={audit.poll?.question || "Competition poll"} icon={<Vote color="#8B6BFF" size={20} />}>
+            <View className="flex-row flex-wrap gap-2">
+              <Pill text={audit.poll?.status || "DRAFT"} tone={audit.poll?.status === "LIVE" ? "green" : audit.poll?.status === "CLOSED" ? "red" : "purple"} />
+              <Pill text={audit.summary?.allow_external_voters ? "Public campaign" : "Attendee-only"} tone={audit.summary?.allow_external_voters ? "purple" : "green"} />
+              <Pill text={`${audit.summary?.vote_limit_per_day || 3}/day`} tone="purple" />
+            </View>
+            <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-2xl p-3 mt-4">
+              <Text className="text-gray-500 text-xs uppercase tracking-widest">Current leader</Text>
+              <Text className="text-white text-lg font-bold mt-1">{leader?.text || "No votes yet"}</Text>
+              <Text className="text-gray-400 mt-1">{leader?.votes || 0} votes</Text>
+            </View>
+            <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-2xl p-3 mt-3">
+              <Text className="text-gray-500 text-xs uppercase tracking-widest">Locked winner</Text>
+              <Text className="text-white text-lg font-bold mt-1">{lockedWinner?.text || "Not locked"}</Text>
+              <Text className="text-gray-400 mt-1">
+                {lockedWinner ? `${lockedWinner.votes || 0} votes` : "Close the poll to lock the winner."}
+              </Text>
+            </View>
+          </Section>
+        );
+      })}
+
+      <Section title="Recent vote rows" icon={<AlertTriangle color="#8B6BFF" size={20} />}>
+        {rows.length ? (
+          rows.map((row: any) => {
+            const riskTone = row.risk_level === "high" ? "red" : row.risk_level === "medium" ? "purple" : "green";
+            const signals = getArray(row.signals);
+            return (
+              <View key={row.id} className="border-b border-[#243044] pb-4 mb-4">
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="text-white font-semibold">{row.candidate_name}</Text>
+                    <Text className="text-gray-500 mt-1">{row.pollQuestion}</Text>
+                    <Text className="text-gray-400 mt-2">
+                      {row.voter?.name || "Voter"} - {row.source_label || "Source"}
+                    </Text>
+                    <Text className="text-gray-500 mt-1">
+                      Limit {row.daily_limit?.used || 0}/{row.daily_limit?.limit || 0} - {row.daily_limit?.vote_day || "today"}
+                    </Text>
+                  </View>
+                  <Pill text={`${row.risk_level || "low"} ${row.risk_score || 0}`} tone={riskTone} />
+                </View>
+                <View className="flex-row flex-wrap gap-2 mt-3">
+                  {signals.length ? (
+                    signals.slice(0, 4).map((signal: any) => (
+                      <Pill
+                        key={`${row.id}-${signal.code}`}
+                        text={signal.label || signal.code}
+                        tone={signal.severity === "high" ? "red" : signal.severity === "medium" ? "purple" : "green"}
+                      />
+                    ))
+                  ) : (
+                    <Pill text="Clear" tone="green" />
+                  )}
+                </View>
+                <Text className="text-gray-600 mt-3">{formatDate(row.created_at)}</Text>
+              </View>
+            );
+          })
+        ) : (
+          <EmptyText text="Votes will appear here as people participate." />
+        )}
+      </Section>
+    </>
   );
 }
 
@@ -759,6 +929,23 @@ function ProgressItem({
       <View className="bg-[#1A2432] h-3 rounded-full mt-2 overflow-hidden">
         <View className="bg-[#8B6BFF] h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
       </View>
+    </View>
+  );
+}
+
+function Pill({ text, tone }: { text: string; tone: "green" | "purple" | "red" }) {
+  const className =
+    tone === "red"
+      ? "bg-red-500/15 border-red-500/30"
+      : tone === "green"
+        ? "bg-primary/15 border-primary/30"
+        : "bg-[#8B6BFF]/15 border-[#8B6BFF]/30";
+  const textClassName =
+    tone === "red" ? "text-red-300" : tone === "green" ? "text-primary" : "text-[#B8A7FF]";
+
+  return (
+    <View className={`rounded-full border px-3 py-1 ${className}`}>
+      <Text className={`${textClassName} text-xs font-bold`}>{text}</Text>
     </View>
   );
 }

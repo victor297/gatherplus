@@ -196,6 +196,13 @@ export const eventApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ["Booking"],
     }),
+    getCompetitionVoteAudit: builder.query<any, Record<string, unknown>>({
+      query: ({ eventId, ...params }) => ({
+        url: `engagement/event/${eventId}/competition-audit`,
+        params: compactParams(params),
+      }),
+      providesTags: ["Booking"],
+    }),
     createEngagementAnnouncement: builder.mutation<any, Record<string, unknown>>({
       query: ({ eventId, ...data }) => ({
         url: `engagement/event/${eventId}/announcements`,
@@ -334,6 +341,7 @@ export const {
   useGetEventQuery,
   useGetAttendeeEngagementHubQuery,
   useGetOrganizerEngagementHubQuery,
+  useGetCompetitionVoteAuditQuery,
   useGetEventsQuery,
   useGetMaxFreeTicketQuery,
   useGetMyEventBookingsQuery,
