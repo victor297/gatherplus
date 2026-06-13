@@ -69,31 +69,43 @@ const ServiceCard = ({
           },
         });
       }}
-      className="flex-row items-center bg-card rounded-xl p-4 mb-3 bg-lightbackground shadow-md"
+      className="mb-3 overflow-hidden rounded-2xl border border-[#243044] bg-[#111823]"
     >
-      {/* Service image */}
       {images && images.length > 0 ? (
         <Image
           source={{ uri: images[0] }}
-          className="w-16 h-16 rounded-lg mr-4"
+          className="h-36 w-full"
           resizeMode="cover"
         />
       ) : (
-        <View className="w-16 h-16 rounded-lg bg-gray-600 mr-4"></View>
+        <View className="h-36 w-full bg-[#1A2432] items-center justify-center">
+          <FileText size={28} color="#9EDD45" />
+        </View>
       )}
-      <View className="flex-1">
-        <Text className="text-white text-lg font-bold">{name}</Text>
-        <Text className="text-gray-500 text-sm">
-          {truncateSentence(description)}
-        </Text>
-      </View>
-      <View className="items-end">
-        <Text className="text-primary text-base font-bold">
-          {currency} {price}
-        </Text>
-        <Text className="text-gray-500 text-sm mt-1 capitalize">
-          {priceType}
-        </Text>
+      <View className="p-4">
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="text-white text-lg font-black" numberOfLines={1}>
+              {name}
+            </Text>
+            <Text className="mt-1 text-gray-400 text-sm" numberOfLines={2}>
+              {truncateSentence(description)}
+            </Text>
+          </View>
+          <View className="rounded-full bg-primary px-3 py-2">
+            <Text className="text-background text-xs font-black">
+              Book
+            </Text>
+          </View>
+        </View>
+        <View className="mt-4 flex-row items-center justify-between border-t border-[#243044] pt-3">
+          <Text className="text-primary text-base font-black">
+            {currency} {price}
+          </Text>
+          <Text className="text-gray-400 text-sm capitalize">
+            {priceType}
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -101,7 +113,7 @@ const ServiceCard = ({
 
 // Custom component for a Gallery Image
 const GalleryImage = ({ imageUrl }) => (
-  <View className="w-[30%] aspect-square bg-gray-700 rounded-lg m-[1.6%] overflow-hidden">
+  <View className="w-[31%] aspect-square bg-[#1A2432] rounded-2xl mb-3 overflow-hidden">
     <Image
       source={{ uri: imageUrl }}
       className="w-full h-full"
@@ -113,10 +125,11 @@ const GalleryImage = ({ imageUrl }) => (
 // Custom component for a Review Card
 const ReviewCard = ({ content, rating, createdAt }) => {
   return (
-    <View className="bg-card rounded-xl p-4 mb-3 shadow-md">
+    <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-3">
       <View className="flex-row items-center mb-2">
-        {/* Placeholder for user profile image */}
-        <View className="w-10 h-10 rounded-full bg-gray-600 mr-3"></View>
+        <View className="w-10 h-10 rounded-full bg-primary/15 mr-3 items-center justify-center">
+          <Star size={16} color="#9EDD45" />
+        </View>
         <View className="flex-1">
           <Text className="text-white text-base font-bold">Anonymous User</Text>
           <Text className="text-gray-500 text-xs">{formatDate(createdAt)}</Text>
@@ -266,7 +279,7 @@ const ContactModal = ({
 
 // Custom component for a Detail Item
 const DetailItem = ({ icon: Icon, label, value }) => (
-  <View className="flex-row items-center bg-card rounded-xl py-2 mb-3 shadow-md">
+  <View className="flex-row items-center bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-3">
     <Icon size={20} color="#9EDD45" className="mr-3" />
     <View className="flex-1">
       <Text className="text-gray-500 text-xs">{label}</Text>
@@ -592,90 +605,118 @@ export default function ServiceDetails() {
         }
         className="flex-1"
       >
-        <View className="w-full h-56 bg-slate-500 relative">
-          <Image
-            source={{
-              uri:
-                providerData?.cover_image ||
-                "https://www.shutterstock.com/image-photo/male-professional-touching-word-service-260nw-362467478.jpg",
-            }}
-            className="w-full bg-slate-500 h-full absolute top-0 left-0"
-            resizeMode="cover"
-          />
-          <View className="absolute top-0 left-0 right-0 p-4 flex-row justify-between items-center">
-            <Pressable
-              className="p-2 rounded-full bg-gray-800/50"
-              onPress={() => router.back()}
-            >
-              <ArrowLeft size={24} color="white" />
-            </Pressable>
-          </View>
-
-          <View className="absolute bottom-[-120] left-4 flex-col items-start">
-            <View className="w-24 h-24 bg-slate-500 rounded-full border-4 border-background overflow-hidden">
-              <Image
-                source={{
-                  uri:
-                    providerData?.profile_image ||
-                    "https://www.shutterstock.com/image-photo/male-professional-touching-word-service-260nw-362467478.jpg",
-                }}
-                className="w-full h-full bg-slate-500"
-                resizeMode="cover"
-              />
-            </View>
-            <View className="ml-4 mb-2">
-              <Text className="text-white text-xl font-bold">
-                {providerData?.business_name}
-              </Text>
-              <Text className="text-gray-500 text-base">
-                {providerData?.category?.name}
-              </Text>
-            </View>
-          </View>
-
-          <View className="absolute bottom-[-70] right-4 flex-row space-x-3 items-center mb-2">
-            {/* <Pressable className="p-3 rounded-full bg-card">
-              <Heart size={24} color="white" />
-            </Pressable>
-            <Pressable className="p-3 rounded-full bg-card">
-              <Share2 size={24} color="white" />
-            </Pressable> */}
-            <Pressable
-              className="bg-primary rounded-full px-6 py-3"
-              onPress={() => {
-                if (requireAuth()) setContactModalVisible(true)
+        <View className="relative">
+          <View className="h-64 bg-[#111823]">
+            <Image
+              source={{
+                uri:
+                  providerData?.cover_image ||
+                  providerData?.profile_image ||
+                  "https://www.shutterstock.com/image-photo/male-professional-touching-word-service-260nw-362467478.jpg",
               }}
-            >
-              <Text className="text-background font-bold text-base">
-                Contact
-              </Text>
-            </Pressable>
+              className="h-full w-full"
+              resizeMode="cover"
+            />
+            <View className="absolute inset-0 bg-black/40" />
+            <View className="absolute left-4 right-4 top-4 flex-row items-center justify-between">
+              <Pressable
+                className="h-11 w-11 items-center justify-center rounded-full bg-black/55"
+                onPress={() => router.back()}
+              >
+                <ArrowLeft size={22} color="white" />
+              </Pressable>
+              <Pressable
+                className="rounded-full bg-primary px-5 py-3"
+                onPress={() => {
+                  if (requireAuth()) setContactModalVisible(true);
+                }}
+              >
+                <Text className="text-background font-black">Contact</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View className="-mt-16 px-4">
+            <View className="rounded-2xl border border-[#243044] bg-[#111823] p-4">
+              <View className="flex-row items-start">
+                <View className="h-20 w-20 overflow-hidden rounded-2xl border-2 border-[#243044] bg-[#1A2432]">
+                  <Image
+                    source={{
+                      uri:
+                        providerData?.profile_image ||
+                        providerData?.cover_image ||
+                        "https://www.shutterstock.com/image-photo/male-professional-touching-word-service-260nw-362467478.jpg",
+                    }}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
+                </View>
+                <View className="ml-3 flex-1">
+                  <Text className="text-white text-2xl font-black" numberOfLines={2}>
+                    {providerData?.business_name || "Event professional"}
+                  </Text>
+                  <Text className="mt-1 text-gray-400" numberOfLines={1}>
+                    {providerData?.category?.name || "Planner and event service provider"}
+                  </Text>
+                  <View className="mt-3 flex-row items-center">
+                    <MapPin size={15} color="#9EDD45" />
+                    <Text className="ml-2 flex-1 text-gray-300 text-sm" numberOfLines={1}>
+                      {[providerData?.address, providerData?.city]
+                        .filter(Boolean)
+                        .join(", ") || "Location not provided"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View className="mt-4 flex-row">
+                <View className="mr-2 flex-1 rounded-2xl bg-[#1A2432] p-3">
+                  <Text className="text-white text-lg font-black">
+                    {providerData?.services?.length || 0}
+                  </Text>
+                  <Text className="mt-1 text-gray-400 text-xs">Services</Text>
+                </View>
+                <View className="mx-1 flex-1 rounded-2xl bg-[#1A2432] p-3">
+                  <Text className="text-white text-lg font-black">
+                    {reviews.length || 0}
+                  </Text>
+                  <Text className="mt-1 text-gray-400 text-xs">Reviews</Text>
+                </View>
+                <View className="ml-2 flex-1 rounded-2xl bg-[#1A2432] p-3">
+                  <Text className="text-primary text-lg font-black">
+                    {workingHours ? "Open" : "Check"}
+                  </Text>
+                  <Text className="mt-1 text-gray-400 text-xs">Today</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
-        <View className="h-28"></View>
-
-        <View className="flex-row justify-around border-b border-gray-700 bg-background pt-4">
-          {["Services", "Gallery", "Reviews", "Details"].map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              className={`py-3 px-4 ${
-                activeTab === tab ? "border-b-2 border-primary" : ""
-              }`}
-            >
-              <Text
-                className={`text-base font-semibold ${
-                  activeTab === tab ? "text-primary" : "text-gray-500"
-                }`}
-              >
-                {tab}
-                {tab === "Services" &&
-                  ` (${providerData?.services?.length || 0})`}
-                {tab === "Reviews" && ` (${reviews.length || 0})`}
-              </Text>
-            </Pressable>
-          ))}
+        <View className="px-4 pt-4">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View className="flex-row rounded-2xl border border-[#243044] bg-[#111823] p-1">
+              {["Services", "Gallery", "Reviews", "Details"].map((tab) => (
+                <Pressable
+                  key={tab}
+                  onPress={() => setActiveTab(tab)}
+                  className={`rounded-xl px-4 py-3 ${
+                    activeTab === tab ? "bg-primary" : ""
+                  }`}
+                >
+                  <Text
+                    className={`font-black ${
+                      activeTab === tab ? "text-background" : "text-gray-400"
+                    }`}
+                  >
+                    {tab}
+                    {tab === "Services" &&
+                      ` (${providerData?.services?.length || 0})`}
+                    {tab === "Reviews" && ` (${reviews.length || 0})`}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
         </View>
 
         {renderContent()}

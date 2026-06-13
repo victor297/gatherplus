@@ -37,7 +37,6 @@ import { formatDate } from "@/utils/formatDate";
 import { useDispatch } from "react-redux";
 import { checkTokenImmediately } from "@/redux/features/auth/authSlice";
 import { useGetprovidersQuery } from "@/redux/api/providersApiSlice";
-import { truncateAlphabet } from "@/utils";
 import NotificationBellButton from "@/app/components/NotificationBellButton";
 import {
   BlogPost,
@@ -596,7 +595,11 @@ export default function HomeScreen() {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  className="pl-4"
+                  contentContainerStyle={{
+                    gap: 12,
+                    paddingLeft: 16,
+                    paddingRight: 16,
+                  }}
                 >
                   {upcoming?.body?.events?.result?.map((event: any) => (
                     <TouchableOpacity
@@ -653,35 +656,66 @@ export default function HomeScreen() {
                   {providers?.body?.result?.map((provider: any) => (
                     <TouchableOpacity
                       key={provider.id}
+                      activeOpacity={0.9}
                       onPress={() =>
                         router.push(`/(provider)/${provider.id}/servicedetails`)
                       }
-                      className="bg-[#1A2432] rounded-lg overflow-hidden p-2 mr-4 w-56 flex flex-row items-center"
+                      className="w-64 overflow-hidden rounded-2xl border border-[#2B384D] bg-[#111827]"
                     >
-                      <Image
-                        source={{ uri: provider?.cover_image }}
-                        className="w-20 rounded-full h-20 border-2 border-primary bg-white"
-                        resizeMode="cover"
-                      />
-                      <View className="p-3">
-                        <Text className="text-white font-semibold mb-1">
-                          {provider?.business_name}
+                      <View className="relative h-28 bg-[#0B1220]">
+                        <Image
+                          source={{
+                            uri:
+                              provider?.cover_image ||
+                              provider?.profile_image ||
+                              DEFAULT_BLOG_IMAGE,
+                          }}
+                          className="h-full w-full"
+                          resizeMode="cover"
+                        />
+                        <View className="absolute inset-0 bg-black/25" />
+                        <View className="absolute -bottom-8 left-4 h-16 w-16 overflow-hidden rounded-2xl border-2 border-[#111827] bg-white">
+                          <Image
+                            source={{
+                              uri:
+                                provider?.profile_image ||
+                                provider?.cover_image ||
+                                DEFAULT_BLOG_IMAGE,
+                            }}
+                            className="h-full w-full"
+                            resizeMode="cover"
+                          />
+                        </View>
+                        <View className="absolute right-3 top-3 rounded-full bg-black/55 px-3 py-1">
+                          <Text className="text-primary text-[11px] font-black">
+                            Pro
+                          </Text>
+                        </View>
+                      </View>
+                      <View className="px-4 pb-4 pt-10">
+                        <Text className="text-white text-base font-black" numberOfLines={1}>
+                          {provider?.business_name || "Event professional"}
                         </Text>
-                        <Text className="text-gray-400 text-sm">
-                          {truncateAlphabet(provider?.specialties[0])}
+                        <Text className="mt-1 text-gray-400 text-xs" numberOfLines={1}>
+                          {provider?.specialties?.[0] ||
+                            provider?.category?.name ||
+                            "Event planner"}
                         </Text>
-                        <Text className="text-gray-400 text-sm">
-                          {truncateAlphabet(provider?.address)}
-                        </Text>
-                        <View className="flex flex-row items-center justify-between">
-                          <Text className="text-primary text-sm font-bold">
+                        <View className="mt-3 flex-row items-center">
+                          <MapPin color="#94A3B8" size={13} />
+                          <Text className="ml-1 flex-1 text-gray-400 text-xs" numberOfLines={1}>
+                            {provider?.address || provider?.city || "Location available"}
+                          </Text>
+                        </View>
+                        <View className="mt-4 flex-row items-center justify-between">
+                          <Text className="text-primary text-sm font-black">
                             {provider?.currency?.split(" - ")[0] || "₦"}{" "}
                             {provider?.price}
                           </Text>
-                          <View className=" flex flex-row items-center">
-                            <StarIcon color="orange" fill="orange" size={10} />
-                            <Text className="text-white ml-1">
-                              {provider?.total_reviews}
+                          <View className="flex-row items-center rounded-full bg-[#1A2432] px-2 py-1">
+                            <StarIcon color="#FBBF24" fill="#FBBF24" size={11} />
+                            <Text className="ml-1 text-white text-xs font-bold">
+                              {provider?.rating || provider?.total_reviews || "New"}
                             </Text>
                           </View>
                         </View>
