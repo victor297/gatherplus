@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,7 @@ import {
 } from "react-native";
 import { Link, useFocusEffect, useRouter } from "expo-router";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
+import Constants from "expo-constants";
 import * as AppleAuthentication from "expo-apple-authentication";
 import {
   useAppleloginMutation,
@@ -27,6 +22,27 @@ import { setCredentials } from "@/redux/features/auth/authSlice";
 import RecaptchaExecutor, {
   type RecaptchaExecutorHandle,
 } from "@/app/components/RecaptchaExecutor";
+
+type GoogleSignInModule = typeof import("@react-native-google-signin/google-signin");
+
+const googleSignInConfig = {
+  webClientId:
+    "372220031134-ekkmprp00glp2s41hl2ubjet9metkm4k.apps.googleusercontent.com",
+  iosClientId:
+    "372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr.apps.googleusercontent.com",
+};
+
+async function loadGoogleSignIn(): Promise<GoogleSignInModule | null> {
+  if (Constants.appOwnership === "expo") {
+    return null;
+  }
+
+  try {
+    return await import("@react-native-google-signin/google-signin");
+  } catch {
+    return null;
+  }
+}
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -43,12 +59,19 @@ export default function Login() {
   const dispatch = useDispatch();
 
   const { userInfo } = useSelector((state: any) => state.auth);
-  GoogleSignin.configure({
-    webClientId:
-      "372220031134-ekkmprp00glp2s41hl2ubjet9metkm4k.apps.googleusercontent.com",
-    iosClientId:
-      "372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr.apps.googleusercontent.com",
-  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    void loadGoogleSignIn().then((googleSignIn) => {
+      if (!mounted || !googleSignIn) return;
+      googleSignIn.GoogleSignin.configure(googleSignInConfig);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useFocusEffect(() => {
     if (userInfo) {
@@ -97,7 +120,26 @@ export default function Login() {
       setLoading(true);
       setError(null);
 
-      await GoogleSignin.hasPlayServices();
+      const googleSignIn = await loadGoogleSignIn();
+
+      if (!googleSignIn) {
+        setError(
+          "Google sign-in needs the installed app or a development build. Use email or Apple sign-in while testing in Expo Go."
+        );
+        return;
+      }
+
+      const {
+        GoogleSignin,
+        isSuccessResponse,
+      } = googleSignIn;
+
+      GoogleSignin.configure(googleSignInConfig);
+
+      if (Platform.OS === "android") {
+        await GoogleSignin.hasPlayServices();
+      }
+
       const response = await GoogleSignin.signIn();
       console.log(response, "googlelogin1");
       if (isSuccessResponse(response)) {
@@ -120,15 +162,17 @@ export default function Login() {
       }
     } catch (error) {
       setLoading(false);
-      if (isErrorWithCode(error)) {
+      const googleSignIn = await loadGoogleSignIn();
+
+      if (googleSignIn?.isErrorWithCode(error)) {
         switch (error.code) {
-          case statusCodes.SIGN_IN_CANCELLED:
+          case googleSignIn.statusCodes.SIGN_IN_CANCELLED:
             setError("Google sign-in was cancelled");
             break;
-          case statusCodes.IN_PROGRESS:
+          case googleSignIn.statusCodes.IN_PROGRESS:
             setError("Google sign-in already in progress");
             break;
-          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+          case googleSignIn.statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
             setError("Google Play services not available or outdated");
             break;
           default:

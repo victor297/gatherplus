@@ -79,7 +79,7 @@ export default function ForgotPassword() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/login')} className="mt-4 flex-row justify-center items-center"> 
+        <TouchableOpacity onPress={() => router.push('/(auth)/login')} className="mt-4 flex-row justify-center items-center">
         <ArrowLeft className='text-primary' />
           <Text className="text-primary text-center"> Back to login</Text>
         </TouchableOpacity>

@@ -317,7 +317,7 @@ export default function SignupScreen() {
           <Text className="text-gray-400 text-lg">
             Already have an account?{" "}
           </Text>
-          <Link href="/login" className="text-primary text-lg">
+          <Link href="/(auth)/login" className="text-primary text-lg">
             Log In
           </Link>
         </View>

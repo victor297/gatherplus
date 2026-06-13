@@ -30,7 +30,7 @@ export default function ResetPassword() {
       setError(null);
       await resetPassword({ email, code, password }).unwrap();
       
-      router.push('/login');
+      router.push('/(auth)/login');
     } catch (err:any) {
       setError(err?.data?.body || 'Failed to reset password');
     }
