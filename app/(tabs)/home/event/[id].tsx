@@ -106,6 +106,7 @@ export default function EventDetailsScreen() {
   const sessions = Array.isArray(eventData?.sessions) ? eventData.sessions : [];
   const faqs = Array.isArray(eventData?.faqs) ? eventData.faqs : [];
   const tags = Array.isArray(eventData?.tags) ? eventData.tags : [];
+  const summaryText = String(eventData?.summary || "").trim();
   const totalTicketCapacity =
     Number(eventData?.no_of_ticket || 0) ||
     tickets.reduce((sum: number, ticket: any) => sum + Number(ticket?.quantity || 0), 0);
@@ -468,9 +469,9 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   </View>
                 )}
               </View>
-              {eventData?.summary && (
+              {!!summaryText && (
                 <Text className="text-gray-300 mb-3 leading-6">
-                  {eventData.summary}
+                  {summaryText}
                 </Text>
               )}
               <View className="flex-row justify-between ">
@@ -564,9 +565,9 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   </TouchableOpacity>
                 </View>
               </View>
-              <View className="bg-gray-800 rounded-lg p-3 mb-2">
+              <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                 <Text className="text-white text-xl font-semibold mb-4">
-                  About Event
+                  About the event
                 </Text>
                 {eventDescription ? (
                   <Text className="text-gray-400 leading-6 mb-2">
@@ -576,7 +577,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   <Text className="text-gray-400 mb-6">No description available.</Text>
                 )}
               </View>
-              <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
+              <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                 <Text className="text-white text-xl font-semibold mb-4">
                   Event Summary
                 </Text>
@@ -596,7 +597,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   ].map(([label, value]) => (
                     <View
                       key={String(label)}
-                      className="rounded-xl border border-gray-700 bg-background/40 p-3"
+                      className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3"
                     >
                       <Text className="text-gray-400 text-xs uppercase font-bold">
                         {label}
@@ -608,12 +609,12 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   ))}
                 </View>
               </View>
-              <View className="bg-gray-800 rounded-lg p-4 mb-4">
+              <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                 <Text className="text-white text-xl font-semibold mb-4">
                   Attendee Restrictions
                 </Text>
                 <View className="gap-3">
-                  <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-3">
+                  <View className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3">
                     <Text className="text-gray-400 text-xs uppercase font-bold">
                       Age Restriction
                     </Text>
@@ -623,7 +624,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                         : "All ages allowed"}
                     </Text>
                   </View>
-                  <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-3">
+                  <View className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3">
                     <Text className="text-gray-400 text-xs uppercase font-bold">
                       Guardian Requirement
                     </Text>
@@ -631,7 +632,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                       {eventData?.guardian_required ? "Required" : "Not required"}
                     </Text>
                   </View>
-                  <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-3">
+                  <View className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3">
                     <Text className="text-gray-400 text-xs uppercase font-bold">
                       Ticket Identity
                     </Text>
@@ -641,7 +642,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                         : "One buyer can hold multiple tickets"}
                     </Text>
                   </View>
-                  <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-3">
+                  <View className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3">
                     <Text className="text-gray-400 text-xs uppercase font-bold">
                       Fees
                     </Text>
@@ -654,7 +655,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 </View>
               </View>
               {hasOnlineAccess && (
-                <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
+                <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                   <View className="flex-row items-center mb-4">
                     <Monitor color="#9EDD45" size={20} />
                     <Text className="text-white text-xl font-semibold ml-2">
@@ -684,7 +685,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
               )}
 
               {tags.length > 0 && (
-                <View className="bg-gray-800 rounded-lg p-4 mb-4">
+                <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                   <View className="flex-row items-center mb-3">
                     <Tag color="#9EDD45" size={18} />
                     <Text className="text-white text-xl font-semibold ml-2">
@@ -693,7 +694,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   </View>
                   <View className="flex-row flex-wrap gap-2">
                     {tags.map((tag: string) => (
-                      <View key={tag} className="bg-[#1A2432] px-3 py-2 rounded-full">
+                      <View key={tag} className="bg-[#1A2432] border border-[#2E3A4D] px-3 py-2 rounded-full">
                         <Text className="text-gray-300 text-sm">{tag}</Text>
                       </View>
                     ))}
@@ -702,11 +703,11 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
               )}
 
               {logisticsRows.length > 0 && (
-                <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
+                <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                   <View className="flex-row items-center mb-3">
                     <Info color="#9EDD45" size={18} />
                     <Text className="text-white text-xl font-semibold ml-2">
-                      Event Info
+                      Additional Event Information
                     </Text>
                   </View>
                   {logisticsRows
@@ -724,7 +725,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
               )}
 
               {hasVenue && (
-                <View className="bg-[#1A2432] rounded-lg p-4 mb-6">
+                <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                   <Text className="text-white text-xl font-semibold mb-4">
                     Location
                   </Text>
@@ -742,9 +743,9 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   </TouchableOpacity>
                 </View>
               )}
-              <View className="bg-gray-800 rounded-lg p-4 mb-4">
+              <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                 <Text className="text-white text-xl font-semibold mb-2">
-                  Sessions & Presenters
+                  Sessions
                 </Text>
 
                 <View className="flex-row items-center mb-2">
@@ -758,7 +759,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   sessions.map((session: any, sessionIndex: any) => (
                     <View
                       key={session.id || sessionIndex}
-                      className="mb-4 bg-[#1A2432] p-4 rounded-xl border border-gray-700"
+                      className="mb-4 bg-[#1A2432] p-4 rounded-xl border border-[#2E3A4D]"
                     >
                       <View className="flex-row items-center justify-between mb-3">
                         <View className="flex-row items-center flex-1">
@@ -779,7 +780,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                       <Text className="text-white text-sm font-bold mb-2">
                         {session?.name || `Session ${sessionIndex + 1}`}
                       </Text>
-                      <View className="rounded-lg bg-background/40 border border-gray-700 p-3 mb-3">
+                      <View className="rounded-xl bg-background/40 border border-[#2E3A4D] p-3 mb-3">
                         <Text className="text-gray-400 text-xs uppercase font-bold">
                           Date
                         </Text>
@@ -799,7 +800,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                             (participant: any, pIndex: any) => (
                               <View
                                 key={pIndex}
-                                className="flex-row items-center bg-gray-800/50 p-2 rounded-lg border border-gray-700/50"
+                                className="flex-row items-center bg-[#111823] p-2 rounded-xl border border-[#2E3A4D]"
                               >
                                 {participant?.image ? (
                                   <Image
@@ -846,7 +847,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
               </View>
 
               {faqs.length > 0 && (
-                <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
+                <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                   <Text className="text-white text-xl font-semibold mb-4">
                     FAQs
                   </Text>
@@ -866,9 +867,9 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 </View>
               )}
 
-              <View className="bg-gray-800 rounded-lg p-2 mb-2">
+              <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
                 <Text className="text-white text-xl font-semibold mb-4">
-                  Ticket Information
+                  Tickets
                 </Text>
                 <View className="gap-3 mb-4">
                   {[
@@ -879,7 +880,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   ].map(([label, value]) => (
                     <View
                       key={String(label)}
-                      className="rounded-xl border border-gray-700 bg-[#1A2432] p-3"
+                      className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-3"
                     >
                       <Text className="text-gray-400 text-xs uppercase font-bold">
                         {label}
@@ -907,7 +908,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
 
                     return (
                       <View key={index}>
-                        <View className=" items-center justify-between bg-[#1A2432] p-4 rounded-lg">
+                        <View className="items-center justify-between bg-[#1A2432] border border-[#2E3A4D] p-4 rounded-xl">
                           <View>
                             <Text className="text-white">{truncateSentence(ticket.name)}</Text>
                             <Text className="text-primary">
@@ -964,7 +965,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                               Select Session for {ticket.name}
                             </Text>
                             <TouchableOpacity
-                              className="flex-row items-center justify-between bg-[#0e1621] px-4 py-3 rounded-xl border border-gray-700"
+                              className="flex-row items-center justify-between bg-[#0e1621] px-4 py-3 rounded-xl border border-[#2E3A4D]"
                               activeOpacity={0.7}
                               onPress={() => {
                                 if (upcomingSessions.length <= 1) return;
@@ -1001,7 +1002,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                       </View>
                     );
                   }) : (
-                    <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-4">
+                    <View className="rounded-xl border border-[#2E3A4D] bg-[#1A2432] p-4">
                       <Text className="text-gray-400">
                         No ticket information available.
                       </Text>
