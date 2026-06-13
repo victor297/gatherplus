@@ -27,6 +27,7 @@ import { formatDate } from "@/utils/formatDate";
 import { useSelector } from "react-redux";
 import EventMapPreview from "@/app/components/EventMapPreview";
 import { getStringParam } from "@/utils/routeParams";
+import { cleanRichText } from "@/utils/eventHelpers";
 
 export default function EventDetailsScreen() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function EventDetailsScreen() {
     error,
     refetch,
   } = useGetEventQuery({ id: eventId, user_id: userInfo?.sub });
+  const eventDescription = cleanRichText(event?.body?.description);
   const [deleteEvent] = useDeleteEventMutation();
 
   const [showOptions, setShowOptions] = useState(false);
@@ -219,7 +221,7 @@ export default function EventDetailsScreen() {
                   About Event
                 </Text>
                 <Text className="text-gray-400 mb-6">
-                  {event?.body?.description}
+                  {eventDescription || "No description available."}
                 </Text>
               </View>
               <View className="bg-[#1A2432] rounded-lg p-4 mb-6">

@@ -34,9 +34,12 @@ import {
 } from "@/redux/api/eventsApiSlice";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDate } from "@/utils/formatDate";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { checkTokenImmediately } from "@/redux/features/auth/authSlice";
-import { useGetprovidersQuery } from "@/redux/api/providersApiSlice";
+import {
+  useGetproviderdetailsQuery,
+  useGetprovidersQuery,
+} from "@/redux/api/providersApiSlice";
 import NotificationBellButton from "@/app/components/NotificationBellButton";
 import {
   BlogPost,
@@ -179,6 +182,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const dispatch: any = useDispatch();
+  const { userInfo } = useSelector((state: any) => state.auth);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -292,6 +296,9 @@ export default function HomeScreen() {
     sortDirection,
     // search: searchTerm,
   });
+  const { data: currentProvider } = useGetproviderdetailsQuery(userInfo?.sub, {
+    skip: !userInfo?.sub,
+  });
   const {
     data: blogData,
     isLoading: isBlogsLoading,
@@ -339,6 +346,18 @@ export default function HomeScreen() {
         String(listing.status || "ACTIVE").toUpperCase() === "ACTIVE"
     )
     .slice(0, 6);
+  const openPlannerWorkspace = () => {
+    if (!userInfo?.sub) {
+      router.push("/(auth)/login" as any);
+      return;
+    }
+
+    router.push(
+      (currentProvider?.body
+        ? "/(provider)/profile"
+        : "/(provider)/complete-profile") as any
+    );
+  };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -643,16 +662,46 @@ export default function HomeScreen() {
               </View>
               {isprovidersLoading || isFetchingproviders ? (
                 <ActivityIndicator color="#9EDD45" />
-              ) : (providers?.body?.result?.length || 0) <= 0 ? (
-                <Text className="text-primary text-bold text-center">
-                  No event found
-                </Text>
               ) : (
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  className="pl-4"
+                  contentContainerStyle={{
+                    gap: 12,
+                    paddingLeft: 16,
+                    paddingRight: 16,
+                  }}
                 >
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    className="w-64 overflow-hidden rounded-2xl border border-primary/30 bg-[#F1F8E8] p-4"
+                    onPress={openPlannerWorkspace}
+                  >
+                    <View className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/25" />
+                    <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#07111F]">
+                      <ShieldCheck color="#9EDD45" size={23} />
+                    </View>
+                    <Text className="mt-4 text-[#07111F] text-xl font-black leading-6">
+                      Offer your event services
+                    </Text>
+                    <Text className="mt-2 text-[#536073] text-sm leading-5">
+                      Create a planner profile, list services, manage bookings,
+                      and get discovered by event hosts.
+                    </Text>
+                    <View className="mt-4 flex-row items-center justify-between">
+                      <View>
+                        <Text className="text-[#07111F] text-xs font-black uppercase tracking-wider">
+                          Planner dashboard
+                        </Text>
+                        <Text className="mt-1 text-[#536073] text-xs">
+                          Profile, services, schedule
+                        </Text>
+                      </View>
+                      <View className="h-10 w-10 items-center justify-center rounded-full bg-primary">
+                        <ArrowRight color="#07111F" size={18} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                   {providers?.body?.result?.map((provider: any) => (
                     <TouchableOpacity
                       key={provider.id}

@@ -9,7 +9,6 @@ import {
   Alert,
   Linking,
   Share,
-  useWindowDimensions,
 } from "react-native";
 import {
   useRouter,
@@ -35,7 +34,6 @@ import {
   Tag,
   User,
 } from "lucide-react-native";
-import RenderHTML from "react-native-render-html";
 import {
   useBookmarkeventMutation,
   useDeleteBookmarkMutation,
@@ -54,6 +52,7 @@ import { useAuthCheck } from "@/hooks/useAuthCheck";
 import { truncateSentence } from "@/utils";
 import {
   buildEventShareUrl,
+  cleanRichText,
   currencySymbol,
   eventHasOnlineAccess,
   eventNeedsVenue,
@@ -62,6 +61,7 @@ import {
   getOnlineRevealLabel,
   getTicketRemainingQuantity,
   getUpcomingSessions,
+  isFreeEvent,
   isEventEnded,
   isEventSoldOut,
   isUpcomingSession,
@@ -78,7 +78,6 @@ export default function EventDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const eventId = getStringParam(id);
-  const { width } = useWindowDimensions();
   const { userInfo, requireAuth } = useAuthCheck();
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [isFollow, setIsFollowed] = useState<boolean>(false);
@@ -101,6 +100,8 @@ export default function EventDetailsScreen() {
   const hasOnlineAccess = eventHasOnlineAccess(eventData);
   const hasVenue = eventNeedsVenue(eventData);
   const symbol = currencySymbol(eventData?.currency);
+  const eventDescription = cleanRichText(eventData?.description);
+  const freeEvent = isFreeEvent(eventData);
   const [ticketSelections, setTicketSelections] = useState<
     Record<number, TicketSelection>
   >({});
@@ -536,21 +537,10 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 <Text className="text-white text-xl font-semibold mb-4">
                   About Event
                 </Text>
-                {eventData?.description ? (
-                  <RenderHTML
-                    contentWidth={width - 40}
-                    source={{ html: eventData.description }}
-                    tagsStyles={{
-                      p: { color: "#9ca3af", marginBottom: 10, fontSize: 16 },
-                      br: { height: 10 },
-                      h1: { color: "white" },
-                      h2: { color: "white" },
-                      h3: { color: "white" },
-                      strong: { color: "white", fontWeight: "bold" },
-                      ul: { color: "#9ca3af" },
-                      li: { color: "#9ca3af" },
-                    }}
-                  />
+                {eventDescription ? (
+                  <Text className="text-gray-400 leading-6 mb-2">
+                    {eventDescription}
+                  </Text>
                 ) : (
                   <Text className="text-gray-400 mb-6">No description available.</Text>
                 )}
@@ -914,6 +904,8 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   ? "Sold Out"
                   : upcomingSessions.length === 0
                   ? "No Upcoming Sessions"
+                  : freeEvent
+                  ? "Reserve Free Tickets"
                   : "Buy Tickets"}
               </Text>
             </TouchableOpacity>

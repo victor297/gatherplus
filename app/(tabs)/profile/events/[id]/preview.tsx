@@ -21,6 +21,7 @@ import { useGetNewEventQuery } from "@/redux/api/newEventsApiSlice";
 import { getStringParam } from "@/utils/routeParams";
 import { formatDate } from "@/utils/formatDate";
 import { needsOnline, needsVenue, stringifyTags } from "@/utils/newEventForm";
+import { cleanRichText } from "@/utils/eventHelpers";
 
 export default function OrganizerEventPreviewScreen() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function OrganizerEventPreviewScreen() {
   const faqs = Array.isArray(event.faqs) ? event.faqs : [];
   const tags = stringifyTags(event.tags);
   const attendanceMode = event.attendance_mode || "VENUE";
+  const eventDescription = cleanRichText(event?.description);
 
   const handleShare = async () => {
     await Share.share({
@@ -122,7 +124,7 @@ export default function OrganizerEventPreviewScreen() {
 
       <Section title="About the event">
         <Text className="text-gray-300 leading-6">
-          {event?.description || "No event description added yet."}
+          {eventDescription || "No event description added yet."}
         </Text>
         {!!tags && (
           <View className="flex-row items-start mt-4">

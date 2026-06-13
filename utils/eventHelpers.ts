@@ -59,6 +59,63 @@ export const getTicketRemainingQuantity = (ticket: EventTicket) => {
 export const isFreeTicket = (ticket: EventTicket) =>
   ticket.is_free === true || getTicketPrice(ticket) <= 0;
 
+export const isFreeEvent = (event?: Pick<EventV2, "is_free" | "price" | "tickets"> | null) => {
+  if (!event) {
+    return false;
+  }
+
+  if (event.is_free === true) {
+    return true;
+  }
+
+  const tickets = event.tickets || [];
+  if (tickets.length > 0) {
+    return tickets.every((ticket) => isFreeTicket(ticket));
+  }
+
+  return Number(event.price || 0) <= 0;
+};
+
+const decodeHtmlEntity = (entity: string) => {
+  const namedEntities: Record<string, string> = {
+    amp: "&",
+    apos: "'",
+    gt: ">",
+    lt: "<",
+    nbsp: " ",
+    quot: "\"",
+  };
+
+  if (entity.startsWith("#x") || entity.startsWith("#X")) {
+    const code = Number.parseInt(entity.slice(2), 16);
+    return Number.isFinite(code) && code >= 0 && code <= 0x10ffff
+      ? String.fromCodePoint(code)
+      : `&${entity};`;
+  }
+
+  if (entity.startsWith("#")) {
+    const code = Number.parseInt(entity.slice(1), 10);
+    return Number.isFinite(code) && code >= 0 && code <= 0x10ffff
+      ? String.fromCodePoint(code)
+      : `&${entity};`;
+  }
+
+  return namedEntities[entity] ?? `&${entity};`;
+};
+
+export const cleanRichText = (value?: unknown) =>
+  String(value || "")
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\s*li[^>]*>/gi, "\n- ")
+    .replace(/<\/\s*(p|div|section|article|h[1-6]|ul|ol)\s*>/gi, "\n\n")
+    .replace(/<\/\s*li\s*>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&([^;\s]+);/g, (_, entity: string) => decodeHtmlEntity(entity))
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
 export const buildEventShareUrl = (eventId: string | number) =>
   `${appConfig.webUrl}/tickets/${eventId}`;
 
