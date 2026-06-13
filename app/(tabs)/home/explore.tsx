@@ -647,7 +647,12 @@ export default function ExploreScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         nestedScrollEnabled={true}
-        className="px-4 h-12 mb-2"
+        className="mb-3"
+        contentContainerStyle={{
+          gap: 10,
+          paddingHorizontal: 16,
+          paddingVertical: 4,
+        }}
       >
         {isCategoriesLoading ? (
           <View className="text-white mx-auto flex justify-center items-center py-4">
@@ -663,13 +668,22 @@ export default function ExploreScreen() {
               <TouchableOpacity
                 key={category.id || "all"}
                 onPress={() => setSelectedCategory(category.id)}
-                className={`max-h-8 px-6 py-2 rounded-full mr-3 ${
+                className={`h-10 min-w-[72px] items-center justify-center rounded-full border px-4 ${
                   selectedCategory === category.id
-                    ? "bg-primary"
-                    : "bg-[#1A2432]"
+                    ? "border-primary bg-primary"
+                    : "border-[#243044] bg-[#1A2432]"
                 }`}
               >
-                <Text className="text-white">{category.name}</Text>
+                <Text
+                  className={`text-sm font-bold ${
+                    selectedCategory === category.id
+                      ? "text-background"
+                      : "text-gray-200"
+                  }`}
+                  numberOfLines={1}
+                >
+                  {category.name}
+                </Text>
               </TouchableOpacity>
             )
           )

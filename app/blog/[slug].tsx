@@ -149,6 +149,12 @@ export default function BlogDetailScreen() {
               {content ? (
                 <RenderHTML
                   contentWidth={width - 40}
+                  baseStyle={{
+                    color: "#D1D5DB",
+                    fontSize: 16,
+                    lineHeight: 26,
+                  }}
+                  enableCSSInlineProcessing={false}
                   source={{ html: content }}
                   tagsStyles={{
                     a: { color: "#9EDD45", fontWeight: "700" },
@@ -162,13 +168,21 @@ export default function BlogDetailScreen() {
                     h1: { color: "white", fontSize: 28 },
                     h2: { color: "white", fontSize: 24 },
                     h3: { color: "white", fontSize: 20 },
+                    div: {
+                      color: "#D1D5DB",
+                      fontSize: 16,
+                      lineHeight: 26,
+                    },
+                    em: { color: "#E5E7EB", fontStyle: "italic" },
                     li: { color: "#D1D5DB", fontSize: 16 },
+                    ol: { color: "#D1D5DB" },
                     p: {
                       color: "#D1D5DB",
                       fontSize: 16,
                       lineHeight: 26,
                       marginBottom: 12,
                     },
+                    span: { color: "#D1D5DB" },
                     strong: { color: "white", fontWeight: "700" },
                     ul: { color: "#D1D5DB" },
                   }}

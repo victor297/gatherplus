@@ -611,42 +611,77 @@ export default function HomeScreen() {
                   showsHorizontalScrollIndicator={false}
                   className="pl-4"
                 >
-                  <View className="px-4 flex-row gap-4">
+                  <View className="pr-4 flex-row gap-3">
                     {live?.body?.events?.result?.map((event: any) => (
                       <TouchableOpacity
                         key={event.id}
                         onPress={() =>
                           router.push(`/(tabs)/home/event/${event.id}`)
                         }
-                        className="bg-[#1A2432] w-52 rounded-2xl overflow-hidden mb-4 border border-[#243044]"
+                        className="bg-[#111823] w-80 rounded-2xl overflow-hidden mb-4 border border-[#243044] flex-row"
                       >
-                        <Image
-                          source={{ uri: event?.images?.[0] }}
-                          className="w-full h-32"
-                          resizeMode="cover"
-                        />
-                        <View className="p-3">
-                          <View className="self-start bg-primary/15 rounded-full px-3 py-1 mb-2">
-                            <Text className="text-primary text-xs font-bold">
-                              Live now
+                        <View className="relative h-36 w-28 bg-[#1A2432]">
+                          <Image
+                            source={
+                              eventImage(event)
+                                ? { uri: eventImage(event) as string }
+                                : require("../../../assets/images/logo.png")
+                            }
+                            className="h-full w-full"
+                            resizeMode="cover"
+                          />
+                          <View className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1">
+                            <Text className="text-[10px] font-black uppercase text-background">
+                              Live
                             </Text>
                           </View>
+                        </View>
+
+                        <View className="flex-1 p-3">
+                          <Text className="text-primary text-xs font-black uppercase tracking-wide">
+                            Happening now
+                          </Text>
                           <Text
-                            className="text-white text-lg font-bold leading-6"
+                            className="mt-1 text-white text-base font-black leading-5"
                             numberOfLines={2}
                           >
                             {event?.title}
                           </Text>
-                          <Text className="text-gray-400 mt-1" numberOfLines={2}>
-                            {event?.address?.length > 25
-                              ? `${event.address.slice(0, 25)}...`
-                              : event?.address}
-                          </Text>
-                          <View className="bg-primary rounded-xl py-3 mt-4 flex-row items-center justify-center">
-                            <Text className="text-background font-black">
-                              Join now
+
+                          <View className="mt-2 gap-1">
+                            <View className="flex-row items-center">
+                              <CalendarDays color="#94A3B8" size={13} />
+                              <Text
+                                className="ml-1.5 flex-1 text-xs font-semibold text-gray-400"
+                                numberOfLines={1}
+                              >
+                                {formatDate(event?.start_date)}
+                              </Text>
+                            </View>
+                            <View className="flex-row items-center">
+                              <MapPin color="#94A3B8" size={13} />
+                              <Text
+                                className="ml-1.5 flex-1 text-xs font-semibold text-gray-400"
+                                numberOfLines={1}
+                              >
+                                {eventLocation(event)}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <View className="mt-auto flex-row items-center justify-between pt-2">
+                            <Text
+                              className="max-w-[80px] text-xs font-black text-primary"
+                              numberOfLines={1}
+                            >
+                              {eventPrice(event)}
                             </Text>
-                            <ArrowRight color="#06101F" size={16} />
+                            <View className="bg-primary rounded-full px-3 py-2 flex-row items-center justify-center">
+                              <Text className="text-background text-xs font-black">
+                                Join
+                              </Text>
+                              <ArrowRight color="#06101F" size={14} />
+                            </View>
                           </View>
                         </View>
                       </TouchableOpacity>
