@@ -10,7 +10,7 @@ import {
   Modal,
   FlatList,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft,
   Search,
@@ -53,6 +53,10 @@ interface State {
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const routeParams = useLocalSearchParams();
+  const routeAttendance = Array.isArray(routeParams.attendance)
+    ? routeParams.attendance[0]
+    : routeParams.attendance;
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -77,6 +81,12 @@ export default function ExploreScreen() {
   const [locationDetermined, setLocationDetermined] = useState(false);
   const [countrySearchQuery, setCountrySearchQuery] = useState("");
   const [stateSearchQuery, setStateSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (routeAttendance === "ONLINE") {
+      setAttendanceMode("ONLINE");
+    }
+  }, [routeAttendance]);
 
   const {
     data: categories,

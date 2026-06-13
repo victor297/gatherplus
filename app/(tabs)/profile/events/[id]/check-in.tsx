@@ -3,14 +3,21 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  BarcodeScanningResult,
+  CameraView,
+  useCameraPermissions,
+} from "expo-camera";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   CalendarDays,
+  Camera,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -32,6 +39,27 @@ const PAGE_SIZE = 12;
 
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
 
+const extractBookingCode = (value: unknown) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = JSON.parse(raw);
+    const code =
+      parsed?.code ||
+      parsed?.bookingCode ||
+      parsed?.booking_code ||
+      parsed?.ticketCode ||
+      parsed?.ticket_code;
+    if (code) return String(code).trim();
+  } catch {
+    // QR payload is commonly a plain code or URL; JSON is optional.
+  }
+
+  const match = raw.match(/GTP[_-][A-Za-z0-9_-]+/i);
+  return match?.[0] || raw;
+};
+
 export default function EventCheckInScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -41,6 +69,9 @@ export default function EventCheckInScreen() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [sessionId, setSessionId] = useState<string | number | undefined>();
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanLocked, setScanLocked] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const { data, isFetching, isLoading, refetch } = useGetCheckInDashboardQuery(
     {
       eventId,
@@ -67,8 +98,12 @@ export default function EventCheckInScreen() {
     return match?.session?.name || "Selected session";
   }, [sessionId, sessionStats]);
 
-  const submitCheckIn = async (override = false) => {
-    const normalizedCode = code.trim();
+  const submitCheckIn = async (
+    override = false,
+    providedCode?: string,
+    checkInMethod = "MANUAL"
+  ) => {
+    const normalizedCode = extractBookingCode(providedCode || code);
     if (!normalizedCode) {
       Alert.alert("Booking code required", "Enter or scan a booking code before checking in.");
       return;
@@ -78,7 +113,7 @@ export default function EventCheckInScreen() {
       const response = await checkInBooking({
         code: normalizedCode,
         event_id: Number(eventId),
-        method: override ? "MANUAL_OVERRIDE" : "MANUAL",
+        method: override ? "MANUAL_OVERRIDE" : checkInMethod,
         notes: notes.trim() || undefined,
         override,
         override_reason: override ? "Organizer manual duplicate override" : undefined,
@@ -100,13 +135,46 @@ export default function EventCheckInScreen() {
           "This ticket has already been checked in. Only override if a trusted organizer verified the attendee.",
           [
             { text: "Cancel", style: "cancel" },
-            { text: "Override", style: "destructive", onPress: () => submitCheckIn(true) },
+            {
+              text: "Override",
+              style: "destructive",
+              onPress: () => submitCheckIn(true, normalizedCode, checkInMethod),
+            },
           ]
         );
         return;
       }
       Alert.alert("Check-in failed", bodyError?.message || bodyError || "Please verify the booking code.");
     }
+  };
+
+  const openScanner = async () => {
+    if (!cameraPermission?.granted) {
+      const permission = await requestCameraPermission();
+      if (!permission.granted) {
+        Alert.alert(
+          "Camera permission needed",
+          "Allow camera access to scan attendee QR codes. Manual check-in still works."
+        );
+        return;
+      }
+    }
+
+    setScanLocked(false);
+    setScannerOpen(true);
+  };
+
+  const handleBarcodeScanned = (result: BarcodeScanningResult) => {
+    const scannedCode = extractBookingCode(result.data);
+    if (!scannedCode || scanLocked || isCheckingIn) return;
+
+    setScanLocked(true);
+    setCode(scannedCode);
+    setScannerOpen(false);
+
+    void submitCheckIn(false, scannedCode, "QR_SCAN").finally(() => {
+      setTimeout(() => setScanLocked(false), 900);
+    });
   };
 
   return (
@@ -197,6 +265,16 @@ export default function EventCheckInScreen() {
           onChangeText={(value) => setCode(value.trim())}
           onSubmitEditing={() => submitCheckIn(false)}
         />
+        <TouchableOpacity
+          className="border border-primary/50 rounded-xl py-4 mt-3 flex-row items-center justify-center"
+          disabled={isCheckingIn}
+          onPress={openScanner}
+        >
+          <Camera color="#9EDD45" size={18} />
+          <Text className="text-primary text-center font-bold ml-2">
+            Scan QR with camera
+          </Text>
+        </TouchableOpacity>
         <TextInput
           className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3"
           placeholder="Optional staff note"
@@ -214,6 +292,35 @@ export default function EventCheckInScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <Modal visible={scannerOpen} animationType="slide" onRequestClose={() => setScannerOpen(false)}>
+        <View className="flex-1 bg-background">
+          <View className="px-5 pt-12 pb-4 flex-row items-center justify-between">
+            <Text className="text-white text-xl font-bold">Scan ticket QR</Text>
+            <TouchableOpacity
+              className="bg-[#1A2432] rounded-full px-4 py-2"
+              onPress={() => setScannerOpen(false)}
+            >
+              <Text className="text-primary font-bold">Close</Text>
+            </TouchableOpacity>
+          </View>
+          <View className="mx-5 overflow-hidden rounded-2xl border border-[#243044] bg-[#111823]">
+            <CameraView
+              barcodeScannerSettings={{
+                barcodeTypes: ["qr"],
+              }}
+              onBarcodeScanned={handleBarcodeScanned}
+              style={{ height: 420, width: "100%" }}
+            />
+          </View>
+          <View className="mx-5 mt-4 rounded-2xl border border-[#243044] bg-[#111823] p-4">
+            <Text className="text-white font-bold">Point camera at the ticket QR code.</Text>
+            <Text className="text-gray-400 mt-1 leading-6">
+              GatherPlux will read the booking code and check the attendee in automatically.
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
       <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4">
         <View className="flex-row items-center justify-between">

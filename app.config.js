@@ -75,6 +75,13 @@ module.exports = ({ config }) => ({
       },
     ],
     ["@stripe/stripe-react-native", {}],
+    [
+      "expo-camera",
+      {
+        cameraPermission:
+          "Allow GatherPlus to scan event ticket QR codes for check-in.",
+      },
+    ],
     "expo-font",
     "expo-router",
     [

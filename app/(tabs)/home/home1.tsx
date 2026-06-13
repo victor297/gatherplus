@@ -31,7 +31,7 @@ import {
   useGetEventsQuery,
   useGetStatesQuery,
 } from "@/redux/api/eventsApiSlice";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDate } from "@/utils/formatDate";
 import { useDispatch } from "react-redux";
 import { checkTokenImmediately } from "@/redux/features/auth/authSlice";
@@ -130,6 +130,36 @@ const eventPrice = (event: any) => {
   return price > 0 ? money(price, event?.currency) : "Free";
 };
 
+const dateOnly = (date: Date) => date.toISOString().split("T")[0];
+
+const marketplaceSlides = [
+  {
+    cta: "Explore",
+    image: require("../../../assets/images/landing.webp"),
+    route: "/marketplace",
+    subtitle: "Find public events, trusted organizers, and local experiences.",
+    title: "Event marketplace",
+  },
+  {
+    cta: "Resale",
+    image: {
+      uri: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=900&q=80",
+    },
+    route: "/ticket-exchange",
+    subtitle: "Discover available resale tickets from other attendees.",
+    title: "Ticket resale market",
+  },
+  {
+    cta: "Online",
+    image: {
+      uri: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80",
+    },
+    route: "/(tabs)/home/explore?attendance=ONLINE",
+    subtitle: "Browse online and hybrid events you can join from anywhere.",
+    title: "Online event picks",
+  },
+];
+
 export default function HomeScreen() {
   const router = useRouter();
   const dispatch: any = useDispatch();
@@ -142,6 +172,18 @@ export default function HomeScreen() {
   const [showStateModal, setShowStateModal] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<any>(null);
   const [selectedState, setSelectedState] = useState<any>(null);
+  const eventWindow = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+
+    return {
+      endDate: dateOnly(end),
+      startDate: dateOnly(start),
+    };
+  }, []);
+
   useEffect(() => {
     dispatch(checkTokenImmediately());
 
@@ -199,12 +241,14 @@ export default function HomeScreen() {
     refetch: refetchLive,
   } = useGetEventsQuery({
     city: null,
-    type: "LIVE",
+    type: "UPCOMING",
     category_id: selectedCategory,
+    end_date: eventWindow.endDate,
     page: 1,
-    size: 4,
+    size: 6,
     sortDirection,
     search: searchTerm,
+    start_date: eventWindow.startDate,
   });
   const {
     data: online,
@@ -444,26 +488,42 @@ export default function HomeScreen() {
 
             {searchTerm?.length <= 1 && !selectedCategory ? (
               <View className="px-4 mb-6">
-                <View className="bg-[#1A2432] rounded-lg overflow-hidden">
-                  <Image
-                    source={require("../../../assets/images/landing.webp")}
-                    className="w-full h-48"
-                    resizeMode="cover"
-                  />
-                  <View className="p-4">
-                    <Text className="text-white text-2xl font-bold">
-                      Jazz Night Live
-                    </Text>
-                    <Text className="text-gray-400 mb-3">
-                      Downtown Jazz Club
-                    </Text>
-                    <View className="bg-primary self-start px-4 py-2 rounded-full">
-                      <Text className="text-background font-semibold">
-                        $30 - $50
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 12, paddingRight: 16 }}
+                >
+                  {marketplaceSlides.map((slide) => (
+                    <TouchableOpacity
+                      key={slide.title}
+                      activeOpacity={0.9}
+                      className="w-80 overflow-hidden rounded-2xl border border-[#243044] bg-[#1A2432]"
+                      onPress={() => router.push(slide.route as any)}
+                    >
+                      <Image
+                        source={slide.image}
+                        className="h-36 w-full"
+                        resizeMode="cover"
+                      />
+                      <View className="p-4">
+                        <Text className="text-white text-xl font-black">
+                          {slide.title}
+                        </Text>
+                        <Text
+                          className="mt-1 text-gray-400 text-sm leading-5"
+                          numberOfLines={2}
+                        >
+                          {slide.subtitle}
+                        </Text>
+                        <View className="mt-3 self-start rounded-full bg-primary px-4 py-2">
+                          <Text className="text-background font-black">
+                            {slide.cta}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             ) : null}
 
@@ -586,11 +646,11 @@ export default function HomeScreen() {
               )}
             </View>
 
-            {/* Live Events */}
+            {/* Events This Week */}
             <View className="mb-6">
               <View className="flex-row justify-between items-center px-4 mb-4">
                 <Text className="text-white text-xl font-bold">
-                  Live Events
+                  Events this week
                 </Text>
                 <TouchableOpacity
                   className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
@@ -632,14 +692,14 @@ export default function HomeScreen() {
                           />
                           <View className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1">
                             <Text className="text-[10px] font-black uppercase text-background">
-                              Live
+                              This week
                             </Text>
                           </View>
                         </View>
 
                         <View className="flex-1 p-3">
                           <Text className="text-primary text-xs font-black uppercase tracking-wide">
-                            Happening now
+                            Next 7 days
                           </Text>
                           <Text
                             className="mt-1 text-white text-base font-black leading-5"
