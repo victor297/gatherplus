@@ -28,10 +28,7 @@ module.exports = ({ config }) => ({
         "This app needs permission to save photos to your library",
       NSCameraUsageDescription:
         "This app needs permission to access your camera.",
-      CFBundleURLTypes: [
-        { CFBundleURLSchemes: ["gatherplus"] },
-        { CFBundleURLSchemes: ["gatherplus"] },
-      ],
+      CFBundleURLTypes: [{ CFBundleURLSchemes: ["gatherplus"] }],
     },
     splash: {
       image: "./assets/images/splash-icon.png",
@@ -51,11 +48,6 @@ module.exports = ({ config }) => ({
       },
     },
     intentFilters: [
-      {
-        action: "VIEW",
-        data: [{ scheme: "gatherplus", host: "*", pathPrefix: "/" }],
-        category: ["BROWSABLE", "DEFAULT"],
-      },
       {
         action: "VIEW",
         data: [{ scheme: "gatherplus", host: "*", pathPrefix: "/" }],
@@ -82,6 +74,8 @@ module.exports = ({ config }) => ({
           "com.googleusercontent.apps.372220031134-n7q03pko3seg97aut7t6gcgulv2rr0hr",
       },
     ],
+    ["@stripe/stripe-react-native", {}],
+    "expo-font",
     "expo-router",
     [
       "expo-splash-screen",
@@ -93,6 +87,7 @@ module.exports = ({ config }) => ({
       },
     ],
     ["expo-apple-authentication"],
+    "expo-web-browser",
   ],
   experiments: {
     typedRoutes: true,
