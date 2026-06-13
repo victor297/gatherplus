@@ -643,52 +643,56 @@ export default function ExploreScreen() {
         />
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        nestedScrollEnabled={true}
-        className="mb-3"
-        contentContainerStyle={{
-          gap: 10,
-          paddingHorizontal: 16,
-          paddingVertical: 4,
-        }}
-      >
-        {isCategoriesLoading ? (
-          <View className="text-white mx-auto flex justify-center items-center py-4">
-            <ActivityIndicator color="#9EDD45" />
-          </View>
-        ) : catError ? (
-          <Text className="text-red-500 text-center py-4">
-            Failed to load data. Please try again.
-          </Text>
-        ) : (
-          [{ id: null, name: "All" }, ...(categories?.body || [])].map(
-            (category) => (
-              <TouchableOpacity
-                key={category.id || "all"}
-                onPress={() => setSelectedCategory(category.id)}
-                className={`h-10 min-w-[72px] items-center justify-center rounded-full border px-4 ${
-                  selectedCategory === category.id
-                    ? "border-primary bg-primary"
-                    : "border-[#243044] bg-[#1A2432]"
-                }`}
-              >
-                <Text
-                  className={`text-sm font-bold ${
+      <View className="z-10 mb-5 h-14">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={{
+            alignItems: "center",
+            gap: 10,
+            minHeight: 52,
+            paddingHorizontal: 16,
+            paddingVertical: 6,
+          }}
+        >
+          {isCategoriesLoading ? (
+            <View className="h-12 min-w-[120px] items-center justify-center">
+              <ActivityIndicator color="#9EDD45" />
+            </View>
+          ) : catError ? (
+            <Text className="py-3 text-center text-red-500">
+              Failed to load data. Please try again.
+            </Text>
+          ) : (
+            [{ id: null, name: "All" }, ...(categories?.body || [])].map(
+              (category) => (
+                <TouchableOpacity
+                  key={category.id || "all"}
+                  onPress={() => setSelectedCategory(category.id)}
+                  className={`h-10 min-w-[72px] items-center justify-center rounded-full border px-4 ${
                     selectedCategory === category.id
-                      ? "text-background"
-                      : "text-gray-200"
+                      ? "border-primary bg-primary"
+                      : "border-[#243044] bg-[#1A2432]"
                   }`}
-                  numberOfLines={1}
                 >
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    className={`text-sm font-bold ${
+                      selectedCategory === category.id
+                        ? "text-background"
+                        : "text-gray-200"
+                    }`}
+                    numberOfLines={1}
+                  >
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              )
             )
-          )
-        )}
-      </ScrollView>
+          )}
+        </ScrollView>
+      </View>
 
       {/* Current Location Display */}
       {(city || selectedState || selectedCountry) && (
