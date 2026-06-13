@@ -134,29 +134,44 @@ const dateOnly = (date: Date) => date.toISOString().split("T")[0];
 
 const marketplaceSlides = [
   {
-    cta: "Explore",
+    accent: "#9EDD45",
+    cta: "Explore marketplace",
+    eyebrow: "Public marketplace",
+    icon: Globe2,
     image: require("../../../assets/images/landing.webp"),
     route: "/marketplace",
-    subtitle: "Find public events, trusted organizers, and local experiences.",
-    title: "Event marketplace",
+    stat: "Events + planners",
+    subtitle:
+      "Find public events, trusted organizers, event planners, vendors, and local experiences in one place.",
+    title: "Discover what is happening around you",
   },
   {
-    cta: "Resale",
+    accent: "#FBBF24",
+    cta: "Browse resale",
+    eyebrow: "Verified resale",
+    icon: Ticket,
     image: {
       uri: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=900&q=80",
     },
     route: "/ticket-exchange",
-    subtitle: "Discover available resale tickets from other attendees.",
-    title: "Ticket resale market",
+    stat: "Safer ticket exchange",
+    subtitle:
+      "Find attendee-listed tickets with secure booking flow and clearer resale access.",
+    title: "Get into events even after tickets move",
   },
   {
-    cta: "Online",
+    accent: "#60A5FA",
+    cta: "View online",
+    eyebrow: "Online picks",
+    icon: MonitorPlay,
     image: {
       uri: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80",
     },
     route: "/(tabs)/home/explore?attendance=ONLINE",
-    subtitle: "Browse online and hybrid events you can join from anywhere.",
-    title: "Online event picks",
+    stat: "Join from anywhere",
+    subtitle:
+      "Browse online and hybrid events you can attend without leaving your city.",
+    title: "Premium virtual and hybrid experiences",
   },
 ];
 
@@ -481,41 +496,95 @@ export default function HomeScreen() {
 
             {searchTerm?.length <= 1 && !selectedCategory ? (
               <View className="px-4 mb-6">
+                <View className="mb-3 flex-row items-end justify-between">
+                  <View className="flex-1 pr-3">
+                    <Text className="text-white text-xl font-black">
+                      GatherPlux marketplace
+                    </Text>
+                    <Text className="mt-1 text-gray-400 text-sm">
+                      Events, planners, resale, and online access.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    className="rounded-full bg-white px-4 py-2"
+                    onPress={() => router.push("/marketplace" as any)}
+                  >
+                    <Text className="text-background text-sm font-black">
+                      View all
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: 12, paddingRight: 16 }}
                 >
-                  {marketplaceSlides.map((slide) => (
-                    <TouchableOpacity
-                      key={slide.title}
-                      activeOpacity={0.9}
-                      className="w-80 overflow-hidden rounded-2xl border border-[#243044] bg-[#1A2432]"
-                      onPress={() => router.push(slide.route as any)}
-                    >
-                      <Image
-                        source={slide.image}
-                        className="h-36 w-full"
-                        resizeMode="cover"
-                      />
-                      <View className="p-4">
-                        <Text className="text-white text-xl font-black">
-                          {slide.title}
-                        </Text>
-                        <Text
-                          className="mt-1 text-gray-400 text-sm leading-5"
-                          numberOfLines={2}
-                        >
-                          {slide.subtitle}
-                        </Text>
-                        <View className="mt-3 self-start rounded-full bg-primary px-4 py-2">
-                          <Text className="text-background font-black">
-                            {slide.cta}
-                          </Text>
+                  {marketplaceSlides.map((slide) => {
+                    const SlideIcon = slide.icon;
+
+                    return (
+                      <TouchableOpacity
+                        key={slide.title}
+                        activeOpacity={0.9}
+                        className="w-80 overflow-hidden rounded-[28px] border border-[#2B384D] bg-[#101827]"
+                        onPress={() => router.push(slide.route as any)}
+                      >
+                        <View className="relative h-44 overflow-hidden">
+                          <Image
+                            source={slide.image}
+                            className="h-full w-full"
+                            resizeMode="cover"
+                          />
+                          <View className="absolute inset-0 bg-black/30" />
+                          <View className="absolute left-4 top-4 rounded-full bg-black/55 px-3 py-1">
+                            <Text className="text-white text-[11px] font-black uppercase tracking-wider">
+                              {slide.eyebrow}
+                            </Text>
+                          </View>
+                          <View
+                            className="absolute bottom-4 right-4 h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-black/55"
+                          >
+                            <SlideIcon color={slide.accent} size={22} />
+                          </View>
                         </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                        <View className="p-4">
+                          <Text
+                            className="text-white text-xl font-black leading-6"
+                            numberOfLines={2}
+                          >
+                            {slide.title}
+                          </Text>
+                          <Text
+                            className="mt-2 text-gray-300 text-sm leading-5"
+                            numberOfLines={3}
+                          >
+                            {slide.subtitle}
+                          </Text>
+                          <View className="mt-4 flex-row items-center justify-between">
+                            <View className="rounded-full bg-[#1A2432] px-3 py-2">
+                              <Text
+                                className="text-[11px] font-black uppercase tracking-wider"
+                                style={{ color: slide.accent }}
+                              >
+                                {slide.stat}
+                              </Text>
+                            </View>
+                            <View className="flex-row items-center rounded-full bg-primary px-4 py-2">
+                              <Text className="text-background text-sm font-black">
+                                {slide.cta}
+                              </Text>
+                              <ArrowRight
+                                color="#07111F"
+                                size={15}
+                                style={{ marginLeft: 6 }}
+                              />
+                            </View>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
             ) : null}
@@ -1036,25 +1105,56 @@ export default function HomeScreen() {
 
             <View className="px-4 mb-6">
               <TouchableOpacity
-                className="bg-[#111823] border border-[#243044] rounded-2xl p-4"
+                activeOpacity={0.9}
+                className="overflow-hidden rounded-[28px] border border-[#2B384D] bg-[#101827] p-5"
                 onPress={() => router.push("/marketplace" as any)}
               >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center flex-1">
-                    <View className="h-12 w-12 rounded-2xl bg-[#1A2432] items-center justify-center mr-3">
-                      <Globe2 color="#9EDD45" size={22} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-white text-lg font-bold">
-                        Public Marketplace
-                      </Text>
-                      <Text className="text-gray-400 mt-1" numberOfLines={2}>
-                        Explore active cities, planners, and public events.
+                <View className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-primary/15" />
+                <View className="flex-row items-start justify-between">
+                  <View className="flex-1 pr-4">
+                    <View className="self-start rounded-full bg-primary/15 px-3 py-1">
+                      <Text className="text-primary text-[11px] font-black uppercase tracking-wider">
+                        Public marketplace
                       </Text>
                     </View>
+                    <Text className="mt-3 text-white text-2xl font-black leading-7">
+                      One place to discover events and book event pros.
+                    </Text>
+                    <Text className="mt-2 text-gray-300 text-sm leading-5">
+                      Search public events, trusted planners, vendors, resale tickets,
+                      and online experiences from the GatherPlux ecosystem.
+                    </Text>
                   </View>
-                  <View className="h-10 w-10 rounded-full bg-[#1A2432] items-center justify-center ml-3">
-                    <ArrowRight color="#9EDD45" size={18} />
+                  <View className="h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-[#1A2432]">
+                    <Globe2 color="#9EDD45" size={24} />
+                  </View>
+                </View>
+                <View className="mt-5 flex-row">
+                  <View className="mr-2 flex-1 rounded-2xl border border-[#2B384D] bg-[#1A2432] p-3">
+                    <CalendarDays color="#9EDD45" size={17} />
+                    <Text className="mt-2 text-white text-xs font-black">
+                      Events
+                    </Text>
+                  </View>
+                  <View className="mx-1 flex-1 rounded-2xl border border-[#2B384D] bg-[#1A2432] p-3">
+                    <ShieldCheck color="#9EDD45" size={17} />
+                    <Text className="mt-2 text-white text-xs font-black">
+                      Planners
+                    </Text>
+                  </View>
+                  <View className="ml-2 flex-1 rounded-2xl border border-[#2B384D] bg-[#1A2432] p-3">
+                    <Ticket color="#9EDD45" size={17} />
+                    <Text className="mt-2 text-white text-xs font-black">
+                      Resale
+                    </Text>
+                  </View>
+                </View>
+                <View className="mt-5 flex-row items-center justify-between border-t border-[#2B384D] pt-4">
+                  <Text className="text-white font-black">
+                    Open marketplace
+                  </Text>
+                  <View className="h-10 w-10 items-center justify-center rounded-full bg-primary">
+                    <ArrowRight color="#07111F" size={18} />
                   </View>
                 </View>
               </TouchableOpacity>
