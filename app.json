@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "gatherplus",
+    "name": "GatherPlux",
     "slug": "gatherPlus",
     "scheme": "gatherplus",
     "version": "1.0.0",
@@ -19,6 +19,7 @@
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos and save tickets from the app",
         "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your library",
         "NSCameraUsageDescription": "This app needs permission to access your camera.",
+        "CFBundleDisplayName": "GatherPlux",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [

@@ -4,7 +4,7 @@
 
 module.exports = ({ config }) => ({
   ...config,
-  name: "gatherplus",
+  name: "GatherPlux",
   slug: "gatherPlus",
   scheme: "gatherplus",
   version: "1.0.0",
@@ -28,6 +28,7 @@ module.exports = ({ config }) => ({
         "This app needs permission to save photos to your library",
       NSCameraUsageDescription:
         "This app needs permission to access your camera.",
+      CFBundleDisplayName: "GatherPlux",
       CFBundleURLTypes: [{ CFBundleURLSchemes: ["gatherplus"] }],
     },
     splash: {

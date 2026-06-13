@@ -214,10 +214,9 @@ export default function HomeScreen() {
       skip: !selectedCountry, // Fetch only when a country is selected
     }
   );
-  const { data: categories, isLoading, error } = useGetcategoriesQuery({});
+  const { data: categories, isLoading } = useGetcategoriesQuery({});
   const {
     data: upcoming,
-    error: upcomingError,
     isLoading: isupcomingLoading,
     refetch: refetchUpcoming,
     isFetching,
@@ -235,7 +234,6 @@ export default function HomeScreen() {
 
   const {
     data: live,
-    error: liveError,
     isLoading: isliveLoading,
     isFetching: isFetchinglive,
     refetch: refetchLive,
@@ -266,7 +264,6 @@ export default function HomeScreen() {
   });
   const {
     data: providers,
-    error: providersError,
     isLoading: isprovidersLoading,
     isFetching: isFetchingproviders,
     refetch: refetchproviders,
@@ -454,10 +451,6 @@ export default function HomeScreen() {
           <View className="text-white flex items-center py-4">
             <ActivityIndicator color="#9EDD45" />
           </View>
-        ) : error || upcomingError || liveError || providersError ? (
-          <Text className="text-red-500 text-center py-4">
-            Failed to load data. Please try again.
-          </Text>
         ) : (
           <>
             {/* Categories */}
