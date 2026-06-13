@@ -20,13 +20,14 @@ import {
   Star,
   Book,
   BookDashed,
-  RecycleIcon,
   MessageCircleIcon,
   Calendar1Icon,
   Users,
   Globe2,
   BarChart3,
   Send,
+  Briefcase,
+  Sparkles,
 } from "lucide-react-native";
 import { useGetProfileQuery } from "@/redux/api/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -103,121 +104,150 @@ export default function ProfileScreen() {
     );
   }
 
-  const menuItems = [
+  const iconColor = "#A7B0C2";
+  const menuSections = [
     {
-      icon: <Globe2 size={24} color="#6B7280" />,
-      title: "Public Marketplace",
-      subtitle: "Browse countries, cities, planners, events",
-      route: "/marketplace",
+      title: "General",
+      items: [
+        {
+          icon: <Globe2 size={22} color={iconColor} />,
+          title: "Find Events & Planners",
+          subtitle: "Browse cities, planners, and events",
+          route: "/marketplace",
+        },
+        {
+          icon: <BookDashed size={22} color={iconColor} />,
+          title: "Bookings",
+          subtitle: "Ticket library and access codes",
+          route: "/profile/bookings",
+        },
+        {
+          icon: <Bookmark size={22} color={iconColor} />,
+          title: "Bookmarks",
+          subtitle: "Saved events and planners",
+          route: "/profile/bookmarks",
+        },
+      ],
     },
     {
-      icon: <BookDashed size={24} color="#6B7280" />,
-      title: "Bookings",
-      subtitle: "Ticket library and access codes",
-      route: "/profile/bookings",
+      title: "Organizer",
+      items: [
+        {
+          icon: <Ticket size={22} color={iconColor} />,
+          title: "Organizer Workspace",
+          subtitle: "Manage drafts, previews, attendees",
+          route: "/profile/events",
+        },
+        {
+          icon: <Sparkles size={22} color={iconColor} />,
+          title: "Create with AI",
+          subtitle: "Generate an event draft",
+          route: "/create/ai",
+        },
+        {
+          icon: <BarChart3 size={22} color={iconColor} />,
+          title: "Insights",
+          subtitle: "ROI, conversion, check-in readiness",
+          route: "/profile/insights",
+        },
+        {
+          icon: <Send size={22} color={iconColor} />,
+          title: "Delivery Log",
+          subtitle: "Email/SMS updates and retry status",
+          route: "/profile/delivery-log",
+        },
+        {
+          icon: <Star size={22} color={iconColor} />,
+          title: "Revenue",
+          subtitle: "Wallet and payout requests",
+          route: "/profile/revenue",
+        },
+      ],
     },
     {
-      icon: <Ticket size={24} color="#6B7280" />,
-      title: "Organizer Workspace",
-      subtitle: "Manage drafts, previews, attendees",
-      route: "/profile/events",
+      title: "Marketing",
+      items: [
+        {
+          icon: <Ticket size={22} color={iconColor} />,
+          title: "Promo Codes",
+          subtitle: "Discounts, limits, analytics",
+          route: "/profile/promo-codes",
+        },
+        {
+          icon: <Book size={22} color={iconColor} />,
+          title: "GatherPlux Blog",
+          subtitle: "Organizer tips and product updates",
+          route: "/blog",
+        },
+      ],
     },
     {
-      icon: <BarChart3 size={24} color="#6B7280" />,
-      title: "Insights",
-      subtitle: "ROI, conversion, check-in readiness",
-      route: "/profile/insights",
+      title: "Team",
+      items: [
+        {
+          icon: <Users size={22} color={iconColor} />,
+          title: "Agent Workspace",
+          subtitle: "Codes, commissions, payouts",
+          route: "/profile/agent",
+        },
+        {
+          icon: <Users size={22} color={iconColor} />,
+          title: "Attendee CRM",
+          subtitle: "Segments, notes, and safe follow-ups",
+          route: "/profile/attendees",
+        },
+        {
+          icon: <MessageCircleIcon size={22} color={iconColor} />,
+          title: "Messages",
+          subtitle: "Provider and booking conversations",
+          route: "/(provider)/(chats)/chats",
+        },
+        {
+          icon: <Calendar1Icon size={22} color={iconColor} />,
+          title: "Appointments",
+          subtitle: "Planner service bookings",
+          route: "/(provider)/appointments",
+        },
+      ],
     },
     {
-      icon: <Send size={24} color="#6B7280" />,
-      title: "Delivery Log",
-      subtitle: "Email/SMS updates and retry status",
-      route: "/profile/delivery-log",
-    },
-    {
-      icon: <Ticket size={24} color="#6B7280" />,
-      title: "Promo Codes",
-      subtitle: "Discounts, limits, analytics",
-      route: "/profile/promo-codes",
-    },
-    {
-      icon: <Users size={24} color="#6B7280" />,
-      title: "Agent Workspace",
-      subtitle: "Codes, commissions, payouts",
-      route: "/profile/agent",
-    },
-    {
-      icon: <Users size={24} color="#6B7280" />,
-      title: "Attendee CRM",
-      subtitle: "Segments, notes, and safe follow-ups",
-      route: "/profile/attendees",
-    },
-    {
-      icon: <Star size={24} color="#6B7280" />,
-      title: "Revenue",
-      subtitle: "Wallet and payout requests",
-      route: "/profile/revenue",
-    },
-    {
-      icon: <Ticket size={24} color="#6B7280" />,
-      title: "Create with AI",
-      subtitle: "Generate an event draft",
-      route: "/create/ai",
-    },
-    {
-      icon: <Mail size={24} color="#6B7280" />,
-      title: "Change Email",
-      subtitle: "Update your email",
-      route: "/profile/change-email",
-    },
-    {
-      icon: <Lock size={24} color="#6B7280" />,
-      title: "Password",
-      subtitle: "Update your password",
-      route: "/profile/change-password",
-    },
-    {
-      icon: <Star size={24} color="#6B7280" />,
-      title: "Bookmarks",
-      subtitle: "Bookmarks",
-      route: "/profile/bookmarks",
-    },
-    {
-      icon: <MessageCircleIcon size={24} color="#6B7280" />,
-      title: "Chat",
-      subtitle: "View all providers Chat",
-      route: "/(provider)/(chats)/chats",
-    },
-    {
-      icon: <Book size={24} color="#6B7280" />,
-      title: "GatherPlux Blog",
-      subtitle: "Organizer tips and product updates",
-      route: "/blog",
-    },
-    {
-      icon: <Calendar1Icon size={24} color="#6B7280" />,
-      title: "Appointments",
-      subtitle: "View all your appointments",
-      route: "/(provider)/appointments",
+      title: "Account",
+      items: [
+        {
+          icon: <Mail size={22} color={iconColor} />,
+          title: "Change Email",
+          subtitle: "Update your email",
+          route: "/profile/change-email",
+        },
+        {
+          icon: <Lock size={22} color={iconColor} />,
+          title: "Password",
+          subtitle: "Update your password",
+          route: "/profile/change-password",
+        },
+      ],
     },
   ];
 
   return (
-    <ScrollView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row items-center px-4 pt-12 pb-4">
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerStyle={{ paddingBottom: 110 }}
+    >
+      <View className="px-4 pt-12 pb-4">
+        <View className="flex-row items-center">
         <TouchableOpacity
           onPress={() => router.replace("/home/home1")}
-          className="mr-4 bg-[#1A2432] p-2 rounded-full"
+            className="mr-4 bg-[#162033] p-2 rounded-xl border border-white/5"
         >
           <ArrowLeft color="white" size={24} />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-semibold">Settings</Text>
+          <Text className="text-white text-2xl font-black">Settings</Text>
+        </View>
       </View>
 
-      {/* Error Handling */}
       {profileError && (
-        <View className="px-4 py-4 bg-red-500 rounded-lg mx-4">
+        <View className="px-4 py-4 bg-red-500/20 border border-red-500/30 rounded-xl mx-4 mb-4">
           <Text className="text-white text-center">
             {profileError?.data?.body && typeof profileError.data.body === "string"
               ? profileError.data.body
@@ -226,80 +256,101 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {/* Loading State */}
       {isFetchingProfile ? (
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center py-16">
           <ActivityIndicator color="#9EDD45" />
         </View>
       ) : (
-        <>
-          {/* Profile Info */}
-          <TouchableOpacity
-            className="flex-row items-center px-4 py-4 border-b border-[#1A2432]"
-            onPress={() => router.push("/profile/account-info")}
-          >
-            <Image
-              source={{
-                uri:
-                  userProfile?.body?.image_url ||
-                  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-              }}
-              className="w-16 h-16 rounded-full"
-            />
-            <View className="ml-3 flex-1">
-              <Text className="text-white text-lg font-semibold">
-                {userProfile?.body
-                  ? `${userProfile.body.firstname || ""} ${userProfile.body.lastname || ""}`
-                  : "User Name"}
-              </Text>
-              <Text className="text-gray-400">
-                {userProfile?.body?.email || "user@example.com"}
-              </Text>
+        <View className="px-4">
+          <View className="rounded-2xl border border-[#27364C] bg-[#111823] p-3">
+            <View className="flex-row items-center">
+              <Image
+                source={{
+                  uri:
+                    userProfile?.body?.image_url ||
+                    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+                }}
+                className="w-16 h-16 rounded-full border-2 border-[#48A7FF]"
+              />
+              <TouchableOpacity
+                className="ml-3 flex-1"
+                onPress={() => router.push("/profile/account-info")}
+              >
+                <Text className="text-white text-lg font-black" numberOfLines={1}>
+                  {userProfile?.body
+                    ? `${userProfile.body.firstname || ""} ${userProfile.body.lastname || ""}`.trim() ||
+                      "User Name"
+                    : "User Name"}
+                </Text>
+                <Text className="text-gray-300 mt-1" numberOfLines={1}>
+                  {userProfile?.body?.email || "user@example.com"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="rounded-full bg-[#2F86D8] px-4 py-3"
+                onPress={() => router.push("/profile/edit-profile")}
+              >
+                <Text className="text-white font-bold">Edit Profile</Text>
+              </TouchableOpacity>
             </View>
-            <ChevronRight color="#6B7280" size={24} />
-          </TouchableOpacity>
-        </>
+          </View>
+        </View>
       )}
-      {/* Menu Items */}
-      <View className="mt-4">
-        {menuItems.map((item, index) => (
+
+      <View className="mt-5 px-4">
+        {menuSections.map((section) => (
+          <View key={section.title} className="mb-5">
+            <Text className="text-[#8B95A7] text-base font-semibold mb-2 ml-3">
+              {section.title}
+            </Text>
+            <View className="gap-2">
+              {section.items.map((item) => (
           <TouchableOpacity
-            key={index}
-            className="flex-row items-center px-4 py-6 border-[#1A2432]"
+                  key={item.title}
+                  className="flex-row items-center rounded-xl border border-[#27364C] bg-[#111823] px-4 py-4"
             onPress={() => router.push(item.route)}
           >
-            {item.icon}
-            <View className="ml-3 flex-1">
-              <Text className="text-white font-semibold">{item.title}</Text>
-              <Text className="text-gray-400 text-sm">{item.subtitle}</Text>
+                  <View className="h-9 w-9 items-center justify-center rounded-xl bg-[#0C1422] border border-white/5">
+                    {item.icon}
+                  </View>
+                  <View className="ml-3 flex-1">
+                    <Text className="text-white text-base font-black">
+                      {item.title}
+                    </Text>
+                    <Text className="text-gray-400 text-sm" numberOfLines={1}>
+                      {item.subtitle}
+                    </Text>
             </View>
-            <ChevronRight color="#6B7280" size={24} />
+                  <ChevronRight color="#8B95A7" size={22} />
           </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         ))}
       </View>
-      {/* Logout Button */}
-      <View className="flex-row justify-evenly mt-2">
+
+      <View className="px-4 mt-1 gap-3">
         <TouchableOpacity
-          className="bg-primary rounded-lg py-2 w-40  self-center"
+          className="rounded-xl border border-[#9EDD45]/30 bg-[#9EDD45]/10 py-4"
           onPress={handleNavigate}
         >
           <View className="flex-row items-center gap-2 justify-center">
-            <Text className="text-white text-center text-lg font-bold">
-              Planner
+            <Briefcase color="#9EDD45" size={20} />
+            <Text className="text-primary text-center text-base font-black">
+              Planner Workspace
             </Text>
-            <RecycleIcon color="white" />
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="bg-primary rounded-lg py-2 w-40  self-center"
+          className="rounded-xl border border-[#27364C] bg-[#111823] py-4"
           onPress={handleLogout}
         >
           <View className="flex-row items-center gap-2 justify-center">
-            <Text className="text-white text-center text-lg font-bold">
-              LogOut
+            <LogOutIcon color="#E5E7EB" size={19} />
+            <Text className="text-white text-center text-base font-black">
+              Logout
             </Text>
-            <LogOutIcon color="white" />
           </View>
         </TouchableOpacity>
       </View>

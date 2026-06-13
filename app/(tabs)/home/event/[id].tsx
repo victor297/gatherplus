@@ -102,6 +102,37 @@ export default function EventDetailsScreen() {
   const symbol = currencySymbol(eventData?.currency);
   const eventDescription = cleanRichText(eventData?.description);
   const freeEvent = isFreeEvent(eventData);
+  const tickets = Array.isArray(eventData?.tickets) ? eventData.tickets : [];
+  const sessions = Array.isArray(eventData?.sessions) ? eventData.sessions : [];
+  const faqs = Array.isArray(eventData?.faqs) ? eventData.faqs : [];
+  const tags = Array.isArray(eventData?.tags) ? eventData.tags : [];
+  const totalTicketCapacity =
+    Number(eventData?.no_of_ticket || 0) ||
+    tickets.reduce((sum: number, ticket: any) => sum + Number(ticket?.quantity || 0), 0);
+  const totalTicketsSold =
+    Number(eventData?.totalTicketsSold ?? eventData?.total_sold ?? 0) ||
+    tickets.reduce(
+      (sum: number, ticket: any) =>
+        sum + Number(ticket?.totalSold ?? ticket?.total_sold ?? ticket?.sold ?? 0),
+      0
+    );
+  const eventStatusLabel =
+    eventData?.published === false
+      ? "Draft"
+      : eventEnded
+      ? "Ended"
+      : eventSoldOut
+      ? "Sold out"
+      : "Published";
+  const eventPriceLabel = freeEvent
+    ? "Free"
+    : `${symbol} ${Number(eventData?.price || tickets[0]?.price || 0).toLocaleString()}`;
+  const logisticsRows = [
+    ["Door Time", eventData?.door_time ? `Doors open at ${eventData.door_time}` : ""],
+    ["Parking Information", cleanRichText(eventData?.parking_info)],
+    ["Discount / Early Bird", cleanRichText(eventData?.discount_info)],
+    ["Agenda / Logistics", cleanRichText(eventData?.agenda_info)],
+  ].filter(([, value]) => Boolean(value));
   const [ticketSelections, setTicketSelections] = useState<
     Record<number, TicketSelection>
   >({});
@@ -545,6 +576,83 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   <Text className="text-gray-400 mb-6">No description available.</Text>
                 )}
               </View>
+              <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
+                <Text className="text-white text-xl font-semibold mb-4">
+                  Event Summary
+                </Text>
+                <View className="gap-3">
+                  {[
+                    ["Category", eventData?.category?.name || "Not set"],
+                    ["Event type", formatEnumLabel(eventData?.event_type || "SINGLE")],
+                    ["Status", eventStatusLabel],
+                    ["Format", attendanceLabel],
+                    [
+                      "Country / State",
+                      [eventData?.country?.name, eventData?.state?.name]
+                        .filter(Boolean)
+                        .join(" / ") || "Not set",
+                    ],
+                    ["Base price", eventPriceLabel],
+                  ].map(([label, value]) => (
+                    <View
+                      key={String(label)}
+                      className="rounded-xl border border-gray-700 bg-background/40 p-3"
+                    >
+                      <Text className="text-gray-400 text-xs uppercase font-bold">
+                        {label}
+                      </Text>
+                      <Text className="text-white font-semibold mt-1">
+                        {value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <View className="bg-gray-800 rounded-lg p-4 mb-4">
+                <Text className="text-white text-xl font-semibold mb-4">
+                  Attendee Restrictions
+                </Text>
+                <View className="gap-3">
+                  <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-3">
+                    <Text className="text-gray-400 text-xs uppercase font-bold">
+                      Age Restriction
+                    </Text>
+                    <Text className="text-white font-semibold mt-1">
+                      {Number(eventData?.age_restriction || 0) > 0
+                        ? `${eventData.age_restriction}+`
+                        : "All ages allowed"}
+                    </Text>
+                  </View>
+                  <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-3">
+                    <Text className="text-gray-400 text-xs uppercase font-bold">
+                      Guardian Requirement
+                    </Text>
+                    <Text className="text-white font-semibold mt-1">
+                      {eventData?.guardian_required ? "Required" : "Not required"}
+                    </Text>
+                  </View>
+                  <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-3">
+                    <Text className="text-gray-400 text-xs uppercase font-bold">
+                      Ticket Identity
+                    </Text>
+                    <Text className="text-white font-semibold mt-1">
+                      {eventData?.each_ticket_identity
+                        ? "Each ticket needs attendee details"
+                        : "One buyer can hold multiple tickets"}
+                    </Text>
+                  </View>
+                  <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-3">
+                    <Text className="text-gray-400 text-xs uppercase font-bold">
+                      Fees
+                    </Text>
+                    <Text className="text-white font-semibold mt-1">
+                      {eventData?.absorb_fee
+                        ? "Organizer absorbs fees"
+                        : "Buyer pays applicable fees"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
               {hasOnlineAccess && (
                 <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
                   <View className="flex-row items-center mb-4">
@@ -575,7 +683,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 </View>
               )}
 
-              {Array.isArray(eventData?.tags) && eventData.tags.length > 0 && (
+              {tags.length > 0 && (
                 <View className="bg-gray-800 rounded-lg p-4 mb-4">
                   <View className="flex-row items-center mb-3">
                     <Tag color="#9EDD45" size={18} />
@@ -584,7 +692,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                     </Text>
                   </View>
                   <View className="flex-row flex-wrap gap-2">
-                    {eventData.tags.map((tag: string) => (
+                    {tags.map((tag: string) => (
                       <View key={tag} className="bg-[#1A2432] px-3 py-2 rounded-full">
                         <Text className="text-gray-300 text-sm">{tag}</Text>
                       </View>
@@ -593,10 +701,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 </View>
               )}
 
-              {(eventData?.door_time ||
-                eventData?.parking_info ||
-                eventData?.agenda_info ||
-                eventData?.discount_info) && (
+              {logisticsRows.length > 0 && (
                 <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
                   <View className="flex-row items-center mb-3">
                     <Info color="#9EDD45" size={18} />
@@ -604,13 +709,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                       Event Info
                     </Text>
                   </View>
-                  {[
-                    ["Door time", eventData?.door_time],
-                    ["Parking", eventData?.parking_info],
-                    ["Agenda", eventData?.agenda_info],
-                    ["Lineup / extra info", eventData?.discount_info],
-                  ]
-                    .filter(([, value]) => Boolean(value))
+                  {logisticsRows
                     .map(([label, value]) => (
                       <View key={label} className="mb-3">
                         <Text className="text-primary text-sm font-semibold">
@@ -655,82 +754,103 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                   </Text>
                 </View>
 
-                {eventData?.sessions?.map((session: any, sessionIndex: any) => (
-                  <View
-                    key={sessionIndex}
-                    className="mb-4 bg-[#1A2432] p-4 rounded-xl border border-gray-700"
-                  >
-                    {/* Session Header */}
-                    <View className="flex-row items-center justify-between mb-3">
-                      <View className="flex-row items-center flex-1">
-                        <Clock className="text-primary mr-2" size={18} />
-                        <Text className="text-gray-300 font-medium">
-                          {session?.start_time} - {session?.end_time}
-                        </Text>
+                {sessions.length > 0 ? (
+                  sessions.map((session: any, sessionIndex: any) => (
+                    <View
+                      key={session.id || sessionIndex}
+                      className="mb-4 bg-[#1A2432] p-4 rounded-xl border border-gray-700"
+                    >
+                      <View className="flex-row items-center justify-between mb-3">
+                        <View className="flex-row items-center flex-1">
+                          <Clock className="text-primary mr-2" size={18} />
+                          <Text className="text-gray-300 font-medium">
+                            {session?.start_time || "Start"} - {session?.end_time || "End"}
+                          </Text>
+                        </View>
+                        <View className="bg-primary/20 px-2 py-1 rounded-md">
+                          <Text className="text-primary text-xs font-bold uppercase">
+                            {isUpcomingSession(session)
+                              ? `Session ${sessionIndex + 1}`
+                              : "Ended"}
+                          </Text>
+                        </View>
                       </View>
-                      <View className="bg-primary/20 px-2 py-1 rounded-md">
-                        <Text className="text-primary text-xs font-bold uppercase">
-                          {isUpcomingSession(session)
-                            ? `Session ${sessionIndex + 1}`
-                            : "Ended"}
+
+                      <Text className="text-white text-sm font-bold mb-2">
+                        {session?.name || `Session ${sessionIndex + 1}`}
+                      </Text>
+                      <View className="rounded-lg bg-background/40 border border-gray-700 p-3 mb-3">
+                        <Text className="text-gray-400 text-xs uppercase font-bold">
+                          Date
                         </Text>
-                      </View>
-                    </View>
-
-                    <Text className="text-white text-sm font-bold mb-2">
-                      {session?.name}
-                    </Text>
-
-                    {/* Speakers for this session */}
-                    {session?.participants?.length > 0 && (
-                      <View className="space-y-4">
-                        {session?.participants?.map(
-                          (participant: any, pIndex: any) => (
-                            <View
-                              key={pIndex}
-                              className="flex-row items-center bg-gray-800/50 p-2 rounded-lg border border-gray-700/50"
-                            >
-                              {participant?.image ? (
-                                <Image
-                                  source={{ uri: participant.image }}
-                                  className="w-12 h-12 rounded-full mr-4 border-2 border-primary/30"
-                                  resizeMode="cover"
-                                />
-                              ) : (
-                                <View className="w-12 h-12 rounded-full bg-gray-700 mr-4 flex items-center justify-center border-2 border-primary/30">
-                                  <User color="#9EDD45" size={24} />
-                                </View>
-                              )}
-                              <View className="flex-1">
-                                <Text className="font-bold text-primary text-lg">
-                                  {participant.name}
-                                </Text>
-                                {participant.title && (
-                                  <Text className="text-gray-400 text-sm italic">
-                                    {participant.title}
-                                  </Text>
-                                )}
-                                {participant.description && (
-                                  <Text className="text-gray-300 text-xs mt-1" numberOfLines={2}>
-                                    {participant.description}
-                                  </Text>
-                                )}
-                              </View>
-                            </View>
-                          )
+                        <Text className="text-gray-200 mt-1">
+                          {formatDate(session?.date)}
+                        </Text>
+                        {session?.end_date && (
+                          <Text className="text-gray-400 mt-1 text-xs">
+                            Ends {formatDate(session.end_date)}
+                          </Text>
                         )}
                       </View>
-                    )}
-                  </View>
-                ))}
+
+                      {session?.participants?.length > 0 ? (
+                        <View className="space-y-4">
+                          {session?.participants?.map(
+                            (participant: any, pIndex: any) => (
+                              <View
+                                key={pIndex}
+                                className="flex-row items-center bg-gray-800/50 p-2 rounded-lg border border-gray-700/50"
+                              >
+                                {participant?.image ? (
+                                  <Image
+                                    source={{ uri: participant.image }}
+                                    className="w-12 h-12 rounded-full mr-4 border-2 border-primary/30"
+                                    resizeMode="cover"
+                                  />
+                                ) : (
+                                  <View className="w-12 h-12 rounded-full bg-gray-700 mr-4 flex items-center justify-center border-2 border-primary/30">
+                                    <User color="#9EDD45" size={24} />
+                                  </View>
+                                )}
+                                <View className="flex-1">
+                                  <Text className="font-bold text-primary text-lg">
+                                    {participant.name || "Presenter"}
+                                  </Text>
+                                  {participant.title && (
+                                    <Text className="text-gray-400 text-sm italic">
+                                      {participant.title}
+                                    </Text>
+                                  )}
+                                  {participant.description && (
+                                    <Text className="text-gray-300 text-xs mt-1">
+                                      {cleanRichText(participant.description)}
+                                    </Text>
+                                  )}
+                                </View>
+                              </View>
+                            )
+                          )}
+                        </View>
+                      ) : (
+                        <Text className="text-gray-400 text-sm">
+                          No presenter details added for this session.
+                        </Text>
+                      )}
+                    </View>
+                  ))
+                ) : (
+                  <Text className="text-gray-400 text-sm">
+                    No sessions available.
+                  </Text>
+                )}
               </View>
 
-              {Array.isArray(eventData?.faqs) && eventData.faqs.length > 0 && (
+              {faqs.length > 0 && (
                 <View className="bg-[#1A2432] rounded-lg p-4 mb-4">
                   <Text className="text-white text-xl font-semibold mb-4">
                     FAQs
                   </Text>
-                  {eventData.faqs.map((faq: any, index: number) => (
+                  {faqs.map((faq: any, index: number) => (
                     <View
                       key={faq.id || index}
                       className="border-b border-gray-700 pb-3 mb-3"
@@ -750,8 +870,28 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                 <Text className="text-white text-xl font-semibold mb-4">
                   Ticket Information
                 </Text>
+                <View className="gap-3 mb-4">
+                  {[
+                    ["Total tickets", totalTicketCapacity.toLocaleString()],
+                    ["Tickets sold", totalTicketsSold.toLocaleString()],
+                    ["Ticket mode", freeEvent ? "Free Event" : "Paid Event"],
+                    ["Ticket types", `${tickets.length} type${tickets.length === 1 ? "" : "s"}`],
+                  ].map(([label, value]) => (
+                    <View
+                      key={String(label)}
+                      className="rounded-xl border border-gray-700 bg-[#1A2432] p-3"
+                    >
+                      <Text className="text-gray-400 text-xs uppercase font-bold">
+                        {label}
+                      </Text>
+                      <Text className="text-white font-semibold mt-1">
+                        {value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
                 <View className="space-y-4">
-                  {eventData?.tickets?.map((ticket: any, index: any) => {
+                  {tickets.length > 0 ? tickets.map((ticket: any, index: any) => {
                     const selection = ticketSelections[ticket.id] || {
                       quantity: 0,
                       sessionId: upcomingSessions[0]?.id,
@@ -771,11 +911,16 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                           <View>
                             <Text className="text-white">{truncateSentence(ticket.name)}</Text>
                             <Text className="text-primary">
-                              {symbol}
-                              {ticket.price}
+                              {freeEvent || Number(ticket.price || 0) <= 0
+                                ? "Free"
+                                : `${symbol} ${Number(ticket.price || 0).toLocaleString()}`}
                             </Text>
                             <Text className="text-gray-400 text-sm">
                               {getTicketRemainingQuantity(ticket)} tickets remaining
+                            </Text>
+                            <Text className="text-gray-500 text-xs mt-1">
+                              Seat: {ticket.seat_type || "General"} - Qty:{" "}
+                              {Number(ticket.quantity || 0).toLocaleString()}
                             </Text>
                           </View>
                           <View className="flex-row items-center mt-2 space-x-4">
@@ -855,7 +1000,13 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                         )}
                       </View>
                     );
-                  })}
+                  }) : (
+                    <View className="rounded-xl border border-gray-700 bg-[#1A2432] p-4">
+                      <Text className="text-gray-400">
+                        No ticket information available.
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 <View className="mt-4 mb-4">
@@ -867,7 +1018,7 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
                     )}
                   </Text>
                   <Text className="text-white text-xl font-bold">
-                    {symbol} {totalAmount}
+                    {freeEvent ? "Free" : `${symbol} ${totalAmount}`}
                   </Text>
                   {eventData?.age_restriction > 0 && (
                     <Text className="text-red-500 text-xs font-bold mt-2">
