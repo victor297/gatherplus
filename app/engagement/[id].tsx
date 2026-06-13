@@ -6,11 +6,14 @@ import {
   ArrowLeft,
   Bell,
   CalendarDays,
+  Clock3,
   HelpCircle,
   Loader2,
   MessageSquare,
   Send,
+  ShieldCheck,
   Ticket,
+  Trophy,
   Vote,
 } from "lucide-react-native";
 import {
@@ -175,24 +178,56 @@ export default function AttendeeEngagementScreen() {
     const externalAllowed = Boolean(poll.summary?.allowExternalVoters);
     const hasBookingCode = Boolean(bookingCode);
     const loggedIn = Boolean(accessToken);
+    const votesRemainingToday = Number(poll.summary?.votesRemainingToday || 0);
+    const voteLimitPerDay = Number(poll.summary?.voteLimitPerDay || 3);
     const needsLogin = !hasBookingCode && externalAllowed && !loggedIn;
     const hasVoteIdentity = hasBookingCode || (externalAllowed && loggedIn);
+    const isClosed = poll.status !== "LIVE" || Boolean(poll.summary?.isLocked);
     const canVote =
-      poll.status === "LIVE" &&
-      (poll.summary?.votesRemainingToday || 0) > 0 &&
+      !isClosed &&
+      votesRemainingToday > 0 &&
       hasVoteIdentity &&
       !isVoting;
 
-    return { externalAllowed, hasBookingCode, needsLogin, canVote };
+    return {
+      externalAllowed,
+      hasBookingCode,
+      hasVoteIdentity,
+      isClosed,
+      loggedIn,
+      needsLogin,
+      canVote,
+      votesRemainingToday,
+      voteLimitPerDay,
+    };
   };
 
   const getVoteButtonText = (state: ReturnType<typeof getCompetitionVoteState>, votedToday: boolean, option: any) => {
+    if (state.isClosed) return option.isWinner ? "Winner locked" : "Voting closed";
     if (state.needsLogin) return "Sign in to vote";
-    if (!state.hasBookingCode && !state.externalAllowed) return "Enter booking code";
-    if (votedToday) return "Vote again tomorrow";
+    if (!state.hasVoteIdentity) return "Enter booking code";
+    if (state.votesRemainingToday <= 0 || votedToday) return "Vote again tomorrow";
     if (option.isWinner) return "Winner";
     if (option.isLeader) return state.hasBookingCode ? "Vote for leader" : "Vote with account";
     return state.hasBookingCode ? "Vote with ticket" : "Vote with account";
+  };
+
+  const getCompetitionNotice = (poll: any) => {
+    const state = getCompetitionVoteState(poll);
+    if (state.isClosed) {
+      return poll.summary?.isLocked
+        ? "Voting is closed and the winner has been locked by the organizer."
+        : "Voting is closed for this competition.";
+    }
+    if (state.needsLogin) {
+      return `Public voting is enabled. Sign in to vote, or enter a booking code if you are a ticket holder.`;
+    }
+    if (!state.hasVoteIdentity) {
+      return state.externalAllowed
+        ? "Sign in or enter a booking code to vote."
+        : "This poll is limited to ticket holders. Enter your booking code to vote.";
+    }
+    return `${state.votesRemainingToday} of ${state.voteLimitPerDay} votes left today.`;
   };
 
   const handleCompetitionVotePress = (poll: any, option: any) => {
@@ -251,6 +286,19 @@ export default function AttendeeEngagementScreen() {
               <Text className="text-background font-bold">Apply</Text>
             </TouchableOpacity>
           </View>
+          {!accessToken ? (
+            <TouchableOpacity
+              className="bg-primary/15 border border-primary/30 rounded-xl px-4 py-3 mt-3"
+              onPress={() => router.push("/(auth)/login" as any)}
+            >
+              <Text className="text-primary text-center font-bold">Sign in for public campaign voting</Text>
+            </TouchableOpacity>
+          ) : (
+            <View className="bg-primary/10 rounded-xl px-4 py-3 mt-3 flex-row items-center">
+              <ShieldCheck color="#9EDD45" size={18} />
+              <Text className="text-primary font-bold ml-2">Signed in for public voting</Text>
+            </View>
+          )}
         </View>
 
         <View className="flex-row flex-wrap gap-3 mb-4">
@@ -273,11 +321,27 @@ export default function AttendeeEngagementScreen() {
             )}
             <View className="p-4">
               <Text className="text-primary font-bold uppercase tracking-widest">Public campaign</Text>
-              <Text className="text-white text-2xl font-bold mt-2">{spotlight.candidate.text}</Text>
+              <View className="flex-row flex-wrap items-center gap-2 mt-2">
+                <Text className="text-white text-2xl font-bold flex-1">{spotlight.candidate.text}</Text>
+                {spotlight.candidate.isWinner || spotlight.candidate.isLeader ? (
+                  <View className={spotlight.candidate.isWinner ? "bg-primary rounded-full px-3 py-1 flex-row items-center" : "bg-primary/15 border border-primary/30 rounded-full px-3 py-1 flex-row items-center"}>
+                    <Trophy color={spotlight.candidate.isWinner ? "#020817" : "#9EDD45"} size={13} />
+                    <Text className={spotlight.candidate.isWinner ? "text-background text-xs font-bold ml-1" : "text-primary text-xs font-bold ml-1"}>
+                      {spotlight.candidate.isWinner ? "Winner" : "Leading"}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
               <Text className="text-gray-400 mt-1">{spotlight.poll.question}</Text>
               {!!spotlight.candidate.bio && (
                 <Text className="text-gray-300 leading-6 mt-3">{spotlight.candidate.bio}</Text>
               )}
+              <View className="bg-[#0B1220] border border-[#243044] rounded-xl p-3 mt-4 flex-row items-start">
+                <Clock3 color="#9EDD45" size={18} />
+                <Text className="text-gray-300 leading-5 ml-2 flex-1">
+                  {getCompetitionNotice(spotlight.poll)}
+                </Text>
+              </View>
               <View className="flex-row gap-3 mt-4">
                 <View className="bg-[#1A2432] rounded-xl p-3 flex-1">
                   <Text className="text-white text-xl font-bold">{spotlight.candidate.votes || 0}</Text>
@@ -288,8 +352,10 @@ export default function AttendeeEngagementScreen() {
                   <Text className="text-gray-500 text-xs mt-1">Rank</Text>
                 </View>
                 <View className="bg-[#1A2432] rounded-xl p-3 flex-1">
-                  <Text className="text-white text-xl font-bold">{spotlight.poll.summary?.votesRemainingToday ?? 0}</Text>
-                  <Text className="text-gray-500 text-xs mt-1">Votes left</Text>
+                  <Text className="text-white text-xl font-bold">
+                    {spotlight.poll.summary?.votesRemainingToday ?? 0}/{spotlight.poll.summary?.voteLimitPerDay || 3}
+                  </Text>
+                  <Text className="text-gray-500 text-xs mt-1">Today</Text>
                 </View>
               </View>
               <View className="bg-[#0B1220] h-3 rounded-full mt-4 overflow-hidden">
@@ -439,9 +505,12 @@ export default function AttendeeEngagementScreen() {
                       {getPollTypeLabel(poll.poll_type, poll.typeLabel)} - {poll.totalVotes || 0} voters - {poll.status}
                     </Text>
                     {poll.poll_type === "COMPETITION" ? (
-                      <Text className="text-gray-500 mt-1">
-                        {poll.summary?.votesRemainingToday ?? 0} of {poll.summary?.voteLimitPerDay || 3} votes left today
-                      </Text>
+                      <View className="bg-[#0B1220] border border-[#243044] rounded-xl p-3 mt-3 flex-row items-start">
+                        <Clock3 color="#9EDD45" size={18} />
+                        <Text className="text-gray-300 leading-5 ml-2 flex-1">
+                          {getCompetitionNotice(poll)}
+                        </Text>
+                      </View>
                     ) : null}
                     {poll.poll_type === "RATING" ? (
                       <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-3">
@@ -464,7 +533,17 @@ export default function AttendeeEngagementScreen() {
                                 </View>
                               )}
                               <View className="flex-1">
-                                <Text className="text-white font-semibold">{option.text}</Text>
+                                <View className="flex-row items-start justify-between gap-2">
+                                  <Text className="text-white font-semibold flex-1">{option.text}</Text>
+                                  {option.isWinner || option.isLeader ? (
+                                    <View className={option.isWinner ? "bg-primary rounded-full px-2 py-1 flex-row items-center" : "bg-primary/15 border border-primary/30 rounded-full px-2 py-1 flex-row items-center"}>
+                                      <Trophy color={option.isWinner ? "#020817" : "#9EDD45"} size={12} />
+                                      <Text className={option.isWinner ? "text-background text-[10px] font-bold ml-1" : "text-primary text-[10px] font-bold ml-1"}>
+                                        {option.isWinner ? "Winner" : "Leading"}
+                                      </Text>
+                                    </View>
+                                  ) : null}
+                                </View>
                                 <Text className="text-gray-500 mt-1">
                                   Rank #{option.rank || "-"} - {option.votes || 0} votes - {option.percent || 0}%
                                 </Text>
@@ -481,6 +560,11 @@ export default function AttendeeEngagementScreen() {
                                     {getVoteButtonText(voteState, votedToday, option)}
                                   </Text>
                                 </TouchableOpacity>
+                                {voteState.needsLogin ? (
+                                  <Text className="text-gray-500 mt-2 text-xs">
+                                    Public voting requires sign in. Ticket holders can enter a booking code above.
+                                  </Text>
+                                ) : null}
                               </View>
                             </View>
                           </View>

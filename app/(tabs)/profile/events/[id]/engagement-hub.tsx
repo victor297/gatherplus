@@ -5,9 +5,12 @@ import {
   Bell,
   CalendarDays,
   HelpCircle,
+  ImagePlus,
   MessageSquare,
+  Plus,
   RefreshCw,
   Sparkles,
+  Trash2,
   Users,
   Vote,
 } from "lucide-react-native";
@@ -26,8 +29,20 @@ import { getStringParam } from "@/utils/routeParams";
 const tabs = ["Updates", "Q&A", "Polls", "Agenda"] as const;
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
 type PollType = "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "YES_NO" | "RATING" | "PERCENTAGE" | "COMPETITION";
+type PollWorkspaceTab = "launch" | "control";
+type CompetitionCandidateDraft = {
+  text: string;
+  photo_url: string;
+  bio: string;
+};
 
-const pollTypeOptions: Array<{ value: PollType; label: string; defaultOptions: string }> = [
+const defaultCompetitionCandidates: CompetitionCandidateDraft[] = [
+  { text: "Candidate A", photo_url: "", bio: "" },
+  { text: "Candidate B", photo_url: "", bio: "" },
+  { text: "Candidate C", photo_url: "", bio: "" },
+];
+
+const pollTypeOptions: { value: PollType; label: string; defaultOptions: string }[] = [
   { value: "SINGLE_CHOICE", label: "Single", defaultOptions: "Yes\nNo" },
   { value: "MULTIPLE_CHOICE", label: "Multi", defaultOptions: "Option A\nOption B\nOption C" },
   { value: "YES_NO", label: "Yes / No", defaultOptions: "Yes\nNo" },
@@ -57,11 +72,27 @@ function parsePollOptionsInput(value: string, type: PollType) {
     });
 }
 
+function normalizeCompetitionCandidates(candidates: CompetitionCandidateDraft[]) {
+  return candidates
+    .map((candidate) => ({
+      text: candidate.text.trim(),
+      photo_url: candidate.photo_url.trim(),
+      bio: candidate.bio.trim(),
+    }))
+    .filter((candidate) => candidate.text)
+    .map((candidate) => ({
+      text: candidate.text,
+      ...(candidate.photo_url ? { photo_url: candidate.photo_url } : {}),
+      ...(candidate.bio ? { bio: candidate.bio } : {}),
+    }));
+}
+
 export default function OrganizerEngagementHubScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const eventId = getStringParam(id);
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Updates");
+  const [pollWorkspaceTab, setPollWorkspaceTab] = useState<PollWorkspaceTab>("launch");
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementBody, setAnnouncementBody] = useState("");
   const [pollType, setPollType] = useState<PollType>("SINGLE_CHOICE");
@@ -72,6 +103,8 @@ export default function OrganizerEngagementHubScreen() {
   const [pollClosesAt, setPollClosesAt] = useState("");
   const [allowRepeatCandidate, setAllowRepeatCandidate] = useState(false);
   const [allowExternalVoters, setAllowExternalVoters] = useState(false);
+  const [competitionCandidates, setCompetitionCandidates] =
+    useState<CompetitionCandidateDraft[]>(defaultCompetitionCandidates);
   const [answers, setAnswers] = useState<Record<number, string>>({});
 
   const { data, isFetching, isLoading, refetch } = useGetOrganizerEngagementHubQuery(
@@ -90,21 +123,20 @@ export default function OrganizerEngagementHubScreen() {
   const [updatePollStatus] = useUpdateEngagementPollStatusMutation();
 
   const body = data?.body || {};
-  const metrics = body.metrics || {};
   const announcements = getArray(body.announcements);
   const questions = getArray(body.questions);
   const polls = getArray(body.polls);
   const sessions = getArray(body.event?.sessions);
 
-  const stats = useMemo(
-    () => [
+  const stats = useMemo(() => {
+    const metrics = body.metrics || {};
+    return [
       { label: "Attendees", value: metrics.attendeeCount || 0 },
       { label: "Updates", value: metrics.announcementCount || 0 },
       { label: "Open Q&A", value: metrics.openQuestions || 0 },
       { label: "Live polls", value: metrics.livePollCount || 0 },
-    ],
-    [metrics]
-  );
+    ];
+  }, [body.metrics]);
 
   const submitAnnouncement = async () => {
     try {
@@ -125,13 +157,21 @@ export default function OrganizerEngagementHubScreen() {
   const submitPoll = async () => {
     try {
       const parsedDeadline = pollClosesAt ? new Date(pollClosesAt) : null;
+      const competitionOptions = normalizeCompetitionCandidates(competitionCandidates);
+      if (pollType === "COMPETITION" && competitionOptions.length < 2) {
+        Alert.alert("Add candidates", "Competition polls need at least two candidates.");
+        return;
+      }
+
       await createPoll({
         eventId,
         poll_type: pollType,
         question: pollQuestion,
         options: pollType === "RATING"
           ? []
-          : parsePollOptionsInput(pollOptions, pollType),
+          : pollType === "COMPETITION"
+            ? competitionOptions
+            : parsePollOptionsInput(pollOptions, pollType),
         allow_multiple: pollType === "MULTIPLE_CHOICE",
         settings: pollType === "RATING"
           ? { max_rating: pollMaxRating }
@@ -159,6 +199,8 @@ export default function OrganizerEngagementHubScreen() {
       setPollClosesAt("");
       setAllowRepeatCandidate(false);
       setAllowExternalVoters(false);
+      setCompetitionCandidates(defaultCompetitionCandidates);
+      setPollWorkspaceTab("control");
       refetch();
       Alert.alert("Poll launched", "Attendees can now vote with their booking code.");
     } catch (error: any) {
@@ -187,6 +229,33 @@ export default function OrganizerEngagementHubScreen() {
       url,
       title: `${option.text} campaign profile`,
     });
+  };
+
+  const updateCompetitionCandidate = (
+    index: number,
+    key: keyof CompetitionCandidateDraft,
+    value: string,
+  ) => {
+    setCompetitionCandidates((current) =>
+      current.map((candidate, candidateIndex) =>
+        candidateIndex === index ? { ...candidate, [key]: value } : candidate,
+      ),
+    );
+  };
+
+  const addCompetitionCandidate = () => {
+    setCompetitionCandidates((current) => [
+      ...current,
+      { text: `Candidate ${current.length + 1}`, photo_url: "", bio: "" },
+    ]);
+  };
+
+  const removeCompetitionCandidate = (index: number) => {
+    setCompetitionCandidates((current) =>
+      current.length <= 2
+        ? current
+        : current.filter((_, candidateIndex) => candidateIndex !== index),
+    );
   };
 
   return (
@@ -322,122 +391,209 @@ export default function OrganizerEngagementHubScreen() {
 
       {activeTab === "Polls" ? (
         <>
-          <Section title="Launch poll" icon={<Vote color="#9EDD45" size={20} />}>
-            <View className="flex-row flex-wrap gap-2 mb-3">
-              {pollTypeOptions.map((type) => (
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl p-2 mb-4">
+            <View className="flex-row gap-2">
+              {[
+                { id: "launch" as const, label: "Launch poll" },
+                { id: "control" as const, label: `Poll control (${polls.length})` },
+              ].map((item) => (
                 <TouchableOpacity
-                  key={type.value}
-                  className={`rounded-full px-3 py-2 border ${
-                    pollType === type.value ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                  key={item.id}
+                  className={`flex-1 rounded-xl px-3 py-3 ${
+                    pollWorkspaceTab === item.id ? "bg-primary" : "bg-[#1A2432]"
                   }`}
-                  onPress={() => {
-                    setPollType(type.value);
-                    setPollOptions(type.defaultOptions);
-                    if (type.value !== "COMPETITION") setAllowExternalVoters(false);
-                  }}
+                  onPress={() => setPollWorkspaceTab(item.id)}
                 >
-                  <Text className={pollType === type.value ? "text-background font-bold" : "text-gray-300 font-semibold"}>
-                    {type.label}
+                  <Text
+                    className={
+                      pollWorkspaceTab === item.id
+                        ? "text-background text-center font-bold"
+                        : "text-gray-300 text-center font-semibold"
+                    }
+                  >
+                    {item.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <TextInput
-              className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white"
-              placeholder="Poll question"
-              placeholderTextColor="#728097"
-              value={pollQuestion}
-              onChangeText={setPollQuestion}
-            />
-            {pollType === "RATING" ? (
-              <View className="flex-row gap-2 mt-3">
-                {[5, 7, 10].map((value) => (
+          </View>
+
+          {pollWorkspaceTab === "launch" ? (
+            <Section title="Launch poll" icon={<Vote color="#9EDD45" size={20} />}>
+              <Text className="text-gray-400 mb-4 leading-5">
+                Choose the poll format, define voting rules, then publish. Competition polls create
+                shareable candidate profiles and a live leaderboard.
+              </Text>
+              <View className="flex-row flex-wrap gap-2 mb-3">
+                {pollTypeOptions.map((type) => (
                   <TouchableOpacity
-                    key={value}
-                    className={`rounded-xl px-4 py-3 border ${
-                      pollMaxRating === value ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                    key={type.value}
+                    className={`rounded-xl px-3 py-3 border min-w-[30%] ${
+                      pollType === type.value ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
                     }`}
-                    onPress={() => setPollMaxRating(value)}
+                    onPress={() => {
+                      setPollType(type.value);
+                      setPollOptions(type.defaultOptions);
+                      if (type.value !== "COMPETITION") setAllowExternalVoters(false);
+                    }}
                   >
-                    <Text className={pollMaxRating === value ? "text-background font-bold" : "text-gray-300 font-semibold"}>
-                      {value} point
+                    <Text className={pollType === type.value ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                      {type.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            ) : pollType === "COMPETITION" ? (
-              <>
+              <TextInput
+                className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white"
+                placeholder="Poll question"
+                placeholderTextColor="#728097"
+                value={pollQuestion}
+                onChangeText={setPollQuestion}
+              />
+              {pollType === "RATING" ? (
+                <View className="flex-row gap-2 mt-3">
+                  {[5, 7, 10].map((value) => (
+                    <TouchableOpacity
+                      key={value}
+                      className={`rounded-xl px-4 py-3 border ${
+                        pollMaxRating === value ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                      }`}
+                      onPress={() => setPollMaxRating(value)}
+                    >
+                      <Text className={pollMaxRating === value ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                        {value} point
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : pollType === "COMPETITION" ? (
+                <>
+                  <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-2xl p-3 mt-3">
+                    <View className="flex-row items-start justify-between gap-3">
+                      <View className="flex-1 pr-3">
+                        <Text className="text-white font-bold">Candidates</Text>
+                        <Text className="text-gray-500 mt-1 leading-5">
+                          Add public profile details for leaderboard cards and campaign share pages.
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        className="bg-primary rounded-xl px-3 py-2 flex-row items-center"
+                        onPress={addCompetitionCandidate}
+                      >
+                        <Plus color="#020817" size={15} />
+                        <Text className="text-background font-bold ml-1">Add</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {competitionCandidates.map((candidate, index) => (
+                      <View key={index} className="bg-[#0B1220] border border-[#243044] rounded-2xl p-3 mt-3">
+                        <View className="flex-row items-start gap-3">
+                          <View className="h-11 w-11 rounded-xl bg-primary/15 items-center justify-center">
+                            <ImagePlus color="#9EDD45" size={20} />
+                          </View>
+                          <View className="flex-1">
+                            <View className="flex-row items-center justify-between mb-2">
+                              <Text className="text-white font-bold">Candidate {index + 1}</Text>
+                              <TouchableOpacity
+                                disabled={competitionCandidates.length <= 2}
+                                onPress={() => removeCompetitionCandidate(index)}
+                                className={`h-8 w-8 rounded-lg border border-red-500/40 items-center justify-center ${
+                                  competitionCandidates.length <= 2 ? "opacity-30" : ""
+                                }`}
+                              >
+                                <Trash2 color="#FCA5A5" size={16} />
+                              </TouchableOpacity>
+                            </View>
+                            <TextInput
+                              className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white"
+                              placeholder="Candidate name"
+                              placeholderTextColor="#728097"
+                              value={candidate.text}
+                              onChangeText={(value) => updateCompetitionCandidate(index, "text", value)}
+                            />
+                            <TextInput
+                              className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-2"
+                              placeholder="Photo URL optional"
+                              placeholderTextColor="#728097"
+                              value={candidate.photo_url}
+                              onChangeText={(value) => updateCompetitionCandidate(index, "photo_url", value)}
+                            />
+                            <TextInput
+                              className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-2 min-h-[86px]"
+                              placeholder="Short campaign bio optional"
+                              placeholderTextColor="#728097"
+                              value={candidate.bio}
+                              onChangeText={(value) => updateCompetitionCandidate(index, "bio", value)}
+                              multiline
+                              textAlignVertical="top"
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                  <View className="flex-row gap-2 mt-3">
+                    <TextInput
+                      className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white flex-1"
+                      placeholder="Votes/day"
+                      placeholderTextColor="#728097"
+                      value={pollVoteLimit}
+                      onChangeText={setPollVoteLimit}
+                      keyboardType="numeric"
+                    />
+                    <TextInput
+                      className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white flex-[2]"
+                      placeholder="Deadline ISO optional"
+                      placeholderTextColor="#728097"
+                      value={pollClosesAt}
+                      onChangeText={setPollClosesAt}
+                    />
+                  </View>
+                  <TouchableOpacity
+                    className={`rounded-xl px-4 py-3 border mt-3 ${
+                      allowRepeatCandidate ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                    }`}
+                    onPress={() => setAllowRepeatCandidate((value) => !value)}
+                  >
+                    <Text className={allowRepeatCandidate ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                      {allowRepeatCandidate ? "Repeat candidate votes allowed" : "One vote per candidate per day"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`rounded-xl px-4 py-3 border mt-3 ${
+                      allowExternalVoters ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
+                    }`}
+                    onPress={() => setAllowExternalVoters((value) => !value)}
+                  >
+                    <Text className={allowExternalVoters ? "text-background font-bold" : "text-gray-300 font-semibold"}>
+                      {allowExternalVoters ? "Public campaign voting enabled" : "Attendee or ticket-holder voting only"}
+                    </Text>
+                    <Text className={allowExternalVoters ? "text-background mt-1" : "text-gray-500 mt-1"}>
+                      Public visitors can view candidate pages. Voting requires sign in or a valid booking code.
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
                 <TextInput
-                  className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3 min-h-[130px]"
-                  placeholder={"One candidate per line\nName | Photo URL | Short bio"}
+                  className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3 min-h-[110px]"
+                  placeholder={pollType === "PERCENTAGE" ? "One allocation choice per line" : "One option per line"}
                   placeholderTextColor="#728097"
                   value={pollOptions}
                   onChangeText={setPollOptions}
+                  editable={pollType !== "YES_NO"}
                   multiline
                   textAlignVertical="top"
                 />
-                <View className="flex-row gap-2 mt-3">
-                  <TextInput
-                    className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white flex-1"
-                    placeholder="Votes/day"
-                    placeholderTextColor="#728097"
-                    value={pollVoteLimit}
-                    onChangeText={setPollVoteLimit}
-                    keyboardType="numeric"
-                  />
-                  <TextInput
-                    className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white flex-[2]"
-                    placeholder="Deadline ISO optional"
-                    placeholderTextColor="#728097"
-                    value={pollClosesAt}
-                    onChangeText={setPollClosesAt}
-                  />
-                </View>
-                <TouchableOpacity
-                  className={`rounded-xl px-4 py-3 border mt-3 ${
-                    allowRepeatCandidate ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
-                  }`}
-                  onPress={() => setAllowRepeatCandidate((value) => !value)}
-                >
-                  <Text className={allowRepeatCandidate ? "text-background font-bold" : "text-gray-300 font-semibold"}>
-                    {allowRepeatCandidate ? "Repeat candidate votes allowed" : "One vote per candidate per day"}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className={`rounded-xl px-4 py-3 border mt-3 ${
-                    allowExternalVoters ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2E3A4D]"
-                  }`}
-                  onPress={() => setAllowExternalVoters((value) => !value)}
-                >
-                  <Text className={allowExternalVoters ? "text-background font-bold" : "text-gray-300 font-semibold"}>
-                    {allowExternalVoters ? "Public campaign voting enabled" : "Attendee or ticket-holder voting only"}
-                  </Text>
-                  <Text className={allowExternalVoters ? "text-background mt-1" : "text-gray-500 mt-1"}>
-                    Public visitors can view candidate pages, but must sign in or enter a booking code before voting.
-                  </Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <TextInput
-                className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-3 text-white mt-3 min-h-[110px]"
-                placeholder={pollType === "PERCENTAGE" ? "One allocation choice per line" : "One option per line"}
-                placeholderTextColor="#728097"
-                value={pollOptions}
-                onChangeText={setPollOptions}
-                editable={pollType !== "YES_NO"}
-                multiline
-                textAlignVertical="top"
-              />
-            )}
-            <TouchableOpacity
-              className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
-              disabled={isCreatingPoll}
-              onPress={submitPoll}
-            >
-              <Text className="text-background text-center font-bold">Launch poll</Text>
-            </TouchableOpacity>
-          </Section>
-          <Section title="Poll results" icon={<Vote color="#8B6BFF" size={20} />}>
+              )}
+              <TouchableOpacity
+                className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
+                disabled={isCreatingPoll}
+                onPress={submitPoll}
+              >
+                <Text className="text-background text-center font-bold">Launch poll</Text>
+              </TouchableOpacity>
+            </Section>
+          ) : (
+          <Section title="Poll control" icon={<Vote color="#8B6BFF" size={20} />}>
             {polls.length ? (
               polls.map((poll: any) => (
                 <View key={poll.id} className="border-b border-[#243044] pb-4 mb-4">
@@ -517,6 +673,7 @@ export default function OrganizerEngagementHubScreen() {
               <EmptyText text="No polls yet." />
             )}
           </Section>
+          )}
         </>
       ) : null}
 
