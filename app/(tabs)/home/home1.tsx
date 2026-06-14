@@ -1018,7 +1018,9 @@ export default function HomeScreen() {
                 </View>
                 <TouchableOpacity
                   className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
-                  onPress={() => router.push("/marketplace" as any)}
+                  onPress={() =>
+                    router.push("/(tabs)/home/explore?attendance=ONLINE" as any)
+                  }
                 >
                   <Text className="text-primary font-semibold">More</Text>
                 </TouchableOpacity>
