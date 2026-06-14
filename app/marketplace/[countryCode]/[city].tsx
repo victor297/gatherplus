@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import {
   RefreshControl,
   ScrollView,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -18,6 +16,7 @@ import {
   PaginationControls,
   PlannerCard,
   SearchBox,
+  SectionHeader,
   SegmentedTabs,
   StatCard,
   palette,
@@ -126,11 +125,11 @@ export default function MarketplaceCityScreen() {
   return (
     <View className="flex-1 bg-background">
       <MarketplaceHeader
-        eyebrow={summary ? `${summary.country} marketplace` : safeCountryCode}
+        eyebrow={summary ? `${summary.country} city guide` : safeCountryCode}
         title={summary ? `Explore ${summary.city}` : safeCity}
         subtitle={
           summary
-            ? `Discover public events and marketplace-ready planners in ${summary.city}, ${summary.country}.`
+            ? `Find public events and trusted event pros in ${summary.city}, ${summary.country}.`
             : "Discover public events and planners by city."
         }
         onBack={() => router.back()}
@@ -203,21 +202,13 @@ export default function MarketplaceCityScreen() {
 
             {activeTab === "featured" ? (
               <View className="mt-5">
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-1">
-                    <Text className="text-white text-xl font-bold">
-                      Featured planners
-                    </Text>
-                    <Text className="text-gray-400 mt-1">
-                      Trusted providers with local activity.
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    className="bg-[#1A2432] rounded-full px-3 py-2"
-                    onPress={() => setActiveTab("planners")}
-                  >
-                    <Text className="text-primary font-bold">View all</Text>
-                  </TouchableOpacity>
+                <View className="mb-3">
+                  <SectionHeader
+                    title="Featured planners"
+                    subtitle="Trusted providers with local activity."
+                    actionLabel="View all"
+                    onAction={() => setActiveTab("planners")}
+                  />
                 </View>
 
                 {featuredPlanners.length ? (
@@ -235,21 +226,13 @@ export default function MarketplaceCityScreen() {
                   />
                 )}
 
-                <View className="flex-row items-center justify-between mt-6 mb-3">
-                  <View className="flex-1">
-                    <Text className="text-white text-xl font-bold">
-                      Featured events
-                    </Text>
-                    <Text className="text-gray-400 mt-1">
-                      Public events currently listed in this city.
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    className="bg-[#1A2432] rounded-full px-3 py-2"
-                    onPress={() => setActiveTab("events")}
-                  >
-                    <Text className="text-primary font-bold">View all</Text>
-                  </TouchableOpacity>
+                <View className="mt-6 mb-3">
+                  <SectionHeader
+                    title="Featured events"
+                    subtitle="Public events currently listed in this city."
+                    actionLabel="View all"
+                    onAction={() => setActiveTab("events")}
+                  />
                 </View>
 
                 {featuredEvents.length ? (

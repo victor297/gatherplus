@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Building2, CalendarDays, Globe2, MapPin } from "lucide-react-native";
 
@@ -11,6 +11,7 @@ import {
   MarketplaceHeader,
   PaginationControls,
   SearchBox,
+  SectionHeader,
   SegmentedTabs,
   StatCard,
   palette,
@@ -108,9 +109,9 @@ export default function MarketplaceScreen() {
   return (
     <View className="flex-1 bg-background">
       <MarketplaceHeader
-        eyebrow="Public Marketplace"
-        title="Find active cities, planners, and public events"
-        subtitle="Browse GatherPlux destinations by country and city, then jump into trusted planners or events around that location."
+        eyebrow="Explore GatherPlux"
+        title="Find events and planners by location"
+        subtitle="Choose a country or city, then open local events, planners, and services near that place."
         onBack={() => router.back()}
       />
 
@@ -156,12 +157,10 @@ export default function MarketplaceScreen() {
 
             {overview.countries.length ? (
               <View className="mt-7">
-                <Text className="text-white text-xl font-bold">
-                  Featured countries
-                </Text>
-                <Text className="text-gray-400 mt-1">
-                  Strongest marketplace activity right now.
-                </Text>
+                <SectionHeader
+                  title="Active countries"
+                  subtitle="Places with the strongest event and planner activity right now."
+                />
                 <View className="mt-4">
                   {overview.countries.map((country) => (
                     <CountryCard
@@ -176,12 +175,10 @@ export default function MarketplaceScreen() {
 
             {featuredCities.length ? (
               <View className="mt-3">
-                <Text className="text-white text-xl font-bold">
-                  Top city pages
-                </Text>
-                <Text className="text-gray-400 mt-1">
-                  High-signal destinations for local discovery.
-                </Text>
+                <SectionHeader
+                  title="Cities worth opening"
+                  subtitle="Jump straight into local events and providers."
+                />
                 <View className="mt-4">
                   {featuredCities.map((city) => (
                     <CityCard

@@ -35,9 +35,9 @@ import type {
 
 export const palette = {
   background: "#020E1E",
-  surface: "#111823",
-  mutedSurface: "#1A2432",
-  border: "#243044",
+  surface: "#0B1422",
+  mutedSurface: "#121C2B",
+  border: "#1F2A3B",
   text: "#FFFFFF",
   mutedText: "#9CA3AF",
   dimText: "#6B7280",
@@ -161,27 +161,60 @@ export function MarketplaceHeader({
     <View className="px-4 pt-12 pb-4 border-b border-[#142033]">
       <View className="flex-row items-center justify-between">
         <TouchableOpacity
-          className="h-11 w-11 rounded-full bg-[#1A2432] items-center justify-center"
+          className="h-10 w-10 rounded-2xl bg-[#121C2B] border border-[#1F2A3B] items-center justify-center"
           onPress={onBack}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <ArrowLeft color={palette.text} size={22} />
+          <ArrowLeft color={palette.text} size={20} />
         </TouchableOpacity>
 
         {right || <View className="w-11" />}
       </View>
 
-      {eyebrow ? (
-        <Text className="text-primary text-xs font-bold mt-6 uppercase">
-          {eyebrow}
+      <View className="mt-5">
+        {eyebrow ? (
+          <Text className="text-primary text-[11px] font-bold uppercase tracking-widest">
+            {eyebrow}
+          </Text>
+        ) : null}
+        <Text className="text-white text-[28px] font-extrabold mt-2 leading-8" numberOfLines={3}>
+          {title}
         </Text>
-      ) : null}
-      <Text className="text-white text-3xl font-bold mt-2" numberOfLines={2}>
-        {title}
-      </Text>
-      {subtitle ? (
-        <Text className="text-gray-400 mt-2 leading-6">{subtitle}</Text>
+        {subtitle ? (
+          <Text className="text-gray-400 mt-2 leading-6">{subtitle}</Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+export function SectionHeader({
+  title,
+  subtitle,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  subtitle?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <View className="flex-row items-end justify-between">
+      <View className="flex-1 pr-3">
+        <Text className="text-white text-xl font-extrabold">{title}</Text>
+        {subtitle ? (
+          <Text className="text-gray-400 mt-1 leading-5">{subtitle}</Text>
+        ) : null}
+      </View>
+      {actionLabel && onAction ? (
+        <TouchableOpacity
+          className="bg-[#121C2B] border border-[#1F2A3B] rounded-full px-3 py-2"
+          onPress={onAction}
+        >
+          <Text className="text-primary font-bold text-xs">{actionLabel}</Text>
+        </TouchableOpacity>
       ) : null}
     </View>
   );
@@ -197,14 +230,14 @@ export function StatCard({
   icon: ReactNode;
 }) {
   return (
-    <View className="flex-1 bg-[#111823] border border-[#243044] rounded-2xl p-3">
-      <View className="h-9 w-9 rounded-full bg-[#1A2432] items-center justify-center mb-3">
+    <View className="flex-1 bg-[#0B1422] border border-[#1F2A3B] rounded-2xl p-3 min-h-[86px]">
+      <View className="h-8 w-8 rounded-xl bg-[#121C2B] items-center justify-center mb-3">
         {icon}
       </View>
-      <Text className="text-white text-xl font-bold" numberOfLines={1}>
+      <Text className="text-white text-lg font-extrabold" numberOfLines={1}>
         {numberLabel(value)}
       </Text>
-      <Text className="text-gray-500 text-xs mt-1" numberOfLines={1}>
+      <Text className="text-gray-500 text-[11px] mt-1" numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -223,10 +256,10 @@ export function SearchBox({
   placeholder: string;
 }) {
   return (
-    <View className="bg-[#1A2432] border border-[#2A3647] rounded-xl px-3 flex-row items-center">
+    <View className="bg-[#0B1422] border border-[#1F2A3B] rounded-2xl px-3 flex-row items-center">
       <Search color={palette.dimText} size={18} />
       <TextInput
-        className="flex-1 text-white py-3 ml-2"
+        className="flex-1 text-white py-3.5 ml-2"
         placeholder={placeholder}
         placeholderTextColor="#728097"
         returnKeyType="search"
@@ -248,7 +281,7 @@ export function SegmentedTabs<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <View className="bg-[#111823] border border-[#243044] rounded-2xl p-1 flex-row">
+    <View className="bg-[#0B1422] border border-[#1F2A3B] rounded-2xl p-1 flex-row">
       {tabs.map((tab) => {
         const selected = active === tab.value;
         return (
@@ -285,7 +318,7 @@ export function FilterChip({
   return (
     <TouchableOpacity
       className={`rounded-full px-4 py-2 mr-2 border ${
-        active ? "bg-primary border-primary" : "bg-[#1A2432] border-[#2A3647]"
+        active ? "bg-primary border-primary" : "bg-[#121C2B] border-[#1F2A3B]"
       }`}
       onPress={onPress}
     >
@@ -309,8 +342,8 @@ export function EmptyState({
   icon?: ReactNode;
 }) {
   return (
-    <View className="bg-[#111823] border border-[#243044] rounded-2xl p-8 items-center">
-      <View className="h-14 w-14 rounded-full bg-[#1A2432] items-center justify-center">
+    <View className="bg-[#0B1422] border border-[#1F2A3B] rounded-2xl p-6 items-center">
+      <View className="h-12 w-12 rounded-2xl bg-[#121C2B] items-center justify-center">
         {icon || <Sparkles color={palette.primary} size={26} />}
       </View>
       <Text className="text-white text-lg font-bold mt-4 text-center">
@@ -346,7 +379,7 @@ export function PaginationControls({
   return (
     <View className="flex-row items-center justify-between mt-5">
       <TouchableOpacity
-        className="bg-[#1A2432] rounded-xl px-4 py-3 flex-row items-center"
+        className="bg-[#121C2B] border border-[#1F2A3B] rounded-xl px-4 py-3 flex-row items-center"
         disabled={page <= 1}
         onPress={onPrevious}
       >
@@ -359,7 +392,7 @@ export function PaginationControls({
         Page {page} of {Math.max(1, totalPages)}
       </Text>
       <TouchableOpacity
-        className="bg-[#1A2432] rounded-xl px-4 py-3 flex-row items-center"
+        className="bg-[#121C2B] border border-[#1F2A3B] rounded-xl px-4 py-3 flex-row items-center"
         disabled={page >= totalPages}
         onPress={onNext}
       >
@@ -375,6 +408,21 @@ export function PaginationControls({
   );
 }
 
+function MiniMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <View className="bg-[#121C2B] rounded-xl px-3 py-2 mr-2">
+      <Text className="text-white text-sm font-extrabold">{numberLabel(value)}</Text>
+      <Text className="text-gray-500 text-[10px] mt-0.5">{label}</Text>
+    </View>
+  );
+}
+
 export function CountryCard({
   country,
   onPress,
@@ -384,49 +432,45 @@ export function CountryCard({
 }) {
   return (
     <TouchableOpacity
-      className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4"
+      className="bg-[#0B1422] border border-[#1F2A3B] rounded-2xl p-3 mb-3"
       onPress={onPress}
       accessibilityRole="button"
     >
-      <View className="flex-row items-start justify-between">
-        <View className="flex-row flex-1">
-          <View className="h-12 w-12 rounded-2xl bg-[#1A2432] items-center justify-center mr-3">
-            <Globe2 color={palette.primary} size={22} />
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row flex-1 items-center">
+          <View className="h-11 w-11 rounded-2xl bg-[#121C2B] items-center justify-center mr-3">
+            <Globe2 color={palette.primary} size={20} />
           </View>
           <View className="flex-1">
-            <Text className="text-white text-lg font-bold" numberOfLines={1}>
+            <Text className="text-white text-lg font-extrabold" numberOfLines={1}>
               {country.country}
             </Text>
-            <Text className="text-gray-500 mt-1">{country.countryCode}</Text>
+            <Text className="text-gray-500 mt-0.5" numberOfLines={1}>
+              {country.countryCode} - {numberLabel(country.activityScore)} activity
+            </Text>
           </View>
         </View>
-        <View className="h-10 w-10 rounded-full bg-[#1A2432] items-center justify-center">
+        <View className="h-9 w-9 rounded-full bg-primary/15 items-center justify-center">
           <ArrowRight color={palette.primary} size={18} />
         </View>
       </View>
 
-      <View className="flex-row flex-wrap mt-4">
-        <Text className="text-gray-300 mr-4 mb-2">
-          {numberLabel(country.totalCities)} cities
-        </Text>
-        <Text className="text-gray-300 mr-4 mb-2">
-          {numberLabel(country.plannersCount)} planners
-        </Text>
-        <Text className="text-gray-300 mb-2">
-          {numberLabel(country.eventsCount)} events
-        </Text>
+      <View className="flex-row mt-3">
+        <MiniMetric label="cities" value={country.totalCities} />
+        <MiniMetric label="planners" value={country.plannersCount} />
+        <MiniMetric label="events" value={country.eventsCount} />
       </View>
 
       {!!country.topCities?.length && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="mt-2"
+          className="mt-3"
         >
           {country.topCities.slice(0, 5).map((city) => (
             <View
               key={`${city.countryCode}-${city.city}`}
-              className="bg-[#1A2432] rounded-full px-3 py-2 mr-2 flex-row items-center"
+              className="bg-[#121C2B] border border-[#1F2A3B] rounded-full px-3 py-2 mr-2 flex-row items-center"
             >
               <MapPin color={palette.primary} size={13} />
               <Text className="text-gray-200 text-xs ml-1" numberOfLines={1}>
@@ -449,39 +493,39 @@ export function CityCard({
 }) {
   return (
     <TouchableOpacity
-      className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-4"
+      className="bg-[#0B1422] border border-[#1F2A3B] rounded-2xl p-3 mb-3"
       onPress={onPress}
       accessibilityRole="button"
     >
-      <View className="flex-row items-start justify-between">
-        <View className="flex-row flex-1">
-          <View className="h-12 w-12 rounded-2xl bg-[#1A2432] items-center justify-center mr-3">
-            <MapPin color={palette.primary} size={22} />
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row flex-1 items-center">
+          <View className="h-11 w-11 rounded-2xl bg-[#121C2B] items-center justify-center mr-3">
+            <MapPin color={palette.primary} size={20} />
           </View>
           <View className="flex-1">
-            <Text className="text-white text-lg font-bold" numberOfLines={1}>
+            <Text className="text-white text-lg font-extrabold" numberOfLines={1}>
               {city.city}
             </Text>
-            <Text className="text-gray-500 mt-1" numberOfLines={1}>
-              {city.country}
+            <Text className="text-gray-500 mt-0.5" numberOfLines={1}>
+              {city.country} - {numberLabel(city.activityScore)} activity
             </Text>
           </View>
         </View>
-        <View className="h-10 w-10 rounded-full bg-[#1A2432] items-center justify-center">
+        <View className="h-9 w-9 rounded-full bg-primary/15 items-center justify-center">
           <ArrowRight color={palette.primary} size={18} />
         </View>
       </View>
 
-      <View className="flex-row mt-4">
-        <View className="flex-1 flex-row items-center">
+      <View className="flex-row mt-3">
+        <View className="flex-1 flex-row items-center bg-[#121C2B] rounded-xl px-3 py-2 mr-2">
           <Building2 color={palette.primary} size={16} />
-          <Text className="text-gray-300 ml-2">
+          <Text className="text-gray-300 ml-2 text-xs font-semibold">
             {numberLabel(city.plannersCount)} planners
           </Text>
         </View>
-        <View className="flex-1 flex-row items-center">
+        <View className="flex-1 flex-row items-center bg-[#121C2B] rounded-xl px-3 py-2">
           <CalendarDays color={palette.primary} size={16} />
-          <Text className="text-gray-300 ml-2">
+          <Text className="text-gray-300 ml-2 text-xs font-semibold">
             {numberLabel(city.eventsCount)} events
           </Text>
         </View>
@@ -504,43 +548,40 @@ export function PlannerCard({
 
   return (
     <TouchableOpacity
-      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mb-4"
+      className="bg-[#0B1422] border border-[#1F2A3B] rounded-2xl p-3 mb-3"
       onPress={onPress}
       accessibilityRole="button"
     >
-      <Image
-        source={{ uri: plannerCover(planner) }}
-        className="w-full h-32 bg-[#1A2432]"
-        resizeMode="cover"
-      />
-      <View className="p-4">
         <View className="flex-row">
           <Image
             source={{ uri: plannerImage(planner) }}
-            className="h-14 w-14 rounded-2xl border-2 border-[#243044] bg-[#1A2432] mr-3"
+            className="h-16 w-16 rounded-2xl border border-[#1F2A3B] bg-[#121C2B] mr-3"
             resizeMode="cover"
           />
           <View className="flex-1">
             <View className="flex-row items-center">
-              <Text className="text-white text-lg font-bold flex-1" numberOfLines={1}>
+              <Text className="text-white text-base font-extrabold flex-1" numberOfLines={1}>
                 {name}
               </Text>
               {planner.verified ? (
                 <ShieldCheck color="#34D399" size={18} />
               ) : null}
             </View>
-            <Text className="text-primary font-semibold mt-1" numberOfLines={1}>
+            <Text className="text-primary font-semibold mt-1 text-xs" numberOfLines={1}>
               {specialty}
             </Text>
             <View className="flex-row items-center mt-2">
               <Star color={palette.warning} fill={palette.warning} size={15} />
-              <Text className="text-gray-300 ml-1">
+              <Text className="text-gray-300 ml-1 text-xs">
                 {rating > 0 ? rating.toFixed(1) : "New"}
               </Text>
-              <Text className="text-gray-500 ml-2">
+              <Text className="text-gray-500 ml-2 text-xs">
                 {numberLabel(planner.total_reviews)} reviews
               </Text>
             </View>
+          </View>
+          <View className="h-9 w-9 rounded-full bg-primary/15 items-center justify-center ml-2">
+            <ArrowRight color={palette.primary} size={17} />
           </View>
         </View>
 
@@ -550,7 +591,7 @@ export function PlannerCard({
           </Text>
         ) : null}
 
-        <View className="flex-row items-center justify-between mt-4">
+        <View className="flex-row items-center justify-between mt-3">
           <View className="flex-row items-center flex-1">
             <MapPin color={palette.dimText} size={15} />
             <Text className="text-gray-400 ml-1 flex-1" numberOfLines={1}>
@@ -558,14 +599,13 @@ export function PlannerCard({
                 "Marketplace location"}
             </Text>
           </View>
-          <View className="bg-[#1A2432] rounded-full px-3 py-2 flex-row items-center ml-3">
+          <View className="bg-[#121C2B] rounded-full px-3 py-2 flex-row items-center ml-3">
             <Briefcase color={palette.primary} size={14} />
             <Text className="text-primary text-xs font-bold ml-1">
               {numberLabel(planner.servicesCount)} services
             </Text>
           </View>
         </View>
-      </View>
     </TouchableOpacity>
   );
 }
@@ -582,50 +622,50 @@ export function EventCard({
 
   return (
     <TouchableOpacity
-      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mb-4"
+      className="bg-[#0B1422] border border-[#1F2A3B] rounded-2xl p-3 mb-3 flex-row"
       onPress={onPress}
       accessibilityRole="button"
     >
       <Image
         source={{ uri: eventImage(event) }}
-        className="w-full h-40 bg-[#1A2432]"
+        className="h-28 w-28 rounded-2xl bg-[#121C2B]"
         resizeMode="cover"
       />
-      <View className="p-4">
+      <View className="flex-1 ml-3">
         <View className="flex-row items-start justify-between">
           <View className="flex-1 pr-3">
-            <Text className="text-primary text-xs font-bold" numberOfLines={1}>
+            <Text className="text-primary text-[11px] font-bold" numberOfLines={1}>
               {event.category?.name || "Event"}
             </Text>
-            <Text className="text-white text-lg font-bold mt-1" numberOfLines={2}>
+            <Text className="text-white text-base font-extrabold mt-1" numberOfLines={2}>
               {event.title}
             </Text>
           </View>
-          <View className="bg-[#1A2432] rounded-full px-3 py-2">
-            <Text className="text-primary font-bold">{formatPrice(event)}</Text>
+          <View className="bg-[#121C2B] rounded-full px-2.5 py-1.5">
+            <Text className="text-primary text-xs font-bold">{formatPrice(event)}</Text>
           </View>
         </View>
 
         {description ? (
-          <Text className="text-gray-400 mt-3 leading-5" numberOfLines={2}>
+          <Text className="text-gray-400 mt-2 leading-5" numberOfLines={2}>
             {description}
           </Text>
         ) : null}
 
-        <View className="flex-row flex-wrap mt-4">
-          <View className="flex-row items-center mr-4 mb-2">
+        <View className="flex-row flex-wrap mt-3">
+          <View className="flex-row items-center mr-3 mb-1">
             <CalendarDays color={palette.dimText} size={15} />
-            <Text className="text-gray-400 ml-1">{date}</Text>
+            <Text className="text-gray-400 ml-1 text-xs">{date}</Text>
           </View>
           {event.city ? (
-            <View className="flex-row items-center mr-4 mb-2">
+            <View className="flex-row items-center mr-3 mb-1">
               <MapPin color={palette.dimText} size={15} />
-              <Text className="text-gray-400 ml-1">{event.city}</Text>
+              <Text className="text-gray-400 ml-1 text-xs">{event.city}</Text>
             </View>
           ) : null}
-          <View className="flex-row items-center mb-2">
+          <View className="flex-row items-center mb-1">
             <Users color={palette.dimText} size={15} />
-            <Text className="text-gray-400 ml-1">
+            <Text className="text-gray-400 ml-1 text-xs">
               {numberLabel(event.interestedCount)} interested
             </Text>
           </View>
@@ -633,7 +673,7 @@ export function EventCard({
 
         <View className="flex-row items-center mt-2">
           <Ticket color={palette.primary} size={16} />
-          <Text className="text-primary font-bold ml-2">View details</Text>
+          <Text className="text-primary font-bold ml-2 text-xs">View details</Text>
         </View>
       </View>
     </TouchableOpacity>

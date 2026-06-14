@@ -10,6 +10,7 @@ import {
   MarketplaceHeader,
   PaginationControls,
   SearchBox,
+  SectionHeader,
   StatCard,
   palette,
   safeDecode,
@@ -54,11 +55,11 @@ export default function MarketplaceCountryScreen() {
   return (
     <View className="flex-1 bg-background">
       <MarketplaceHeader
-        eyebrow="Country Marketplace"
-        title={summary ? `Explore ${summary.country}` : safeCountryCode}
+        eyebrow="Country guide"
+        title={summary ? summary.country : safeCountryCode}
         subtitle={
           summary
-            ? `Browse active GatherPlux cities across ${summary.country}.`
+            ? `Browse cities, public events, and event pros available across ${summary.country}.`
             : "Browse active cities, planners, and public events."
         }
         onBack={() => router.back()}
@@ -110,11 +111,11 @@ export default function MarketplaceCountryScreen() {
             </View>
 
             {!!summary.currency || !!summary.currency_symbol ? (
-              <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mt-4">
-                <Text className="text-gray-500 text-xs uppercase font-bold">
+              <View className="bg-[#0B1422] border border-[#1F2A3B] rounded-2xl p-4 mt-4">
+                <Text className="text-gray-500 text-[11px] uppercase font-bold tracking-widest">
                   Local Currency
                 </Text>
-                <Text className="text-white text-lg font-bold mt-1">
+                <Text className="text-white text-lg font-extrabold mt-1">
                   {[summary.currency_symbol, summary.currency].filter(Boolean).join(" ")}
                 </Text>
               </View>
@@ -122,10 +123,10 @@ export default function MarketplaceCountryScreen() {
 
             {!!summary.topCities?.length && (
               <View className="mt-7">
-                <Text className="text-white text-xl font-bold">Top cities</Text>
-                <Text className="text-gray-400 mt-1">
-                  Highest activity city pages in {summary.country}.
-                </Text>
+                <SectionHeader
+                  title="Top cities"
+                  subtitle={`Highest activity city pages in ${summary.country}.`}
+                />
                 <View className="mt-4">
                   {summary.topCities.slice(0, 6).map((city) => (
                     <CityCard
@@ -139,10 +140,11 @@ export default function MarketplaceCountryScreen() {
             )}
 
             <View className="mt-5">
-              <Text className="text-white text-xl font-bold">All cities</Text>
-              <Text className="text-gray-400 mt-1 mb-4">
-                Search and open city pages for local planners and events.
-              </Text>
+              <SectionHeader
+                title="All cities"
+                subtitle="Search and open city pages for local planners and events."
+              />
+              <View className="mt-4">
               <SearchBox
                 value={citySearch}
                 onChangeText={(value) => {
@@ -151,6 +153,7 @@ export default function MarketplaceCountryScreen() {
                 }}
                 placeholder={`Search cities in ${summary.country}`}
               />
+              </View>
             </View>
 
             <View className="mt-4">
