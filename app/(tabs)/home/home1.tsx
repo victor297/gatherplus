@@ -133,7 +133,42 @@ const eventPrice = (event: any) => {
   return price > 0 ? money(price, event?.currency) : "Free";
 };
 
-const dateOnly = (date: Date) => date.toISOString().split("T")[0];
+const dateOnly = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseLocalDate = (value?: unknown) => {
+  if (!value) return null;
+  const text = String(value);
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getEventStartDate = (event: any) => {
+  const dates = [
+    parseLocalDate(event?.start_date),
+    ...getArray(event?.sessions).map((session: any) =>
+      parseLocalDate(session?.date || session?.end_date)
+    ),
+  ].filter((date): date is Date => Boolean(date));
+
+  return dates.sort((a, b) => a.getTime() - b.getTime())[0] || null;
+};
+
+const isEventWithinWindow = (event: any, start: Date, end: Date) => {
+  const eventDate = getEventStartDate(event);
+  if (!eventDate) return false;
+
+  return eventDate >= start && eventDate <= end;
+};
 
 function HomeEmptyState({
   icon,
@@ -222,9 +257,12 @@ export default function HomeScreen() {
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(start.getDate() + 7);
+    end.setHours(23, 59, 59, 999);
 
     return {
+      end,
       endDate: dateOnly(end),
+      start,
       startDate: dateOnly(start),
     };
   }, []);
@@ -278,20 +316,19 @@ export default function HomeScreen() {
   });
 
   const {
-    data: live,
-    isLoading: isliveLoading,
-    isFetching: isFetchinglive,
-    refetch: refetchLive,
+    data: weekEventsData,
+    isLoading: isWeekEventsLoading,
+    isFetching: isFetchingWeekEvents,
+    refetch: refetchWeekEvents,
   } = useGetEventsQuery({
     city: null,
     type: "UPCOMING",
     category_id: selectedCategory,
-    end_date: eventWindow.endDate,
     page: 1,
-    size: 6,
-    sortDirection,
+    size: 50,
+    sortBy: "start_date",
+    sortDirection: "asc",
     search: searchTerm,
-    start_date: eventWindow.startDate,
   });
   const {
     data: online,
@@ -360,6 +397,16 @@ export default function HomeScreen() {
   const recommendedEvents = getArray(recommendedData?.body?.result)
     .filter((event: any) => event?.id)
     .slice(0, 6);
+  const weekEvents = getArray(weekEventsData?.body?.events?.result)
+    .filter((event: any) =>
+      isEventWithinWindow(event, eventWindow.start, eventWindow.end)
+    )
+    .sort((a: any, b: any) => {
+      const firstDate = getEventStartDate(a)?.getTime() || 0;
+      const secondDate = getEventStartDate(b)?.getTime() || 0;
+      return firstDate - secondDate;
+    })
+    .slice(0, 6);
   const onlineEvents = getArray(online?.body?.events?.result).slice(0, 6);
   const resaleBody = resaleData?.body || {};
   const resaleListings = getArray(
@@ -387,7 +434,7 @@ export default function HomeScreen() {
     setRefreshing(true);
     Promise.all([
       refetchUpcoming(),
-      refetchLive(),
+      refetchWeekEvents(),
       refetchOnline(),
       refetchproviders(),
       refetchBlogs(),
@@ -398,7 +445,7 @@ export default function HomeScreen() {
       .catch(() => setRefreshing(false));
   }, [
     refetchBlogs,
-    refetchLive,
+    refetchWeekEvents,
     refetchOnline,
     refetchproviders,
     refetchRecommended,
@@ -813,11 +860,11 @@ export default function HomeScreen() {
                   <Text className="text-primary font-semibold">Show all</Text>
                 </TouchableOpacity>
               </View>
-              {isliveLoading || isFetchinglive ? (
+              {isWeekEventsLoading || isFetchingWeekEvents ? (
                 <ActivityIndicator color="#9EDD45" />
-              ) : (live?.body?.events?.result?.length || 0) <= 0 ? (
+              ) : weekEvents.length <= 0 ? (
                 <HomeEmptyState
-                  subtitle="There are no events scheduled in this window yet. Browse all events to discover more options."
+                  subtitle="No public events are scheduled from today through the next 7 days. Browse all events to discover more options."
                   title="No records found"
                 />
               ) : (
@@ -827,7 +874,7 @@ export default function HomeScreen() {
                   className="pl-4"
                 >
                   <View className="pr-4 flex-row gap-3">
-                    {live?.body?.events?.result?.map((event: any) => (
+                    {weekEvents.map((event: any) => (
                       <TouchableOpacity
                         key={event.id}
                         onPress={() =>
