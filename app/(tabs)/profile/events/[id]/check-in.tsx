@@ -126,6 +126,20 @@ export default function EventCheckInScreen() {
         displayedWindow.closesAt ? ` to ${formatDate(displayedWindow.closesAt)}` : ""
       }`
     : "No active check-in window is available for this event yet.";
+  const checkInBlockedReason = useMemo(() => {
+    if (policy.enabled === false) return "Check-in is disabled for this event.";
+    if (checkInPolicy.active === false) {
+      if (nextWindow?.opensAt) return `Check-in opens at ${formatDate(nextWindow.opensAt)}.`;
+      if (displayedWindow?.closesAt) return `Check-in closed at ${formatDate(displayedWindow.closesAt)}.`;
+      return "No active check-in window is available for this event yet.";
+    }
+    return "";
+  }, [
+    checkInPolicy.active,
+    displayedWindow?.closesAt,
+    nextWindow?.opensAt,
+    policy.enabled,
+  ]);
 
   const selectedSessionName = useMemo(() => {
     if (!sessionId) return "All sessions";
@@ -250,6 +264,16 @@ export default function EventCheckInScreen() {
       return;
     }
 
+    if (checkInBlockedReason) {
+      setBlockedNotice({
+        title: "Check-in blocked",
+        message: checkInBlockedReason,
+        code: policy.enabled === false ? "CHECK_IN_DISABLED" : "CHECK_IN_WINDOW",
+      });
+      Alert.alert("Check-in blocked", checkInBlockedReason);
+      return;
+    }
+
     if (approvalWarnings.length) {
       setPendingApproval({ code: normalizedCode, method: checkInMethod });
       return;
@@ -259,6 +283,15 @@ export default function EventCheckInScreen() {
   };
 
   const openScanner = async () => {
+    if (checkInBlockedReason) {
+      setBlockedNotice({
+        title: "Check-in blocked",
+        message: checkInBlockedReason,
+        code: policy.enabled === false ? "CHECK_IN_DISABLED" : "CHECK_IN_WINDOW",
+      });
+      Alert.alert("Check-in blocked", checkInBlockedReason);
+      return;
+    }
     if (!cameraPermission?.granted) {
       const permission = await requestCameraPermission();
       if (!permission.granted) {
@@ -473,8 +506,10 @@ export default function EventCheckInScreen() {
           </View>
         ) : null}
         <TouchableOpacity
-          className="border border-amber-500/40 rounded-xl py-4 mt-3 flex-row items-center justify-center"
-          disabled={isCheckingIn}
+          className={`border border-amber-500/40 rounded-xl py-4 mt-3 flex-row items-center justify-center ${
+            policy.allowDuplicateOverride === false ? "opacity-50" : ""
+          }`}
+          disabled={isCheckingIn || policy.allowDuplicateOverride === false}
           onPress={() => {
             const normalizedCode = extractBookingCode(code);
             if (!normalizedCode) {
@@ -490,7 +525,9 @@ export default function EventCheckInScreen() {
           }}
         >
           <ShieldAlert color="#F59E0B" size={18} />
-          <Text className="text-amber-200 text-center font-bold ml-2">Manager override</Text>
+          <Text className="text-amber-200 text-center font-bold ml-2">
+            {policy.allowDuplicateOverride === false ? "Override disabled" : "Manager override"}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
