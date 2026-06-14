@@ -10,9 +10,13 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import RenderHTML from "react-native-render-html";
-import { ArrowLeft, CalendarDays } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, CalendarDays } from "lucide-react-native";
 
-import { useGetPublicBlogBySlugQuery } from "@/redux/api/blogApiSlice";
+import {
+  type BlogPost,
+  useGetPublicBlogBySlugQuery,
+  useGetPublicBlogsQuery,
+} from "@/redux/api/blogApiSlice";
 
 const DEFAULT_IMAGE =
   `${String(
@@ -30,6 +34,17 @@ function resolveImageUri(value?: unknown) {
     ).replace(/\/$/, "")}${uri}`;
   }
   return uri;
+}
+
+function postImage(post?: BlogPost) {
+  return (
+    resolveImageUri(
+      post?.hero_image_url ||
+        post?.cover_image_url ||
+        (post as any)?.image_url ||
+        (post as any)?.cover_image
+    ) || DEFAULT_IMAGE
+  );
 }
 
 function formatDate(value?: string | null) {
@@ -56,6 +71,23 @@ export default function BlogDetailScreen() {
   );
 
   const post = data?.body;
+  const { data: relatedData, isFetching: isRelatedFetching } =
+    useGetPublicBlogsQuery(
+      {
+        category: post?.category || undefined,
+        page: 1,
+        size: 8,
+      },
+      { skip: !post }
+    );
+  const { data: latestData, isFetching: isLatestFetching } =
+    useGetPublicBlogsQuery(
+      {
+        page: 1,
+        size: 8,
+      },
+      { skip: !post }
+    );
   const image =
     resolveImageUri(
       post?.hero_image_url ||
@@ -64,6 +96,18 @@ export default function BlogDetailScreen() {
         (post as any)?.cover_image
     ) || DEFAULT_IMAGE;
   const content = post?.content || post?.excerpt || "";
+  const relatedCandidates = [
+    ...(Array.isArray(relatedData?.body?.result)
+      ? relatedData.body.result
+      : []),
+    ...(Array.isArray(latestData?.body?.result) ? latestData.body.result : []),
+  ];
+  const relatedPosts = relatedCandidates
+    .filter((item, index, list) => {
+      if (!item?.slug || item.slug === post?.slug) return false;
+      return list.findIndex((candidate) => candidate.slug === item.slug) === index;
+    })
+    .slice(0, 4);
 
   return (
     <View className="flex-1 bg-background">
@@ -109,14 +153,14 @@ export default function BlogDetailScreen() {
               <Text className="text-primary text-xs font-bold uppercase">
                 {post.category || "Story"}
               </Text>
-              <Text className="text-gray-600 mx-2">•</Text>
+              <Text className="text-gray-600 mx-2">-</Text>
               <CalendarDays color="#728097" size={14} />
               <Text className="text-gray-500 text-xs ml-1">
                 {formatDate(post.published_at || post.created_at)}
               </Text>
               {post.reading_minutes ? (
                 <>
-                  <Text className="text-gray-600 mx-2">•</Text>
+                  <Text className="text-gray-600 mx-2">-</Text>
                   <Text className="text-gray-500 text-xs">
                     {post.reading_minutes} min read
                   </Text>
@@ -189,6 +233,98 @@ export default function BlogDetailScreen() {
                 />
               ) : (
                 <Text className="text-gray-400">No story content available.</Text>
+              )}
+            </View>
+
+            <View className="mt-8">
+              <View className="mb-3 flex-row items-end justify-between">
+                <View className="flex-1 pr-3">
+                  <Text className="text-white text-2xl font-bold">
+                    Related articles
+                  </Text>
+                  <Text className="mt-1 text-gray-400">
+                    More stories to keep exploring GatherPlux.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  className="rounded-full border border-[#2A3546] bg-[#111823] px-4 py-2"
+                  onPress={() => router.push("/blog" as any)}
+                >
+                  <Text className="text-primary font-bold">All</Text>
+                </TouchableOpacity>
+              </View>
+
+              {isRelatedFetching || isLatestFetching ? (
+                <View className="py-5">
+                  <ActivityIndicator color="#9EDD45" />
+                </View>
+              ) : relatedPosts.length ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 12, paddingRight: 8 }}
+                >
+                  {relatedPosts.map((related) => (
+                    <TouchableOpacity
+                      key={related.slug}
+                      activeOpacity={0.9}
+                      className="w-64 overflow-hidden rounded-2xl border border-[#243044] bg-[#111823]"
+                      onPress={() => router.push(`/blog/${related.slug}` as any)}
+                    >
+                      <Image
+                        source={{ uri: postImage(related) }}
+                        className="h-28 w-full bg-[#1A2432]"
+                        resizeMode="cover"
+                      />
+                      <View className="p-4">
+                        <View className="flex-row items-center">
+                          <Text
+                            className="text-primary text-[11px] font-bold uppercase"
+                            numberOfLines={1}
+                          >
+                            {related.category || "Story"}
+                          </Text>
+                          <Text className="mx-2 text-gray-600">-</Text>
+                          <Text className="text-gray-500 text-[11px]">
+                            {formatDate(
+                              related.published_at || related.created_at
+                            )}
+                          </Text>
+                        </View>
+                        <Text
+                          className="mt-3 text-white text-lg font-bold leading-6"
+                          numberOfLines={2}
+                        >
+                          {related.title}
+                        </Text>
+                        {!!related.excerpt && (
+                          <Text
+                            className="mt-2 text-gray-400 text-sm leading-5"
+                            numberOfLines={2}
+                          >
+                            {related.excerpt}
+                          </Text>
+                        )}
+                        <View className="mt-4 flex-row items-center">
+                          <Text className="text-primary font-bold">
+                            Read next
+                          </Text>
+                          <ArrowRight color="#9EDD45" size={16} />
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              ) : (
+                <View className="rounded-2xl border border-[#243044] bg-[#111823] p-5">
+                  <Text className="text-white text-lg font-bold">
+                    More stories are coming
+                  </Text>
+                  <Text className="mt-2 text-gray-400 leading-5">
+                    New GatherPlux articles will appear here as they are
+                    published.
+                  </Text>
+                </View>
               )}
             </View>
           </View>
