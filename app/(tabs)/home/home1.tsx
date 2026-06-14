@@ -32,7 +32,7 @@ import {
   useGetEventsQuery,
   useGetStatesQuery,
 } from "@/redux/api/eventsApiSlice";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { formatDate } from "@/utils/formatDate";
 import { useDispatch, useSelector } from "react-redux";
 import { checkTokenImmediately } from "@/redux/features/auth/authSlice";
@@ -134,6 +134,30 @@ const eventPrice = (event: any) => {
 };
 
 const dateOnly = (date: Date) => date.toISOString().split("T")[0];
+
+function HomeEmptyState({
+  icon,
+  subtitle,
+  title = "No records found",
+}: {
+  icon?: ReactNode;
+  subtitle: string;
+  title?: string;
+}) {
+  return (
+    <View className="mx-4 rounded-2xl border border-[#243044] bg-[#111823] px-4 py-6 items-center">
+      <View className="h-12 w-12 rounded-2xl bg-[#1A2432] items-center justify-center">
+        {icon || <CalendarDays color="#9EDD45" size={22} />}
+      </View>
+      <Text className="text-white text-base font-bold mt-3 text-center">
+        {title}
+      </Text>
+      <Text className="text-gray-400 text-center mt-1 leading-5">
+        {subtitle}
+      </Text>
+    </View>
+  );
+}
 
 const marketplaceSlides = [
   {
@@ -607,9 +631,10 @@ export default function HomeScreen() {
               {isupcomingLoading || isFetching ? (
                 <ActivityIndicator color="#9EDD45" />
               ) : (upcoming?.body?.events?.result?.length || 0) <= 0 ? (
-                <Text className="text-primary text-bold text-center">
-                  No event found
-                </Text>
+                <HomeEmptyState
+                  subtitle="New public events will appear here as organizers publish them."
+                  title="No upcoming events"
+                />
               ) : (
                 <ScrollView
                   horizontal
@@ -791,9 +816,10 @@ export default function HomeScreen() {
               {isliveLoading || isFetchinglive ? (
                 <ActivityIndicator color="#9EDD45" />
               ) : (live?.body?.events?.result?.length || 0) <= 0 ? (
-                <Text className="text-primary text-bold text-center">
-                  No event found
-                </Text>
+                <HomeEmptyState
+                  subtitle="There are no events scheduled in this window yet. Browse all events to discover more options."
+                  title="No records found"
+                />
               ) : (
                 <ScrollView
                   horizontal
