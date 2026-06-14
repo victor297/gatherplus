@@ -194,6 +194,40 @@ function HomeEmptyState({
   );
 }
 
+function HomeSectionHeader({
+  actionLabel,
+  onAction,
+  subtitle,
+  title,
+}: {
+  actionLabel?: string;
+  onAction?: () => void;
+  subtitle?: string;
+  title: string;
+}) {
+  return (
+    <View className="mb-3 flex-row items-end justify-between px-4">
+      <View className="flex-1 pr-3">
+        <Text className="text-white text-xl font-black leading-6">{title}</Text>
+        {!!subtitle && (
+          <Text className="mt-1 text-gray-400 text-sm leading-5">
+            {subtitle}
+          </Text>
+        )}
+      </View>
+      {!!actionLabel && !!onAction && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          className="rounded-full border border-[#2A3546] bg-[#111823] px-4 py-2"
+          onPress={onAction}
+        >
+          <Text className="text-primary text-sm font-black">{actionLabel}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
 const marketplaceSlides = [
   {
     accent: "#9EDD45",
@@ -251,7 +285,7 @@ export default function HomeScreen() {
   const [showStateModal, setShowStateModal] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<any>(null);
   const [selectedState, setSelectedState] = useState<any>(null);
-  const discoveryCardWidth = Math.max(300, Math.min(width - 32, 420));
+  const discoveryCardWidth = Math.max(260, Math.min(width - 40, 340));
   const eventWindow = useMemo(() => {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
@@ -535,10 +569,10 @@ export default function HomeScreen() {
           <NotificationBellButton />
         </View>
 
-        <View className="flex-row items-center bg-[#1A2432] rounded-lg px-4  mb-6">
+        <View className="mb-4 flex-row items-center rounded-2xl border border-[#263247] bg-[#111823] px-4">
           <Search size={20} color="#6B7280" />
           <TextInput
-            className="flex-1 ml-3 py-3 text-white"
+            className="flex-1 ml-3 py-3.5 text-white"
             placeholder="Search for events"
             placeholderTextColor="#6B7280"
             value={searchTerm}
@@ -549,6 +583,7 @@ export default function HomeScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -560,27 +595,35 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
-            {/* Categories */}
-            <Text className="text-white text-xl font-bold px-4 mb-4">
+            <Text className="px-4 text-white text-lg font-black">
               Categories
             </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              className="px-4 mb-6"
+              className="mb-5 mt-3"
+              contentContainerStyle={{ paddingHorizontal: 16 }}
             >
               {[{ id: null, name: "All" }, ...(categories?.body || [])].map(
                 (category, index) => (
                   <TouchableOpacity
                     key={index}
                     onPress={() => setSelectedCategory(category?.id)}
-                    className={`max-h-8 px-6 py-2 rounded-full mr-3 ${
+                    className={`mr-2 rounded-full px-4 py-2 ${
                       selectedCategory === category.id
                         ? "bg-primary"
-                        : "bg-[#1A2432]"
+                        : "bg-[#111823] border border-[#263247]"
                     }`}
                   >
-                    <Text className="text-white">{category?.name}</Text>
+                    <Text
+                      className={`text-sm font-black ${
+                        selectedCategory === category.id
+                          ? "text-background"
+                          : "text-white"
+                      }`}
+                    >
+                      {category?.name}
+                    </Text>
                   </TouchableOpacity>
                 )
               )}
@@ -603,11 +646,11 @@ export default function HomeScreen() {
                       <TouchableOpacity
                         key={slide.title}
                         activeOpacity={0.9}
-                        className="overflow-hidden rounded-2xl border border-[#D7E8C8] bg-[#F1F8E8]"
+                        className="overflow-hidden rounded-2xl border border-[#D7E8C8] bg-[#F4FBEA]"
                         style={{ width: discoveryCardWidth }}
                         onPress={() => router.push(slide.route as any)}
                       >
-                        <View className="relative h-40 overflow-hidden">
+                        <View className="relative h-32 overflow-hidden">
                           <Image
                             source={slide.image}
                             className="h-full w-full"
@@ -619,24 +662,24 @@ export default function HomeScreen() {
                               {slide.eyebrow}
                             </Text>
                           </View>
-                          <View className="absolute bottom-4 right-4 h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-black/55">
+                          <View className="absolute bottom-3 right-3 h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-black/55">
                             <SlideIcon color={slide.accent} size={21} />
                           </View>
                         </View>
-                        <View className="p-4">
+                        <View className="p-3.5">
                           <Text
-                            className="text-[#07111F] text-xl font-black leading-6"
+                            className="text-[#07111F] text-lg font-black leading-5"
                             numberOfLines={2}
                           >
                             {slide.title}
                           </Text>
                           <Text
-                            className="mt-2 text-[#536073] text-sm leading-5"
+                            className="mt-1.5 text-[#536073] text-xs leading-4"
                             numberOfLines={2}
                           >
                             {slide.subtitle}
                           </Text>
-                          <View className="mt-4 flex-row items-center justify-between">
+                          <View className="mt-3 flex-row items-center justify-between">
                             <Text
                               className="text-[11px] font-black uppercase tracking-wider"
                               style={{ color: slide.accent }}
@@ -664,17 +707,11 @@ export default function HomeScreen() {
 
             {/* Upcoming Events */}
             <View className="mb-6">
-              <View className="flex-row justify-between items-center px-4 mb-4">
-                <Text className="text-white text-xl font-bold">
-                  Upcoming Events
-                </Text>
-                <TouchableOpacity
-                  className="p-2"
-                  onPress={() => router.push("/(tabs)/home/all-events")}
-                >
-                  <Text className="text-primary">See All</Text>
-                </TouchableOpacity>
-              </View>
+              <HomeSectionHeader
+                actionLabel="See all"
+                onAction={() => router.push("/(tabs)/home/all-events")}
+                title="Upcoming Events"
+              />
               {isupcomingLoading || isFetching ? (
                 <ActivityIndicator color="#9EDD45" />
               ) : (upcoming?.body?.events?.result?.length || 0) <= 0 ? (
@@ -698,20 +735,46 @@ export default function HomeScreen() {
                       onPress={() =>
                         router.push(`/(tabs)/home/event/${event.id}`)
                       }
-                      className="bg-[#1A2432] rounded-lg overflow-hidden mr-4 w-48"
+                      className="w-52 overflow-hidden rounded-2xl border border-[#263247] bg-[#111823]"
                     >
                       <Image
-                        source={{ uri: event?.images?.[0] }}
-                        className="w-full h-32"
+                        source={
+                          eventImage(event)
+                            ? { uri: eventImage(event) as string }
+                            : require("../../../assets/images/landing.webp")
+                        }
+                        className="h-28 w-full bg-[#1A2432]"
                         resizeMode="cover"
                       />
-                      <View className="p-3">
-                        <Text className="text-white font-semibold mb-1">
+                      <View className="p-3.5">
+                        <View className="mb-2 flex-row items-center justify-between">
+                          <Text className="text-primary text-[11px] font-black uppercase">
+                            {event?.attendance_mode === "ONLINE"
+                              ? "Online"
+                              : "Upcoming"}
+                          </Text>
+                          <Text
+                            className="max-w-[82px] text-right text-[11px] font-black text-primary"
+                            numberOfLines={1}
+                          >
+                            {eventPrice(event)}
+                          </Text>
+                        </View>
+                        <Text
+                          className="text-white text-base font-black leading-5"
+                          numberOfLines={2}
+                        >
                           {event?.title}
                         </Text>
-                        <Text className="text-gray-400 text-sm">
-                          {formatDate(event?.start_date)}
-                        </Text>
+                        <View className="mt-3 flex-row items-center">
+                          <CalendarDays color="#94A3B8" size={13} />
+                          <Text
+                            className="ml-1.5 flex-1 text-xs font-semibold text-gray-400"
+                            numberOfLines={1}
+                          >
+                            {formatDate(event?.start_date)}
+                          </Text>
+                        </View>
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -721,17 +784,12 @@ export default function HomeScreen() {
 
             {/* Providers */}
             <View className="mb-6">
-              <View className="flex-row justify-between items-center px-4 mb-4">
-                <Text className="text-white text-xl font-bold">
-                  Featured Planners and Pros{" "}
-                </Text>
-                <TouchableOpacity
-                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
-                  onPress={() => router.push("/marketplace" as any)}
-                >
-                  <Text className="text-primary font-semibold">Marketplace</Text>
-                </TouchableOpacity>
-              </View>
+              <HomeSectionHeader
+                actionLabel="View"
+                onAction={() => router.push("/marketplace" as any)}
+                subtitle="Hire photographers, planners, MCs, sound teams, decorators, and more."
+                title="Planners and event pros"
+              />
               {isprovidersLoading || isFetchingproviders ? (
                 <ActivityIndicator color="#9EDD45" />
               ) : (
@@ -746,24 +804,24 @@ export default function HomeScreen() {
                 >
                   <TouchableOpacity
                     activeOpacity={0.9}
-                    className="w-64 overflow-hidden rounded-2xl border border-primary/30 bg-[#F1F8E8] p-4"
+                    className="w-60 overflow-hidden rounded-2xl border border-[#D7E8C8] bg-[#F4FBEA] p-4"
                     onPress={openPlannerWorkspace}
                   >
                     <View className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/25" />
-                    <View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#07111F]">
-                      <ShieldCheck color="#9EDD45" size={23} />
+                    <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#07111F]">
+                      <ShieldCheck color="#9EDD45" size={21} />
                     </View>
-                    <Text className="mt-4 text-[#07111F] text-xl font-black leading-6">
-                      Offer your event services
+                    <Text className="mt-4 text-[#07111F] text-lg font-black leading-5">
+                      Create a planner account
                     </Text>
-                    <Text className="mt-2 text-[#536073] text-sm leading-5">
+                    <Text className="mt-2 text-[#536073] text-xs leading-4">
                       Create a planner profile, list services, manage bookings,
                       and get discovered by event hosts.
                     </Text>
                     <View className="mt-4 flex-row items-center justify-between">
                       <View>
-                        <Text className="text-[#07111F] text-xs font-black uppercase tracking-wider">
-                          Planner dashboard
+                        <Text className="text-[#07111F] text-[11px] font-black uppercase tracking-wider">
+                          Subscription workspace
                         </Text>
                         <Text className="mt-1 text-[#536073] text-xs">
                           Profile, services, schedule
@@ -781,9 +839,9 @@ export default function HomeScreen() {
                       onPress={() =>
                         router.push(`/(provider)/${provider.id}/servicedetails`)
                       }
-                      className="w-64 overflow-hidden rounded-2xl border border-[#2B384D] bg-[#111827]"
+                      className="w-56 overflow-hidden rounded-2xl border border-[#263247] bg-[#111823]"
                     >
-                      <View className="relative h-28 bg-[#0B1220]">
+                      <View className="relative h-24 bg-[#0B1220]">
                         <Image
                           source={{
                             uri:
@@ -795,7 +853,7 @@ export default function HomeScreen() {
                           resizeMode="cover"
                         />
                         <View className="absolute inset-0 bg-black/25" />
-                        <View className="absolute -bottom-8 left-4 h-16 w-16 overflow-hidden rounded-2xl border-2 border-[#111827] bg-white">
+                        <View className="absolute -bottom-7 left-3 h-14 w-14 overflow-hidden rounded-2xl border-2 border-[#111823] bg-white">
                           <Image
                             source={{
                               uri:
@@ -807,13 +865,13 @@ export default function HomeScreen() {
                             resizeMode="cover"
                           />
                         </View>
-                        <View className="absolute right-3 top-3 rounded-full bg-black/55 px-3 py-1">
+                        <View className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1">
                           <Text className="text-primary text-[11px] font-black">
                             Pro
                           </Text>
                         </View>
                       </View>
-                      <View className="px-4 pb-4 pt-10">
+                      <View className="px-3.5 pb-3.5 pt-9">
                         <Text className="text-white text-base font-black" numberOfLines={1}>
                           {provider?.business_name || "Event professional"}
                         </Text>
@@ -829,9 +887,13 @@ export default function HomeScreen() {
                           </Text>
                         </View>
                         <View className="mt-4 flex-row items-center justify-between">
-                          <Text className="text-primary text-sm font-black">
-                            {provider?.currency?.split(" - ")[0] || "₦"}{" "}
-                            {provider?.price}
+                          <Text
+                            className="max-w-[110px] text-primary text-xs font-black"
+                            numberOfLines={1}
+                          >
+                            {Number(provider?.price || 0) > 0
+                              ? money(provider?.price, provider?.currency)
+                              : "Request quote"}
                           </Text>
                           <View className="flex-row items-center rounded-full bg-[#1A2432] px-2 py-1">
                             <StarIcon color="#FBBF24" fill="#FBBF24" size={11} />
@@ -849,17 +911,12 @@ export default function HomeScreen() {
 
             {/* Events This Week */}
             <View className="mb-6">
-              <View className="flex-row justify-between items-center px-4 mb-4">
-                <Text className="text-white text-xl font-bold">
-                  Events this week
-                </Text>
-                <TouchableOpacity
-                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
-                  onPress={() => router.push("/(tabs)/home/explore")}
-                >
-                  <Text className="text-primary font-semibold">Show all</Text>
-                </TouchableOpacity>
-              </View>
+              <HomeSectionHeader
+                actionLabel="Show all"
+                onAction={() => router.push("/(tabs)/home/explore")}
+                subtitle="Events happening from today through the next 7 days."
+                title="Events this week"
+              />
               {isWeekEventsLoading || isFetchingWeekEvents ? (
                 <ActivityIndicator color="#9EDD45" />
               ) : weekEvents.length <= 0 ? (
@@ -880,9 +937,9 @@ export default function HomeScreen() {
                         onPress={() =>
                           router.push(`/(tabs)/home/event/${event.id}`)
                         }
-                        className="bg-[#111823] w-80 rounded-2xl overflow-hidden mb-4 border border-[#243044] flex-row"
+                        className="mb-4 w-72 flex-row overflow-hidden rounded-2xl border border-[#263247] bg-[#111823]"
                       >
-                        <View className="relative h-36 w-28 bg-[#1A2432]">
+                        <View className="relative h-32 w-24 bg-[#1A2432]">
                           <Image
                             source={
                               eventImage(event)
@@ -955,22 +1012,12 @@ export default function HomeScreen() {
 
             {/* Events Worth Opening */}
             <View className="mb-6">
-              <View className="flex-row justify-between items-center px-4 mb-4">
-                <View className="flex-1 pr-3">
-                  <Text className="text-white text-xl font-bold">
-                    Events worth opening
-                  </Text>
-                  <Text className="text-gray-400 mt-1">
-                    Standout events shaped by views, clicks, and bookings.
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  className="bg-white rounded-full px-4 py-2"
-                  onPress={() => router.push("/(tabs)/home/explore")}
-                >
-                  <Text className="text-background font-bold">Find</Text>
-                </TouchableOpacity>
-              </View>
+              <HomeSectionHeader
+                actionLabel="Find"
+                onAction={() => router.push("/(tabs)/home/explore")}
+                subtitle="Standout events shaped by views, clicks, and bookings."
+                title="Events worth opening"
+              />
 
               {isRecommendedLoading || isFetchingRecommended ? (
                 <ActivityIndicator color="#9EDD45" />
@@ -999,7 +1046,7 @@ export default function HomeScreen() {
                       onPress={() =>
                         router.push(`/(tabs)/home/event/${event.id}`)
                       }
-                      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mr-3 w-56"
+                      className="mr-3 w-52 overflow-hidden rounded-2xl border border-[#263247] bg-[#111823]"
                     >
                       <Image
                         source={
@@ -1007,7 +1054,7 @@ export default function HomeScreen() {
                             ? { uri: eventImage(event) }
                             : require("../../../assets/images/landing.webp")
                         }
-                        className="w-full h-28 bg-[#1A2432]"
+                        className="h-28 w-full bg-[#1A2432]"
                         resizeMode="cover"
                       />
                       <View className="p-3">
@@ -1054,24 +1101,14 @@ export default function HomeScreen() {
 
             {/* Online Events */}
             <View className="mb-6">
-              <View className="flex-row justify-between items-center px-4 mb-4">
-                <View className="flex-1 pr-3">
-                  <Text className="text-white text-xl font-bold">
-                    Online Events
-                  </Text>
-                  <Text className="text-gray-400 mt-1">
-                    Join virtual sessions from anywhere.
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
-                  onPress={() =>
-                    router.push("/(tabs)/home/explore?attendance=ONLINE" as any)
-                  }
-                >
-                  <Text className="text-primary font-semibold">More</Text>
-                </TouchableOpacity>
-              </View>
+              <HomeSectionHeader
+                actionLabel="More"
+                onAction={() =>
+                  router.push("/(tabs)/home/explore?attendance=ONLINE" as any)
+                }
+                subtitle="Join virtual sessions from anywhere."
+                title="Online Events"
+              />
 
               {isOnlineLoading || isFetchingOnline ? (
                 <ActivityIndicator color="#9EDD45" />
@@ -1100,7 +1137,7 @@ export default function HomeScreen() {
                       onPress={() =>
                         router.push(`/(tabs)/home/event/${event.id}`)
                       }
-                      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mr-3 w-56"
+                      className="mr-3 w-52 overflow-hidden rounded-2xl border border-[#263247] bg-[#111823]"
                     >
                       <Image
                         source={
@@ -1136,22 +1173,12 @@ export default function HomeScreen() {
 
             {/* Resale Tickets */}
             <View className="mb-6">
-              <View className="flex-row justify-between items-center px-4 mb-4">
-                <View className="flex-1 pr-3">
-                  <Text className="text-white text-xl font-bold">
-                    Tickets for resale
-                  </Text>
-                  <Text className="text-gray-400 mt-1">
-                    Verified tickets from other attendees.
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
-                  onPress={() => router.push("/ticket-exchange" as any)}
-                >
-                  <Text className="text-primary font-semibold">See all</Text>
-                </TouchableOpacity>
-              </View>
+              <HomeSectionHeader
+                actionLabel="See all"
+                onAction={() => router.push("/ticket-exchange" as any)}
+                subtitle="Verified tickets from other attendees."
+                title="Tickets for resale"
+              />
 
               {isResaleLoading || isFetchingResale ? (
                 <ActivityIndicator color="#9EDD45" />
@@ -1190,7 +1217,7 @@ export default function HomeScreen() {
                   {resaleListings.map((listing: any) => (
                     <TouchableOpacity
                       key={listing.id}
-                      className="bg-[#111823] border border-[#243044] rounded-2xl overflow-hidden mr-3 w-56"
+                      className="mr-3 w-52 overflow-hidden rounded-2xl border border-[#263247] bg-[#111823]"
                       onPress={() => router.push("/ticket-exchange" as any)}
                     >
                       <View className="relative">
@@ -1245,50 +1272,14 @@ export default function HomeScreen() {
               )}
             </View>
 
-            <View className="px-4 mb-6">
-              <TouchableOpacity
-                activeOpacity={0.9}
-                className="rounded-2xl border border-[#D7E8C8] bg-[#F1F8E8] p-4"
-                onPress={() => router.push("/marketplace" as any)}
-              >
-                <View className="flex-row items-center justify-between">
-                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white">
-                    <MapPin color="#9EDD45" size={21} />
-                  </View>
-                  <View className="mx-3 flex-1">
-                    <Text className="text-[#07111F] text-base font-black">
-                      Find events & planners near you
-                    </Text>
-                    <Text className="mt-1 text-[#536073] text-xs leading-4">
-                      Search local events, event planners, vendors, and trusted
-                      ticket access.
-                    </Text>
-                  </View>
-                  <View className="h-9 w-9 items-center justify-center rounded-full bg-primary">
-                    <ArrowRight color="#07111F" size={18} />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-
             {/* Blog */}
             <View className="mb-8">
-              <View className="flex-row justify-between items-center px-4 mb-3">
-                <View className="flex-1 pr-3">
-                  <Text className="text-white text-xl font-bold">
-                    Latest from the blog
-                  </Text>
-                  <Text className="text-gray-400 mt-1">
-                    Tips for hosts, buyers, and planners.
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  className="bg-[#1A2432] border border-[#243044] rounded-full px-4 py-2"
-                  onPress={() => router.push("/blog" as any)}
-                >
-                  <Text className="text-primary font-semibold">View all</Text>
-                </TouchableOpacity>
-              </View>
+              <HomeSectionHeader
+                actionLabel="View all"
+                onAction={() => router.push("/blog" as any)}
+                subtitle="Tips for hosts, buyers, and planners."
+                title="Latest from the blog"
+              />
 
               {isBlogsLoading || isFetchingBlogs ? (
                 <View className="py-4">
@@ -1303,7 +1294,7 @@ export default function HomeScreen() {
                   {blogPosts.slice(0, 4).map((post) => (
                     <TouchableOpacity
                       key={post.id}
-                      className="bg-[#111823] border border-[#243044] rounded-xl overflow-hidden mr-3 w-52"
+                      className="mr-3 w-52 overflow-hidden rounded-2xl border border-[#263247] bg-[#111823]"
                       onPress={() => router.push(`/blog/${post.slug}` as any)}
                     >
                       <Image
