@@ -72,6 +72,21 @@ export default function EventCheckInScreen() {
   const [sessionId, setSessionId] = useState<string | number | undefined>();
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanLocked, setScanLocked] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState<{
+    code: string;
+    method: string;
+  } | null>(null);
+  const [pendingOverride, setPendingOverride] = useState<{
+    code: string;
+    method: string;
+    message: string;
+  } | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
+  const [blockedNotice, setBlockedNotice] = useState<{
+    title: string;
+    message: string;
+    code?: string;
+  } | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const { data, isFetching, isLoading, refetch } = useGetCheckInDashboardQuery(
     {
@@ -86,6 +101,7 @@ export default function EventCheckInScreen() {
   const [checkInBooking, { isLoading: isCheckingIn }] = useCheckInBookingMutation();
 
   const body = data?.body || {};
+  const event = body.event || {};
   const metrics = body.metrics || {};
   const checkInPolicy = body.checkInPolicy || {};
   const policy = checkInPolicy.policy || {};
@@ -95,6 +111,21 @@ export default function EventCheckInScreen() {
   const rows = getArray(history.result);
   const totalPages = Math.max(1, Number(history.totalPages || 1));
   const checkInRate = Number(metrics.checkInRate || 0);
+  const activeWindow = checkInPolicy.activeWindow || null;
+  const nextWindow = checkInPolicy.nextWindow || null;
+  const displayedWindow = activeWindow || nextWindow;
+  const windowTitle = activeWindow
+    ? "Check-in is open now"
+    : nextWindow?.opensAt
+      ? `Check-in opens at ${formatDate(nextWindow.opensAt)}`
+      : "Check-in window is not open";
+  const windowDetail = displayedWindow
+    ? `${displayedWindow.sessionName || "Event"}${
+        displayedWindow.opensAt ? ` from ${formatDate(displayedWindow.opensAt)}` : ""
+      }${
+        displayedWindow.closesAt ? ` to ${formatDate(displayedWindow.closesAt)}` : ""
+      }`
+    : "No active check-in window is available for this event yet.";
 
   const selectedSessionName = useMemo(() => {
     if (!sessionId) return "All sessions";
@@ -102,14 +133,47 @@ export default function EventCheckInScreen() {
     return match?.session?.name || "Selected session";
   }, [sessionId, sessionStats]);
 
+  const approvalWarnings = useMemo(() => {
+    const items = policyWarnings
+      .map((warning: any) => warning?.message)
+      .filter(Boolean) as string[];
+
+    if (policy.enabled === false) items.unshift("Check-in is disabled for this event.");
+    if (checkInPolicy.active === false && nextWindow?.opensAt) {
+      items.unshift(`Check-in opens at ${formatDate(nextWindow.opensAt)}.`);
+    }
+    if (policy.requireQuestionnaire) {
+      items.push("Required questionnaire completion will be checked before entry.");
+    }
+    if (Number(event.age_restriction || 0) > 0 || event.guardian_required) {
+      items.push("Staff must verify age or guardian requirements at the door.");
+    }
+
+    return Array.from(new Set(items));
+  }, [
+    checkInPolicy.active,
+    event.age_restriction,
+    event.guardian_required,
+    nextWindow?.opensAt,
+    policy.enabled,
+    policy.requireQuestionnaire,
+    policyWarnings,
+  ]);
+
   const submitCheckIn = async (
     override = false,
     providedCode?: string,
-    checkInMethod = "MANUAL"
+    checkInMethod = "MANUAL",
+    managerReason?: string
   ) => {
     const normalizedCode = extractBookingCode(providedCode || code);
     if (!normalizedCode) {
       Alert.alert("Booking code required", "Enter or scan a booking code before checking in.");
+      return;
+    }
+    const reasonText = managerReason?.trim() || "";
+    if (override && !reasonText) {
+      Alert.alert("Override reason required", "Enter a manager reason before approving this duplicate check-in.");
       return;
     }
 
@@ -120,14 +184,16 @@ export default function EventCheckInScreen() {
         method: override ? "MANUAL_OVERRIDE" : checkInMethod,
         notes: notes.trim() || undefined,
         override,
-        override_reason: override
-          ? notes.trim() || "Organizer verified duplicate at the check-in desk"
-          : undefined,
+        override_reason: override ? reasonText : undefined,
         session_id: sessionId,
       }).unwrap();
       const booking = response?.body?.booking || {};
       setCode("");
       setNotes("");
+      setOverrideReason("");
+      setPendingApproval(null);
+      setPendingOverride(null);
+      setBlockedNotice(null);
       refetch();
       Alert.alert(
         response?.body?.duplicate ? "Duplicate override recorded" : "Checked in",
@@ -135,33 +201,61 @@ export default function EventCheckInScreen() {
       );
     } catch (error: any) {
       const bodyError = error?.data?.body;
-      if (bodyError?.duplicate || bodyError?.code === "DUPLICATE_CHECK_IN") {
-        if (bodyError?.canOverride === false) {
+      const isObjectError = typeof bodyError === "object" && bodyError !== null;
+      const errorCode = isObjectError ? bodyError.code : undefined;
+      const errorMessage = isObjectError
+        ? bodyError.message || "Please verify the booking code."
+        : bodyError || error?.data?.message || "Please verify the booking code.";
+
+      if (isObjectError && (bodyError.duplicate || bodyError.code === "DUPLICATE_CHECK_IN")) {
+        if (bodyError.canOverride === false) {
+          setBlockedNotice({
+            title: "Check-in blocked",
+            message: bodyError.message || "Duplicate override is disabled for this event.",
+            code: bodyError.code,
+          });
           Alert.alert(
             "Check-in blocked",
             bodyError?.message || "Duplicate override is disabled for this event."
           );
           return;
         }
-        Alert.alert(
-          "Already checked in",
-          "This ticket has already been checked in. Only override if a trusted organizer verified the attendee.",
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Override",
-              style: "destructive",
-              onPress: () => submitCheckIn(true, normalizedCode, checkInMethod),
-            },
-          ]
-        );
+        setPendingOverride({
+          code: normalizedCode,
+          method: checkInMethod,
+          message:
+            bodyError.message ||
+            "This ticket has already been checked in. Manager approval is required before recording a duplicate override.",
+        });
+        setOverrideReason("");
+        setBlockedNotice(null);
         return;
       }
+      setBlockedNotice({
+        title: errorCode ? "Check-in blocked" : "Check-in failed",
+        message: errorMessage,
+        code: errorCode,
+      });
       Alert.alert(
-        bodyError?.code ? "Check-in blocked" : "Check-in failed",
-        bodyError?.message || bodyError || "Please verify the booking code."
+        errorCode ? "Check-in blocked" : "Check-in failed",
+        errorMessage
       );
     }
+  };
+
+  const requestCheckIn = (providedCode?: string, checkInMethod = "MANUAL") => {
+    const normalizedCode = extractBookingCode(providedCode || code);
+    if (!normalizedCode) {
+      Alert.alert("Booking code required", "Enter or scan a booking code before checking in.");
+      return;
+    }
+
+    if (approvalWarnings.length) {
+      setPendingApproval({ code: normalizedCode, method: checkInMethod });
+      return;
+    }
+
+    void submitCheckIn(false, normalizedCode, checkInMethod);
   };
 
   const openScanner = async () => {
@@ -188,9 +282,8 @@ export default function EventCheckInScreen() {
     setCode(scannedCode);
     setScannerOpen(false);
 
-    void submitCheckIn(false, scannedCode, "QR_SCAN").finally(() => {
-      setTimeout(() => setScanLocked(false), 900);
-    });
+    requestCheckIn(scannedCode, "QR_SCAN");
+    setTimeout(() => setScanLocked(false), 900);
   };
 
   return (
@@ -266,19 +359,10 @@ export default function EventCheckInScreen() {
             value={policy.allowDuplicateOverride === false ? "Disabled" : "Reason required"}
           />
         </View>
-        {checkInPolicy.activeWindow || checkInPolicy.nextWindow ? (
-          <Text className="text-gray-400 mt-4 leading-6">
-            {checkInPolicy.activeWindow
-              ? `Active window: ${checkInPolicy.activeWindow.sessionName || "Event"}`
-              : `Next window: ${checkInPolicy.nextWindow?.sessionName || "Event"}`}
-            {(checkInPolicy.activeWindow?.opensAt || checkInPolicy.nextWindow?.opensAt)
-              ? ` from ${formatDate(checkInPolicy.activeWindow?.opensAt || checkInPolicy.nextWindow?.opensAt)}`
-              : ""}
-            {(checkInPolicy.activeWindow?.closesAt || checkInPolicy.nextWindow?.closesAt)
-              ? ` to ${formatDate(checkInPolicy.activeWindow?.closesAt || checkInPolicy.nextWindow?.closesAt)}`
-              : ""}
-          </Text>
-        ) : null}
+        <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-4">
+          <Text className="text-white font-semibold">{windowTitle}</Text>
+          <Text className="text-gray-400 mt-1 leading-5">{windowDetail}</Text>
+        </View>
         {policyWarnings.length ? (
           <View className="mt-4">
             {policyWarnings.map((warning: any) => (
@@ -346,7 +430,7 @@ export default function EventCheckInScreen() {
                       : "text-gray-300 font-semibold"
                   }
                 >
-                  {item.session?.name || "Session"} · {item.checkedIn || 0}/{item.capacity || 0}
+                  {item.session?.name || "Session"} - {item.checkedIn || 0}/{item.capacity || 0}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -360,7 +444,7 @@ export default function EventCheckInScreen() {
           autoCapitalize="characters"
           value={code}
           onChangeText={(value) => setCode(value.trim())}
-          onSubmitEditing={() => submitCheckIn(false)}
+          onSubmitEditing={() => requestCheckIn(undefined, "MANUAL")}
         />
         <TouchableOpacity
           className="border border-primary/50 rounded-xl py-4 mt-3 flex-row items-center justify-center"
@@ -379,10 +463,39 @@ export default function EventCheckInScreen() {
           value={notes}
           onChangeText={setNotes}
         />
+        {blockedNotice ? (
+          <View className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mt-3">
+            <Text className="text-red-200 font-bold">
+              {blockedNotice.title}
+              {blockedNotice.code ? ` - ${blockedNotice.code}` : ""}
+            </Text>
+            <Text className="text-gray-300 mt-1 leading-5">{blockedNotice.message}</Text>
+          </View>
+        ) : null}
+        <TouchableOpacity
+          className="border border-amber-500/40 rounded-xl py-4 mt-3 flex-row items-center justify-center"
+          disabled={isCheckingIn}
+          onPress={() => {
+            const normalizedCode = extractBookingCode(code);
+            if (!normalizedCode) {
+              Alert.alert("Booking code required", "Enter a booking code before requesting manager override.");
+              return;
+            }
+            setPendingOverride({
+              code: normalizedCode,
+              method: "MANUAL",
+              message: "Manager override should only be used after identity and ticket ownership are verified.",
+            });
+            setOverrideReason("");
+          }}
+        >
+          <ShieldAlert color="#F59E0B" size={18} />
+          <Text className="text-amber-200 text-center font-bold ml-2">Manager override</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           className="bg-primary rounded-xl py-4 mt-4 disabled:opacity-50"
           disabled={isCheckingIn}
-          onPress={() => submitCheckIn(false)}
+          onPress={() => requestCheckIn(undefined, "MANUAL")}
         >
           <Text className="text-background text-center font-bold">
             {isCheckingIn ? "Checking..." : "Check in attendee"}
@@ -415,6 +528,129 @@ export default function EventCheckInScreen() {
             <Text className="text-gray-400 mt-1 leading-6">
               GatherPlux will read the booking code and check the attendee in automatically.
             </Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(pendingApproval)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPendingApproval(null)}
+      >
+        <View className="flex-1 bg-black/70 px-5 justify-center">
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl p-5">
+            <View className="flex-row items-start">
+              <View className="w-12 h-12 rounded-2xl bg-amber-500/20 items-center justify-center">
+                <AlertTriangle color="#F59E0B" size={24} />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-white text-xl font-semibold">Review before check-in</Text>
+                <Text className="text-gray-400 mt-1 leading-5">
+                  Confirm these warnings before approving booking code{" "}
+                  <Text className="text-primary font-bold">{pendingApproval?.code}</Text>.
+                </Text>
+              </View>
+            </View>
+            <View className="mt-4">
+              {approvalWarnings.map((warning) => (
+                <View
+                  key={warning}
+                  className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-2"
+                >
+                  <Text className="text-amber-100 font-semibold leading-5">{warning}</Text>
+                </View>
+              ))}
+            </View>
+            <View className="flex-row gap-3 mt-3">
+              <TouchableOpacity
+                className="flex-1 bg-[#1A2432] border border-[#2E3A4D] rounded-xl py-4"
+                onPress={() => setPendingApproval(null)}
+              >
+                <Text className="text-white text-center font-bold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 bg-primary rounded-xl py-4"
+                disabled={isCheckingIn}
+                onPress={() => {
+                  const pending = pendingApproval;
+                  if (!pending) return;
+                  void submitCheckIn(false, pending.code, pending.method);
+                }}
+              >
+                <Text className="text-background text-center font-bold">
+                  {isCheckingIn ? "Checking..." : "Approve"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(pendingOverride)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setPendingOverride(null);
+          setOverrideReason("");
+        }}
+      >
+        <View className="flex-1 bg-black/70 px-5 justify-center">
+          <View className="bg-[#111823] border border-[#243044] rounded-2xl p-5">
+            <View className="flex-row items-start">
+              <View className="w-12 h-12 rounded-2xl bg-red-500/20 items-center justify-center">
+                <ShieldAlert color="#F87171" size={24} />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-white text-xl font-semibold">Manager override</Text>
+                <Text className="text-gray-400 mt-1 leading-5">
+                  {pendingOverride?.message || "Approve a duplicate only after a trusted organizer verifies the attendee."}
+                </Text>
+              </View>
+            </View>
+            <View className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mt-4">
+              <Text className="text-amber-200 text-xs font-bold tracking-widest uppercase">Booking code</Text>
+              <Text className="text-white font-mono font-bold mt-1">{pendingOverride?.code}</Text>
+            </View>
+            <TextInput
+              className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl px-4 py-4 text-white mt-4 min-h-[96px]"
+              placeholder="Manager reason, for example: attendee re-entered after identity check"
+              placeholderTextColor="#728097"
+              multiline
+              textAlignVertical="top"
+              value={overrideReason}
+              onChangeText={setOverrideReason}
+            />
+            <View className="flex-row gap-3 mt-4">
+              <TouchableOpacity
+                className="flex-1 bg-[#1A2432] border border-[#2E3A4D] rounded-xl py-4"
+                onPress={() => {
+                  setPendingOverride(null);
+                  setOverrideReason("");
+                }}
+              >
+                <Text className="text-white text-center font-bold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 bg-red-500 rounded-xl py-4"
+                disabled={isCheckingIn}
+                onPress={() => {
+                  const pending = pendingOverride;
+                  const reason = overrideReason.trim();
+                  if (!pending) return;
+                  if (!reason) {
+                    Alert.alert("Override reason required", "Enter a manager reason before approving this duplicate.");
+                    return;
+                  }
+                  void submitCheckIn(true, pending.code, pending.method, reason);
+                }}
+              >
+                <Text className="text-white text-center font-bold">
+                  {isCheckingIn ? "Approving..." : "Approve"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -481,8 +717,13 @@ export default function EventCheckInScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Info icon={<Ticket color="#728097" size={15} />} text={`${booking.ticket?.name || "Ticket"} · ${booking.code || "No code"}`} />
+                      <Info icon={<Ticket color="#728097" size={15} />} text={`${booking.ticket?.name || "Ticket"} - ${booking.code || "No code"}`} />
                       <Info icon={<CalendarDays color="#728097" size={15} />} text={`Checked in ${formatDate(item.checked_in_at)}`} />
+                      {item.duplicate && (item.override_reason || item.notes) ? (
+                        <Text className="text-amber-200 mt-2 leading-5">
+                          Manager note: {item.override_reason || item.notes}
+                        </Text>
+                      ) : null}
                     </View>
                   </View>
                 </View>

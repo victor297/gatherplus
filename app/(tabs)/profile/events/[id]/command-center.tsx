@@ -399,6 +399,11 @@ function ScanRow({ scan }: { scan: any }) {
           <Text className="text-gray-500 mt-1">
             {booking.session?.name || "Session"} - {scan.method || "QR"} - {formatDate(scan.checked_in_at)}
           </Text>
+          {scan.duplicate && (scan.override_reason || scan.notes) ? (
+            <Text className="text-amber-200 mt-1 leading-5">
+              Manager note: {scan.override_reason || scan.notes}
+            </Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -432,6 +437,9 @@ function BlockedAttemptRow({ attempt }: { attempt: any }) {
           </Text>
           <Text className="text-gray-500 mt-1">
             {attempt.method || "UNKNOWN"} - {formatDate(attempt.created_at)}
+          </Text>
+          <Text className="text-amber-300 mt-1">
+            Override {attempt.override_requested ? "requested" : "not requested"}
           </Text>
         </View>
       </View>

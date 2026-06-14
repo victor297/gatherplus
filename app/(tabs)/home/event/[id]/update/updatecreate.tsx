@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Alert, Acti
 import { useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { ArrowLeft, Calendar, Clock, ChevronDown } from 'lucide-react-native';
 import ProgressSteps from '@/app/components/create/ProgressSteps';
+import EventCheckInPolicyControls from '@/app/components/create/EventCheckInPolicyControls';
 import { useGetcategoriesQuery, useGetCountriesQuery, useGetStatesQuery } from '@/redux/api/eventsApiSlice';
 import { useGetNewEventQuery } from '@/redux/api/newEventsApiSlice';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -74,6 +75,14 @@ export default function UpdateEventScreen() {
     price: 0,
     age_restriction: 0,
     guardian_required: false,
+    check_in_enabled: true,
+    check_in_opens_minutes_before: null,
+    check_in_closes_minutes_after: 0,
+    check_in_enforce_session: true,
+    check_in_require_questionnaire: false,
+    check_in_allow_duplicate_override: true,
+    check_in_require_override_reason: true,
+    check_in_record_blocked_attempts: true,
     is_free: false,
     event_type: 'SINGLE',
     time: '',
@@ -134,6 +143,24 @@ export default function UpdateEventScreen() {
         price: parseFloat(eventData.price) || 0,
         age_restriction: eventData.age_restriction || 0,
         guardian_required: eventData.guardian_required || false,
+        check_in_enabled: eventData.check_in_enabled ?? true,
+        check_in_opens_minutes_before:
+          typeof eventData.check_in_opens_minutes_before === 'number'
+            ? eventData.check_in_opens_minutes_before
+            : null,
+        check_in_closes_minutes_after:
+          typeof eventData.check_in_closes_minutes_after === 'number'
+            ? eventData.check_in_closes_minutes_after
+            : 0,
+        check_in_enforce_session: eventData.check_in_enforce_session ?? true,
+        check_in_require_questionnaire:
+          eventData.check_in_require_questionnaire ?? false,
+        check_in_allow_duplicate_override:
+          eventData.check_in_allow_duplicate_override ?? true,
+        check_in_require_override_reason:
+          eventData.check_in_require_override_reason ?? true,
+        check_in_record_blocked_attempts:
+          eventData.check_in_record_blocked_attempts ?? true,
         is_free: eventData.is_free,
         event_type: eventData.event_type === 'RECURRING' ? 'recurring' : 'single',
         recurring_frequency: eventData.recurring_frequency || 'WEEKLY',
@@ -672,6 +699,11 @@ console.log(event,"eventevent")
               <ChevronDown size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
+
+          <EventCheckInPolicyControls
+            value={formData}
+            onChange={(next) => setFormData(next)}
+          />
 
           {/* Location Section */}
           <View className="bg-[#111823] p-3 rounded-lg">

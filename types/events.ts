@@ -87,6 +87,14 @@ export interface EventV2 {
   each_ticket_identity?: boolean;
   faqs?: EventFaq[];
   guardian_required?: boolean;
+  check_in_enabled?: boolean;
+  check_in_opens_minutes_before?: number | null;
+  check_in_closes_minutes_after?: number | null;
+  check_in_enforce_session?: boolean;
+  check_in_require_questionnaire?: boolean;
+  check_in_allow_duplicate_override?: boolean;
+  check_in_require_override_reason?: boolean;
+  check_in_record_blocked_attempts?: boolean;
   id?: string | number;
   images?: string[];
   is_free?: boolean;

@@ -434,6 +434,28 @@ export const buildNewEventPayload = (
     age_restriction:
       formData.age_restriction === undefined ? null : Number(formData.age_restriction || 0),
     guardian_required: Boolean(formData.guardian_required),
+    check_in_enabled: formData.check_in_enabled ?? true,
+    check_in_opens_minutes_before:
+      formData.check_in_opens_minutes_before === null ||
+      formData.check_in_opens_minutes_before === undefined ||
+      formData.check_in_opens_minutes_before === ""
+        ? null
+        : Number(formData.check_in_opens_minutes_before),
+    check_in_closes_minutes_after:
+      formData.check_in_closes_minutes_after === null ||
+      formData.check_in_closes_minutes_after === undefined ||
+      formData.check_in_closes_minutes_after === ""
+        ? 0
+        : Number(formData.check_in_closes_minutes_after),
+    check_in_enforce_session: formData.check_in_enforce_session ?? true,
+    check_in_require_questionnaire:
+      formData.check_in_require_questionnaire ?? false,
+    check_in_allow_duplicate_override:
+      formData.check_in_allow_duplicate_override ?? true,
+    check_in_require_override_reason:
+      (formData.check_in_allow_duplicate_override ?? true) &&
+      (formData.check_in_require_override_reason ?? true),
+    check_in_record_blocked_attempts: true,
     published,
     sessions,
     tickets,
@@ -480,6 +502,24 @@ export const mapNewEventToMobileForm = (event: EventV2 | Record<string, any>) =>
     price: Number(event.price || 0),
     age_restriction: Number(event.age_restriction || 0),
     guardian_required: Boolean(event.guardian_required),
+    check_in_enabled: event.check_in_enabled ?? true,
+    check_in_opens_minutes_before:
+      typeof event.check_in_opens_minutes_before === "number"
+        ? event.check_in_opens_minutes_before
+        : null,
+    check_in_closes_minutes_after:
+      typeof event.check_in_closes_minutes_after === "number"
+        ? event.check_in_closes_minutes_after
+        : 0,
+    check_in_enforce_session: event.check_in_enforce_session ?? true,
+    check_in_require_questionnaire:
+      event.check_in_require_questionnaire ?? false,
+    check_in_allow_duplicate_override:
+      event.check_in_allow_duplicate_override ?? true,
+    check_in_require_override_reason:
+      event.check_in_require_override_reason ?? true,
+    check_in_record_blocked_attempts:
+      event.check_in_record_blocked_attempts ?? true,
     is_free: Boolean(event.is_free),
     event_type: event.event_type === "RECURRING" ? "recurring" : "single",
     recurring_frequency: event.recurring_frequency || "WEEKLY",
@@ -576,6 +616,14 @@ export const mapAiDraftToMobileForm = (
     price: Number(tickets[0]?.price || 0),
     age_restriction: ageMatch ? Number(ageMatch[0]) : 0,
     guardian_required: /guardian|parent/i.test(ageRule),
+    check_in_enabled: true,
+    check_in_opens_minutes_before: null,
+    check_in_closes_minutes_after: 0,
+    check_in_enforce_session: true,
+    check_in_require_questionnaire: false,
+    check_in_allow_duplicate_override: true,
+    check_in_require_override_reason: true,
+    check_in_record_blocked_attempts: true,
     is_free: isFree,
     event_type: normalizeEventType(readPath(details, ["event_type", "eventType"])).toLowerCase(),
     recurring_frequency: pickText(

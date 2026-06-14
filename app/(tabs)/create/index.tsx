@@ -26,6 +26,7 @@ import {
   Wand2,
 } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
+import EventCheckInPolicyControls from "@/app/components/create/EventCheckInPolicyControls";
 import {
   useGetcategoriesQuery,
   useGetCountriesQuery,
@@ -95,6 +96,14 @@ export default function CreateEventScreen() {
     price: 0,
     age_restriction: 0,
     guardian_required: false,
+    check_in_enabled: true,
+    check_in_opens_minutes_before: null,
+    check_in_closes_minutes_after: 0,
+    check_in_enforce_session: true,
+    check_in_require_questionnaire: false,
+    check_in_allow_duplicate_override: true,
+    check_in_require_override_reason: true,
+    check_in_record_blocked_attempts: true,
     is_free: false,
     event_type: "single",
     recurring_frequency: "WEEKLY",
@@ -1287,6 +1296,11 @@ export default function CreateEventScreen() {
               <ChevronDown size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
+
+          <EventCheckInPolicyControls
+            value={formData}
+            onChange={(next) => setFormData(next)}
+          />
 
           {/* Location Section */}
           {needsVenue(formData.attendance_mode) && (
