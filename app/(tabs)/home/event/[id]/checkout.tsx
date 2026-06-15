@@ -13,9 +13,19 @@ import {
   useLocalSearchParams,
   RelativePathString,
 } from "expo-router";
-import { ArrowLeft, User, Mail, Phone, Minus, Plus, Ticket } from "lucide-react-native";
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  Minus,
+  Plus,
+  Ticket,
+  Calendar,
+} from "lucide-react-native";
 import { useSelector } from "react-redux";
 import { useGetEventQuery } from "@/redux/api/eventsApiSlice";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {
   currencySymbol,
   getTicketRemainingQuantity,
@@ -61,6 +71,19 @@ const calculateAge = (dob?: string) => {
 
   if (beforeBirthday) age -= 1;
   return age;
+};
+
+const formatDateForPayload = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDobDate = (value?: string) => {
+  if (!value) return new Date(2000, 0, 1);
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? new Date(2000, 0, 1) : parsed;
 };
 
 export default function CheckoutScreen() {
@@ -121,6 +144,9 @@ export default function CheckoutScreen() {
   );
   const [receiveUpdates, setReceiveUpdates] = useState(true);
   const [guardianConfirmed, setGuardianConfirmed] = useState(false);
+  const [dobPickerTarget, setDobPickerTarget] = useState<"common" | number | null>(
+    null
+  );
 
   const [useCommonDetails, setUseCommonDetails] = useState(
     !eventBody?.each_ticket_identity
@@ -229,6 +255,30 @@ export default function CheckoutScreen() {
         sessionId,
       },
     }));
+  };
+
+  const activeDobValue =
+    dobPickerTarget === "common"
+      ? commonDetails.dob
+      : typeof dobPickerTarget === "number"
+      ? attendeeDetails[dobPickerTarget]?.dob
+      : "";
+
+  const handleConfirmDob = (date: Date) => {
+    const dob = formatDateForPayload(date);
+    if (dobPickerTarget === "common") {
+      setCommonDetails((prev) => ({ ...prev, dob }));
+    } else if (typeof dobPickerTarget === "number") {
+      setAttendeeDetails((prev) => {
+        const next = [...prev];
+        next[dobPickerTarget] = {
+          ...next[dobPickerTarget],
+          dob,
+        };
+        return next;
+      });
+    }
+    setDobPickerTarget(null);
   };
 
   useEffect(() => {
@@ -627,24 +677,24 @@ export default function CheckoutScreen() {
                 <Text className="text-white mb-2">
                   Date of Birth <Text className="text-red-500">*</Text>
                 </Text>
-                <View
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setDobPickerTarget("common")}
                   className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${
                     !commonDetails.dob ? "border-red-500" : "border-transparent"
                   }`}
                 >
-                  <TextInput
-                    className="flex-1 text-white text-xl py-2"
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#6B7280"
-                    value={commonDetails.dob}
-                    onChangeText={(text) =>
-                      setCommonDetails({ ...commonDetails, dob: text })
-                    }
-                    keyboardType="numbers-and-punctuation"
-                  />
-                </View>
+                  <Calendar color="#6B7280" size={20} />
+                  <Text
+                    className={`flex-1 ml-3 text-xl py-3 ${
+                      commonDetails.dob ? "text-white" : "text-gray-500"
+                    }`}
+                  >
+                    {commonDetails.dob || "Select date of birth"}
+                  </Text>
+                </TouchableOpacity>
                 <Text className="text-gray-400 text-sm mt-1">
-                  Format: YYYY-MM-DD
+                  Tap to choose a valid birth date.
                 </Text>
               </View>
             )}
@@ -769,31 +819,26 @@ export default function CheckoutScreen() {
                     <Text className="text-white mb-2">
                       Date of Birth <Text className="text-red-500">*</Text>
                     </Text>
-                    <View
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => setDobPickerTarget(index)}
                       className={`flex-row items-center bg-[#1A2432] rounded-lg px-4 border ${
                         !attendeeDetails[index].dob
                           ? "border-red-500"
                           : "border-transparent"
                       }`}
                     >
-                      <TextInput
-                        className="flex-1 text-white text-xl py-2"
-                        placeholder="YYYY-MM-DD"
-                        placeholderTextColor="#6B7280"
-                        value={attendeeDetails[index].dob}
-                        onChangeText={(text) => {
-                          const newDetails = [...attendeeDetails];
-                          newDetails[index] = {
-                            ...attendeeDetails[index],
-                            dob: text,
-                          };
-                          setAttendeeDetails(newDetails);
-                        }}
-                        keyboardType="numbers-and-punctuation"
-                      />
-                    </View>
+                      <Calendar color="#6B7280" size={20} />
+                      <Text
+                        className={`flex-1 ml-3 text-xl py-3 ${
+                          attendeeDetails[index].dob ? "text-white" : "text-gray-500"
+                        }`}
+                      >
+                        {attendeeDetails[index].dob || "Select date of birth"}
+                      </Text>
+                    </TouchableOpacity>
                     <Text className="text-gray-400 text-sm mt-1">
-                      Format: YYYY-MM-DD
+                      Tap to choose a valid birth date.
                     </Text>
                   </View>
                 )}
@@ -809,8 +854,8 @@ export default function CheckoutScreen() {
               </Text>
               {ageLimit > 0 && (
                 <Text className="text-gray-400 text-sm leading-6">
-                  Attendees must be at least {ageLimit} years old. Enter a valid
-                  date of birth in YYYY-MM-DD format.
+                  Attendees must be at least {ageLimit} years old. Choose each
+                  attendee's date of birth before checkout.
                 </Text>
               )}
               {guardianRequired && (
@@ -859,6 +904,14 @@ export default function CheckoutScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+      <DateTimePickerModal
+        isVisible={dobPickerTarget !== null}
+        mode="date"
+        date={parseDobDate(activeDobValue)}
+        maximumDate={new Date()}
+        onConfirm={handleConfirmDob}
+        onCancel={() => setDobPickerTarget(null)}
+      />
     </View>
   );
 }
