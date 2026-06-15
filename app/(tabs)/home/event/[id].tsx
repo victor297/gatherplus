@@ -283,15 +283,8 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
       return;
     }
 
-    const hasSelectedTickets = Object.values(ticketSelections).some(
-      (selection) => selection?.quantity > 0
-    );
-
-    if (!hasSelectedTickets) {
-      return Alert.alert("Please select at least one ticket to continue");
-    }
-
-    // Process selected tickets
+    // Process any selected tickets. Checkout also allows ticket selection,
+    // matching the web booking flow where users enter checkout first.
     const upcomingSessionIds = new Set(
       upcomingSessions.map((session: any) => String(session.id))
     );
@@ -308,7 +301,10 @@ Don’t miss out on the *\`${event?.body?.title}\`* – a of non-stop Event, fun
       });
     });
 
-    if (ticketInstances.length === 0) {
+    if (
+      Object.values(ticketSelections).some((selection) => selection?.quantity > 0) &&
+      ticketInstances.length === 0
+    ) {
       Alert.alert(
         "Session unavailable",
         "Please select an upcoming session before continuing."

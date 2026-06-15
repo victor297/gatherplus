@@ -32,6 +32,7 @@ import {
   currencySymbol,
   getOnlineRevealLabel,
 } from "@/utils/eventHelpers";
+import { appConfig } from "@/config/env";
 
 const extractPaymentReference = (url: string) => {
   try {
@@ -77,9 +78,7 @@ export default function OrderSummaryScreen() {
   const { initPaymentSheet, presentPaymentSheet } = useAppStripe();
   const [stripeLoading, setStripeLoading] = useState(false);
   const [showPaystackWebView, setShowPaystackWebView] = useState(false);
-  const paymentCallbackUrl = Linking.createURL(
-    `payment-callback/event/${bookingData.event_id}`
-  );
+  const paymentCallbackUrl = `${appConfig.webUrl.replace(/\/+$/, "")}/tickets/paystack-status`;
   const symbol = currencySymbol(bookingData?.currency);
 
   // Calculate totals
@@ -117,7 +116,7 @@ export default function OrderSummaryScreen() {
     discountedSubtotal,
     platformFeeRate,
     fixedFeeAmount,
-    Boolean(bookingData?.absorb_fee)
+    false
   );
   const total = checkoutFees.total;
 
@@ -500,11 +499,11 @@ useEffect(() => {
                 </View>
               ) : null}
             </View>
-            {bookingData?.absorb_fee && subtotal > 0 && (
+            {subtotal > 0 ? (
               <Text className="text-gray-500 text-xs">
-                The organizer covers buyer fees for this event.
+                Platform and fixed fees are included in the payment total.
               </Text>
-            )}
+            ) : null}
             {bookingData?.age_restriction > 0 && (
               <Text className="text-gray-400 text-sm">
                 Age rule: {bookingData.age_restriction}+ required.

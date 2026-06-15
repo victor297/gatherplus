@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,15 +13,25 @@ import {
   useLocalSearchParams,
   RelativePathString,
 } from "expo-router";
-import { ArrowLeft, User, Mail, Phone } from "lucide-react-native";
+import { ArrowLeft, User, Mail, Phone, Minus, Plus, Ticket } from "lucide-react-native";
 import { useSelector } from "react-redux";
 import { useGetEventQuery } from "@/redux/api/eventsApiSlice";
+import {
+  currencySymbol,
+  getTicketRemainingQuantity,
+  getUpcomingSessions,
+} from "@/utils/eventHelpers";
 
 interface AttendeeDetails {
   fullname: string;
   email: string;
   phone: string;
   dob?: string;
+}
+
+interface TicketSelection {
+  quantity: number;
+  sessionId: number | string;
 }
 
 const getUserName = (userInfo: any) =>
@@ -56,7 +66,13 @@ const calculateAge = (dob?: string) => {
 export default function CheckoutScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
-  const ticketData: any = JSON.parse(data as string);
+  const ticketData: any = useMemo(() => {
+    try {
+      return JSON.parse(String(data || "{}"));
+    } catch {
+      return {};
+    }
+  }, [data]);
   const { userInfo } = useSelector((state: any) => state.auth);
   const {
     data: event,
@@ -64,18 +80,50 @@ export default function CheckoutScreen() {
     error,
     refetch,
   } = useGetEventQuery({ id: ticketData?.eventId, user_id: userInfo?.sub });
+  const eventBody = event?.body || {};
+  const availableTickets = Array.isArray(eventBody?.tickets)
+    ? eventBody.tickets
+    : [];
+  const upcomingSessions = getUpcomingSessions(
+    Array.isArray(eventBody?.sessions) ? eventBody.sessions : []
+  );
+  const symbol = currencySymbol(eventBody?.currency || ticketData?.currency);
+  const routeTicketInstances = useMemo(
+    () =>
+      Array.isArray(ticketData?.ticketInstances)
+        ? ticketData.ticketInstances
+        : [],
+    [ticketData?.ticketInstances]
+  );
   const [isFormValid, setIsFormValid] = useState(false);
   const ageLimit = Number(
-    event?.body?.age_restriction || ticketData?.age_restriction || 0
+    eventBody?.age_restriction || ticketData?.age_restriction || 0
   );
   const guardianRequired = Boolean(
-    event?.body?.guardian_required ?? ticketData?.guardian_required
+    eventBody?.guardian_required ?? ticketData?.guardian_required
+  );
+  const [ticketSelections, setTicketSelections] = useState<
+    Record<number, TicketSelection>
+  >(() =>
+    routeTicketInstances.reduce((acc: Record<number, TicketSelection>, instance: any) => {
+      const ticketId = Number(instance?.ticketId);
+      if (!ticketId) return acc;
+      const current = acc[ticketId] || {
+        quantity: 0,
+        sessionId: instance?.sessionId || "",
+      };
+      acc[ticketId] = {
+        quantity: current.quantity + 1,
+        sessionId: current.sessionId || instance?.sessionId || "",
+      };
+      return acc;
+    }, {})
   );
   const [receiveUpdates, setReceiveUpdates] = useState(true);
   const [guardianConfirmed, setGuardianConfirmed] = useState(false);
 
   const [useCommonDetails, setUseCommonDetails] = useState(
-    !event?.body?.each_ticket_identity
+    !eventBody?.each_ticket_identity
   );
   const [commonDetails, setCommonDetails] = useState<AttendeeDetails>({
     fullname: getUserName(userInfo),
@@ -85,7 +133,7 @@ export default function CheckoutScreen() {
   });
 
   const [attendeeDetails, setAttendeeDetails] = useState<AttendeeDetails[]>(
-    Array(ticketData.ticketInstances.length).fill({
+    Array(routeTicketInstances.length).fill({
       fullname: "",
       email: "",
       phone: "",
@@ -93,11 +141,101 @@ export default function CheckoutScreen() {
     })
   );
 
-  useEffect(() => {
-    if (event?.body) {
-      setUseCommonDetails(!event.body.each_ticket_identity);
+  const selectedTicketInstances = useMemo(() => {
+    if (!availableTickets.length && routeTicketInstances.length > 0) {
+      return routeTicketInstances;
     }
-  }, [event?.body?.each_ticket_identity]);
+
+    const validSessionIds = new Set(
+      upcomingSessions.map((session: any) => String(session.id))
+    );
+
+    return availableTickets.flatMap((ticket: any) => {
+      const ticketId = Number(ticket.id);
+      const selection = ticketSelections[ticketId];
+      const quantity = Number(selection?.quantity || 0);
+      if (quantity <= 0) return [];
+
+      const sessionId =
+        selection?.sessionId || (upcomingSessions.length === 1 ? upcomingSessions[0].id : "");
+      if (!sessionId || !validSessionIds.has(String(sessionId))) return [];
+
+      return Array.from({ length: quantity }, () => ({
+        ticketId,
+        sessionId,
+        price: Number(ticket.price || 0),
+        name: ticket.name || "Ticket",
+      }));
+    });
+  }, [availableTickets, routeTicketInstances, ticketSelections, upcomingSessions]);
+
+  const selectedQuantityTotal = Object.values(ticketSelections).reduce(
+    (sum, selection) => sum + Number(selection?.quantity || 0),
+    0
+  );
+  const selectedTicketsTotal = selectedTicketInstances.reduce(
+    (sum: number, instance: any) => sum + Number(instance.price || 0),
+    0
+  );
+  const hasTicketSelection = selectedQuantityTotal > 0;
+  const hasValidTicketSessions =
+    hasTicketSelection && selectedTicketInstances.length === selectedQuantityTotal;
+
+  const handleAddTicket = (ticket: any) => {
+    const ticketId = Number(ticket.id);
+    const remaining = getTicketRemainingQuantity(ticket);
+    if (!ticketId || remaining <= 0) return;
+
+    setTicketSelections((prev) => {
+      const current = prev[ticketId] || {
+        quantity: 0,
+        sessionId: upcomingSessions[0]?.id || "",
+      };
+
+      return {
+        ...prev,
+        [ticketId]: {
+          ...current,
+          quantity: Math.min(remaining, current.quantity + 1),
+          sessionId: current.sessionId || upcomingSessions[0]?.id || "",
+        },
+      };
+    });
+  };
+
+  const handleRemoveTicket = (ticket: any) => {
+    const ticketId = Number(ticket.id);
+    if (!ticketId) return;
+
+    setTicketSelections((prev) => {
+      const current = prev[ticketId];
+      if (!current || current.quantity <= 0) return prev;
+
+      return {
+        ...prev,
+        [ticketId]: {
+          ...current,
+          quantity: current.quantity - 1,
+        },
+      };
+    });
+  };
+
+  const handleSessionChange = (ticketId: number, sessionId: number | string) => {
+    setTicketSelections((prev) => ({
+      ...prev,
+      [ticketId]: {
+        quantity: prev[ticketId]?.quantity || 0,
+        sessionId,
+      },
+    }));
+  };
+
+  useEffect(() => {
+    if (eventBody) {
+      setUseCommonDetails(!eventBody.each_ticket_identity);
+    }
+  }, [eventBody?.each_ticket_identity]);
 
   useEffect(() => {
     setCommonDetails((prev) => ({
@@ -108,14 +246,14 @@ export default function CheckoutScreen() {
       ...(ageLimit && { dob: prev.dob || "" }),
     }));
     setAttendeeDetails((prev) =>
-      ticketData.ticketInstances.map((_: any, index: number) => ({
+      selectedTicketInstances.map((_: any, index: number) => ({
         fullname: prev[index]?.fullname || "",
         email: prev[index]?.email || "",
         phone: prev[index]?.phone || "",
         ...(ageLimit && { dob: prev[index]?.dob || "" }),
       }))
     );
-  }, [ageLimit, ticketData.ticketInstances.length, userInfo]);
+  }, [ageLimit, selectedTicketInstances.length, userInfo]);
 
   // Validate form whenever details change
   useEffect(() => {
@@ -142,21 +280,32 @@ export default function CheckoutScreen() {
 
     if (useCommonDetails) {
       setIsFormValid(
+        hasValidTicketSessions &&
         detailsAreValid(commonDetails) &&
           (!guardianRequired || guardianConfirmed)
       );
     } else {
       setIsFormValid(
+        hasValidTicketSessions &&
+          attendeeDetails.length === selectedTicketInstances.length &&
         attendeeDetails.every(detailsAreValid) &&
           (!guardianRequired || guardianConfirmed)
       );
     }
   };
   const handleContinue = () => {
+    if (!hasTicketSelection) {
+      Alert.alert("Choose tickets", "Select at least one ticket before continuing.");
+      return;
+    }
+    if (!hasValidTicketSessions) {
+      Alert.alert("Choose a session", "Every selected ticket needs an upcoming session.");
+      return;
+    }
     if (!isFormValid) return;
 
     const bookings = useCommonDetails
-      ? ticketData.ticketInstances.map((instance: any) => ({
+      ? selectedTicketInstances.map((instance: any) => ({
           ...commonDetails,
           session_id: instance.sessionId,
           ticket_id: instance.ticketId,
@@ -164,7 +313,7 @@ export default function CheckoutScreen() {
           price: instance.price,
           receive_updates: receiveUpdates,
         }))
-      : ticketData.ticketInstances.map((instance: any, index: any) => ({
+      : selectedTicketInstances.map((instance: any, index: any) => ({
           ...attendeeDetails[index],
           session_id: instance.sessionId,
           ticket_id: instance.ticketId,
@@ -176,12 +325,12 @@ export default function CheckoutScreen() {
     const bookingData = {
       absorb_fee: Boolean(ticketData?.absorb_fee),
       age_restriction: ageLimit,
-      attendance_mode: ticketData?.attendance_mode,
+      attendance_mode: eventBody?.attendance_mode || ticketData?.attendance_mode,
       event_id: Number(ticketData.eventId),
-      currency: ticketData?.currency,
+      currency: eventBody?.currency || ticketData?.currency,
       channel: "PayStack",
       guardian_required: guardianRequired,
-      online_url_reveal: ticketData?.online_url_reveal,
+      online_url_reveal: eventBody?.online_url_reveal || ticketData?.online_url_reveal,
       receive_updates: receiveUpdates,
       bookings,
     };
@@ -231,6 +380,149 @@ export default function CheckoutScreen() {
       </View>
 
       <ScrollView className="flex-1 px-4">
+        <View className="bg-[#111823] border border-[#243044] rounded-2xl p-4 mb-5">
+          <View className="flex-row items-start justify-between mb-4">
+            <View className="flex-1 pr-3">
+              <View className="flex-row items-center">
+                <Ticket color="#9EDD45" size={18} />
+                <Text className="text-white text-lg font-bold ml-2">
+                  Choose tickets
+                </Text>
+              </View>
+              <Text className="text-gray-400 text-sm mt-1">
+                Select ticket type, quantity, and session before attendee details.
+              </Text>
+            </View>
+            <View className="bg-[#223044] rounded-full px-3 py-1">
+              <Text className="text-primary text-xs font-bold">
+                {selectedQuantityTotal} selected
+              </Text>
+            </View>
+          </View>
+
+          {availableTickets.length > 0 ? (
+            <View className="gap-3">
+              {availableTickets.map((ticket: any) => {
+                const ticketId = Number(ticket.id);
+                const remaining = getTicketRemainingQuantity(ticket);
+                const selectedQuantity = Number(ticketSelections[ticketId]?.quantity || 0);
+                const selectedSessionId = ticketSelections[ticketId]?.sessionId || "";
+                const soldOut = remaining <= 0;
+
+                return (
+                  <View
+                    key={ticket.id}
+                    className="rounded-2xl border border-[#2E3A4D] bg-[#1A2432] p-3"
+                  >
+                    <View className="flex-row items-start justify-between gap-3">
+                      <View className="flex-1">
+                        <Text className="text-white font-bold">{ticket.name}</Text>
+                        <Text className="text-gray-400 text-xs mt-1">
+                          {remaining} remaining
+                        </Text>
+                      </View>
+                      <Text className="text-primary font-bold">
+                        {Number(ticket.price || 0) === 0
+                          ? "Free"
+                          : `${symbol} ${Number(ticket.price || 0).toLocaleString()}`}
+                      </Text>
+                    </View>
+
+                    <View className="flex-row items-center justify-between mt-3">
+                      <View className="flex-row items-center">
+                        <TouchableOpacity
+                          className={`h-10 w-10 rounded-full border items-center justify-center ${
+                            selectedQuantity <= 0
+                              ? "border-[#2E3A4D] opacity-40"
+                              : "border-[#3A4A61] bg-[#111823]"
+                          }`}
+                          disabled={selectedQuantity <= 0}
+                          onPress={() => handleRemoveTicket(ticket)}
+                        >
+                          <Minus color="#FFFFFF" size={16} />
+                        </TouchableOpacity>
+                        <Text className="text-white font-bold text-base mx-4 min-w-[18px] text-center">
+                          {selectedQuantity}
+                        </Text>
+                        <TouchableOpacity
+                          className={`h-10 w-10 rounded-full border items-center justify-center ${
+                            soldOut || selectedQuantity >= remaining
+                              ? "border-[#2E3A4D] opacity-40"
+                              : "border-primary bg-primary"
+                          }`}
+                          disabled={soldOut || selectedQuantity >= remaining}
+                          onPress={() => handleAddTicket(ticket)}
+                        >
+                          <Plus
+                            color={soldOut || selectedQuantity >= remaining ? "#FFFFFF" : "#020E1E"}
+                            size={16}
+                          />
+                        </TouchableOpacity>
+                      </View>
+
+                      {soldOut ? (
+                        <Text className="text-red-300 text-xs font-bold">Sold out</Text>
+                      ) : null}
+                    </View>
+
+                    {selectedQuantity > 0 && upcomingSessions.length > 1 ? (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        className="mt-3"
+                      >
+                        {upcomingSessions.map((session: any) => {
+                          const active = String(selectedSessionId) === String(session.id);
+                          return (
+                            <TouchableOpacity
+                              key={session.id}
+                              className={`mr-2 rounded-full border px-3 py-2 ${
+                                active
+                                  ? "bg-primary border-primary"
+                                  : "bg-[#111823] border-[#2E3A4D]"
+                              }`}
+                              onPress={() => handleSessionChange(ticketId, session.id)}
+                            >
+                              <Text
+                                className={`text-xs font-bold ${
+                                  active ? "text-background" : "text-gray-300"
+                                }`}
+                              >
+                                {session.name || "Session"} {session.start_time || ""}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <View className="rounded-2xl border border-[#2E3A4D] bg-[#1A2432] p-4">
+              <Text className="text-gray-300 font-semibold">Tickets unavailable</Text>
+              <Text className="text-gray-500 text-sm mt-1">
+                This event does not have bookable tickets right now.
+              </Text>
+            </View>
+          )}
+
+          {hasTicketSelection && !hasValidTicketSessions ? (
+            <Text className="text-amber-300 text-xs font-semibold mt-3">
+              Select an upcoming session for every chosen ticket.
+            </Text>
+          ) : null}
+
+          <View className="h-[1px] bg-[#243044] my-4" />
+          <View className="flex-row justify-between">
+            <Text className="text-gray-400">Ticket subtotal</Text>
+            <Text className="text-white font-bold">
+              {symbol} {selectedTicketsTotal.toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
         <View className="mb-6">
           <TouchableOpacity
             className={`p-4 rounded-lg mb-4 ${
@@ -358,24 +650,24 @@ export default function CheckoutScreen() {
             )}
           </View>
         ) : (
-          ticketData.ticketInstances.map((instance: any, index: any) => (
+          selectedTicketInstances.map((instance: any, index: any) => (
             <View key={index} className="mb-6">
               <View className="bg-[#4d6382] rounded-lg p-4 mb-4">
                 <Text className="text-white">Ticket {index + 1}</Text>
                 <Text className="text-gray-400">
                   Session:
                   {
-                    event?.body?.sessions.find(
+                    eventBody?.sessions?.find(
                       (s) => s.id === instance.sessionId
                     )?.name
                   }
                   {
-                    event?.body?.sessions.find(
+                    eventBody?.sessions?.find(
                       (s) => s.id === instance.sessionId
                     )?.start_time
                   }
                   {
-                    event?.body?.sessions.find(
+                    eventBody?.sessions?.find(
                       (s) => s.id === instance.sessionId
                     )?.end_time
                   }
