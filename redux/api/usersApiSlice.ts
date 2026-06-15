@@ -96,6 +96,13 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ["Wallet"],
     }),
+    getUserWalletDetails: builder.query<any, void | Record<string, never>>({
+      query: () => ({
+        url: `${PROFILE_URL}/wallet/details`,
+        method: "GET",
+      }),
+      providesTags: ["Wallet", "Booking"],
+    }),
     getUserWalletLedger: builder.query<any, void | Record<string, never>>({
       query: () => ({
         url: `${PROFILE_URL}/wallet/ledger`,
@@ -167,6 +174,7 @@ export const {
   useResetpasswordMutation,
   useGetProfileQuery, 
   useGetUserWalletQuery,
+  useGetUserWalletDetailsQuery,
   useGetUserWalletLedgerQuery,
   useUpdateProfileMutation,
   useUpdateEmailMutation,

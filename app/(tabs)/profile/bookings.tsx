@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,7 +24,7 @@ import {
   Video,
 } from "lucide-react-native";
 import ProfileFoundationScreen from "@/app/components/profile/ProfileFoundationScreen";
-import { useGetUserTicketBookingsQuery } from "@/redux/api/eventsApiSlice";
+import { useGetUserWalletDetailsQuery } from "@/redux/api/usersApiSlice";
 import {
   useCancelResaleListingMutation,
   useCreateResaleListingMutation,
@@ -195,8 +195,8 @@ export default function BookingsScreen() {
   const [search, setSearch] = useState("");
   const [resalePrices, setResalePrices] = useState<Record<string, string>>({});
 
-  const { data, error, isFetching, isLoading, refetch } = useGetUserTicketBookingsQuery(
-    { page: 1, size: 250 },
+  const { data, error, isFetching, isLoading, refetch } = useGetUserWalletDetailsQuery(
+    undefined,
     {
       refetchOnFocus: true,
       refetchOnMountOrArgChange: true,
@@ -234,9 +234,16 @@ export default function BookingsScreen() {
 
   const totalPages = Math.max(1, Math.ceil(filteredGroups.length / PAGE_SIZE));
   const pagedGroups = filteredGroups.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const totalTickets = wallet.bookings.length;
+  const totalTickets = Number(wallet.metrics?.totalTickets || wallet.bookings.length);
+  const totalEventGroups = Number(wallet.metrics?.eventGroups || wallet.groups.length);
   const pendingQuestionnaires = wallet.bookings.filter((booking) => booking.questionnairePending).length;
   const onlineAccess = wallet.bookings.filter((booking) => booking.event?.online_access_available).length;
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   const toggleGroup = (eventId: string | number) => {
     setExpandedGroups((current) =>
@@ -282,7 +289,7 @@ export default function BookingsScreen() {
       subtitle="Tickets, secure online links, invoices, and resale readiness."
       stats={[
         { label: "Tickets", value: totalTickets },
-        { label: "Event groups", value: wallet.groups.length },
+        { label: "Event groups", value: totalEventGroups },
         { label: "Online access", value: onlineAccess },
         { label: "Forms due", value: pendingQuestionnaires },
       ]}
@@ -458,7 +465,7 @@ export default function BookingsScreen() {
             <View className="flex-1 pr-3">
               <Text className="text-white text-2xl font-semibold">Booking library</Text>
               <Text className="text-gray-400 mt-1">
-                {filteredGroups.length} group{filteredGroups.length === 1 ? "" : "s"} with{" "}
+                {wallet.groups.length} group{wallet.groups.length === 1 ? "" : "s"} with{" "}
                 {totalTickets} ticket{totalTickets === 1 ? "" : "s"}.
               </Text>
             </View>
