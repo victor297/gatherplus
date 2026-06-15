@@ -56,6 +56,21 @@ const getStripePaymentIntentId = (clientSecret?: string) =>
 const normalizeCurrency = (value?: unknown) =>
   String(value || "NGN").split(/[\s-]/)[0] || "NGN";
 
+const getCompletionCount = (value: unknown) => Number(value || 0);
+
+const isBookingCompletionSuccessful = (response: any) => {
+  const body = response?.body || {};
+
+  return (
+    response?.code === 200 &&
+    response?.message === "SUCCESSFUL" &&
+    (getCompletionCount(body.count) > 0 ||
+      getCompletionCount(body.completed_count) > 0 ||
+      body.status === "COMPLETED" ||
+      body.already_completed === true)
+  );
+};
+
 export default function OrderSummaryScreen() {
   const router = useRouter();
   const { data } = useLocalSearchParams();
@@ -182,15 +197,27 @@ export default function OrderSummaryScreen() {
     }
   };
 
-  const completePaymentReference = async (reference?: string) => {
-    if (reference) {
-      try {
-        await completeBookingPayment(reference).unwrap();
-      } catch (error) {
-        console.log("Payment completion check failed:", error);
-      }
+  const completePaymentReference = async (
+    reference?: string,
+    navigateOnSuccess = true
+  ) => {
+    if (!reference) {
+      return false;
     }
-    router.replace("/profile/bookings");
+
+    try {
+      const response = await completeBookingPayment(reference).unwrap();
+      const completed = isBookingCompletionSuccessful(response);
+
+      if (completed && navigateOnSuccess) {
+        router.replace("/profile/bookings");
+      }
+
+      return completed;
+    } catch (error) {
+      console.log("Payment completion check failed:", error);
+      return false;
+    }
   };
 
   const handleBookEvent = async () => {
@@ -234,13 +261,17 @@ export default function OrderSummaryScreen() {
         }).unwrap();
 
         if (res?.body?.authorization_url) {
-          setIsProcessing(false);
+          const paymentReference =
+            res?.body?.reference ||
+            res?.body?.txn_ref ||
+            extractPaymentReference(res.body.authorization_url);
           const result = await WebBrowser.openBrowserAsync(res.body.authorization_url);
+          const confirmed = await completePaymentReference(paymentReference);
 
-          if (result.type === "cancel" || result.type === "dismiss") {
+          if (!confirmed && (result.type === "cancel" || result.type === "dismiss")) {
             Alert.alert(
               "Payment not confirmed",
-              "If payment was completed, your booking will appear after confirmation.",
+              "If your bank charged you, open bookings and refresh. We will keep checking Paystack so completed tickets are not lost.",
               [
                 { text: "Stay", style: "cancel" },
                 {
@@ -307,7 +338,7 @@ useEffect(() => {
     if (url.includes("payment-callback")||url.includes("adtil.local")) {
       console.log("Payment success redirect received");
       WebBrowser.dismissBrowser();
-      completePaymentReference(extractPaymentReference(url));
+      void completePaymentReference(extractPaymentReference(url));
     }
   });
 
