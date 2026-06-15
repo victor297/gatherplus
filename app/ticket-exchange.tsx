@@ -48,6 +48,27 @@ const money = (value?: unknown, currency?: unknown) => {
   }
 };
 
+const resalePricing = (listing: any, fallbackFeePercentage = 10) => {
+  const price = Number(listing?.resale_price || listing?.price || 0);
+  const feePercentage = Number(listing?.fee_percentage ?? fallbackFeePercentage ?? 0);
+  const storedPlatformFee = Number(listing?.platform_fee_amount || 0);
+  const platformFee =
+    storedPlatformFee > 0
+      ? storedPlatformFee
+      : (price * Math.max(0, feePercentage)) / 100;
+  const buyerTotal = Number(
+    listing?.buyer_total_amount || listing?.buyerTotal || price + platformFee
+  );
+  const sellerPayout = Number(listing?.seller_payout_amount || price);
+
+  return {
+    buyerTotal,
+    platformFee,
+    price,
+    sellerPayout,
+  };
+};
+
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
 
 const WEB_ORIGIN = String(
@@ -94,6 +115,8 @@ export default function TicketExchangeScreen() {
   const [startOrder, { isLoading: isStartingOrder }] = useStartResaleOrderMutation();
 
   const body = data?.body || {};
+  const settings = body.settings || {};
+  const feePercent = Number(settings.resaleFeePercentage || 10);
   const listings = getArray(body.listings || body.result || body.data);
   const totalPages = Number(body.totalPages || body.total_pages || 1);
   const totalCount = Number(body.total || body.count || listings.length);
@@ -232,7 +255,10 @@ export default function TicketExchangeScreen() {
                 </Text>
               </View>
             }
-            renderItem={({ item }: { item: any }) => (
+            renderItem={({ item }: { item: any }) => {
+              const pricing = resalePricing(item, feePercent);
+
+              return (
               <View className="p-4 border-b border-[#243044]">
                 <View className="relative mb-4 overflow-hidden rounded-2xl">
                   <Image
@@ -263,9 +289,12 @@ export default function TicketExchangeScreen() {
                   </View>
                   <View className="items-end">
                     <Text className="text-primary text-lg font-bold">
-                      {money(item.buyer_total_amount || item.price, item.currency || item.event?.currency)}
+                      {money(pricing.buyerTotal, item.currency || item.event?.currency)}
                     </Text>
                     <Text className="text-gray-500 text-xs mt-1">buyer total</Text>
+                    <Text className="text-gray-500 text-[11px] mt-1">
+                      {money(pricing.price, item.currency || item.event?.currency)} + {money(pricing.platformFee, item.currency || item.event?.currency)} fee
+                    </Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -278,7 +307,8 @@ export default function TicketExchangeScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-            )}
+              );
+            }}
           />
 
           <View className="p-4 flex-row items-center justify-between">

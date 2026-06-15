@@ -83,6 +83,27 @@ const money = (value?: unknown, currency?: unknown) => {
   }
 };
 
+const resalePricing = (listing: any, fallbackFeePercentage = 10) => {
+  const price = Number(listing?.resale_price || listing?.price || 0);
+  const feePercentage = Number(listing?.fee_percentage ?? fallbackFeePercentage ?? 0);
+  const storedPlatformFee = Number(listing?.platform_fee_amount || 0);
+  const platformFee =
+    storedPlatformFee > 0
+      ? storedPlatformFee
+      : (price * Math.max(0, feePercentage)) / 100;
+  const buyerTotal = Number(
+    listing?.buyer_total_amount || listing?.buyerTotal || price + platformFee
+  );
+  const sellerPayout = Number(listing?.seller_payout_amount || price);
+
+  return {
+    buyerTotal,
+    platformFee,
+    price,
+    sellerPayout,
+  };
+};
+
 const getArray = (value: unknown) => (Array.isArray(value) ? value : []);
 
 const formatTimeRange = (start?: unknown, end?: unknown) => {
@@ -194,6 +215,8 @@ export default function BookingsScreen() {
 
   const wallet = useMemo(() => parseWallet(data), [data]);
   const resaleBody = resaleData?.body || {};
+  const resaleSettings = resaleBody.settings || {};
+  const resaleFeePercent = Number(resaleSettings.resaleFeePercentage || 10);
   const eligibleResale = getArray(resaleBody.eligibleBookings);
   const resaleListings = getArray(resaleBody.listings);
   const activeResaleListings = resaleListings.filter(
@@ -386,6 +409,26 @@ export default function BookingsScreen() {
                       {listing.ticket?.name || "Ticket"} · {money(listing.price, listing.currency)} ·{" "}
                       {listing.status || "Active"}
                     </Text>
+                    <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-3">
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-400 text-xs font-semibold">Seller payout</Text>
+                        <Text className="text-white text-sm font-bold">
+                          {money(resalePricing(listing, resaleFeePercent).sellerPayout, listing.currency)}
+                        </Text>
+                      </View>
+                      <View className="flex-row justify-between mt-2">
+                        <Text className="text-gray-400 text-xs font-semibold">Buyer fee</Text>
+                        <Text className="text-gray-300 text-sm font-semibold">
+                          {money(resalePricing(listing, resaleFeePercent).platformFee, listing.currency)}
+                        </Text>
+                      </View>
+                      <View className="flex-row justify-between mt-2">
+                        <Text className="text-primary text-xs font-bold">Buyer pays</Text>
+                        <Text className="text-primary text-sm font-black">
+                          {money(resalePricing(listing, resaleFeePercent).buyerTotal, listing.currency)}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                   {String(listing.status || "").toUpperCase() === "ACTIVE" ? (
                     <TouchableOpacity

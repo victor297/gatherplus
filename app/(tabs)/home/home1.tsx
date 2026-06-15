@@ -104,6 +104,25 @@ const money = (value?: unknown, currency?: unknown) => {
   }
 };
 
+const resalePricing = (listing: any, fallbackFeePercentage = 10) => {
+  const price = Number(listing?.resale_price || listing?.price || 0);
+  const feePercentage = Number(listing?.fee_percentage ?? fallbackFeePercentage ?? 0);
+  const storedPlatformFee = Number(listing?.platform_fee_amount || 0);
+  const platformFee =
+    storedPlatformFee > 0
+      ? storedPlatformFee
+      : (price * Math.max(0, feePercentage)) / 100;
+  const buyerTotal = Number(
+    listing?.buyer_total_amount || listing?.buyerTotal || price + platformFee
+  );
+
+  return {
+    buyerTotal,
+    platformFee,
+    price,
+  };
+};
+
 const eventImage = (event: any) =>
   resolveImageUri(
     event?.images?.[0] || event?.image || event?.cover_image || null
@@ -443,6 +462,7 @@ export default function HomeScreen() {
     .slice(0, 6);
   const onlineEvents = getArray(online?.body?.events?.result).slice(0, 6);
   const resaleBody = resaleData?.body || {};
+  const resaleFeePercent = Number(resaleBody.settings?.resaleFeePercentage || 10);
   const resaleListings = getArray(
     resaleBody.listings || resaleBody.result || resaleBody.data
   )
@@ -1255,7 +1275,7 @@ export default function HomeScreen() {
                         <View className="flex-row items-center justify-between mt-3">
                           <Text className="text-primary text-lg font-black">
                             {money(
-                              listing.buyer_total_amount || listing.price,
+                              resalePricing(listing, resaleFeePercent).buyerTotal,
                               listing.currency || listing.event?.currency
                             )}
                           </Text>

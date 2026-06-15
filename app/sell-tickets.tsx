@@ -46,6 +46,27 @@ const money = (value?: unknown, currency?: unknown) => {
   }
 };
 
+const resalePricing = (listing: any, fallbackFeePercentage = 10) => {
+  const price = Number(listing?.resale_price || listing?.price || 0);
+  const feePercentage = Number(listing?.fee_percentage ?? fallbackFeePercentage ?? 0);
+  const storedPlatformFee = Number(listing?.platform_fee_amount || 0);
+  const platformFee =
+    storedPlatformFee > 0
+      ? storedPlatformFee
+      : (price * Math.max(0, feePercentage)) / 100;
+  const buyerTotal = Number(
+    listing?.buyer_total_amount || listing?.buyerTotal || price + platformFee
+  );
+  const sellerPayout = Number(listing?.seller_payout_amount || price);
+
+  return {
+    buyerTotal,
+    platformFee,
+    price,
+    sellerPayout,
+  };
+};
+
 const list = (value: unknown) => (Array.isArray(value) ? value : []);
 
 export default function SellTicketsScreen() {
@@ -280,6 +301,26 @@ export default function SellTicketsScreen() {
                       <Text className="text-gray-400 mt-1">
                         {item.ticket?.name || "Ticket"} · {money(item.price, item.currency)} · {item.status || "Active"}
                       </Text>
+                      <View className="bg-[#1A2432] border border-[#2E3A4D] rounded-xl p-3 mt-3">
+                        <View className="flex-row justify-between">
+                          <Text className="text-gray-400 text-xs font-semibold">Seller payout</Text>
+                          <Text className="text-white text-sm font-bold">
+                            {money(resalePricing(item, feePercent).sellerPayout, item.currency)}
+                          </Text>
+                        </View>
+                        <View className="flex-row justify-between mt-2">
+                          <Text className="text-gray-400 text-xs font-semibold">Buyer fee</Text>
+                          <Text className="text-gray-300 text-sm font-semibold">
+                            {money(resalePricing(item, feePercent).platformFee, item.currency)}
+                          </Text>
+                        </View>
+                        <View className="flex-row justify-between mt-2">
+                          <Text className="text-primary text-xs font-bold">Buyer pays</Text>
+                          <Text className="text-primary text-sm font-black">
+                            {money(resalePricing(item, feePercent).buyerTotal, item.currency)}
+                          </Text>
+                        </View>
+                      </View>
                       {String(item.status || "").toUpperCase() === "ACTIVE" ? (
                         <TouchableOpacity
                           className="border border-red-500/40 rounded-xl px-4 py-3 mt-4 flex-row self-start disabled:opacity-50"
