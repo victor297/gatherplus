@@ -27,6 +27,7 @@ import {
 } from "lucide-react-native";
 import ProgressSteps from "@/app/components/create/ProgressSteps";
 import EventCheckInPolicyControls from "@/app/components/create/EventCheckInPolicyControls";
+import TimezoneSelectField from "@/app/components/create/TimezoneSelectField";
 import {
   useGetcategoriesQuery,
   useGetCountriesQuery,
@@ -832,21 +833,11 @@ export default function CreateEventScreen() {
                   }
                 />
 
-                <Text className="text-white my-2">
-                  Timezone <Text className="text-red-500">*</Text>
-                </Text>
-                <TextInput
-                  className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white border ${
-                    !formData.online_timezone
-                      ? "border-red-500"
-                      : "border-transparent"
-                  }`}
-                  placeholder="Africa/Lagos*"
-                  placeholderTextColor="#6B7280"
+                <TimezoneSelectField
                   value={formData.online_timezone}
-                  autoCapitalize="none"
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, online_timezone: text })
+                  hasError={!formData.online_timezone}
+                  onChange={(timezone) =>
+                    setFormData({ ...formData, online_timezone: timezone })
                   }
                 />
 

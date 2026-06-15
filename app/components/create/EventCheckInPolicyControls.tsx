@@ -76,7 +76,9 @@ export default function EventCheckInPolicyControls({ value, onChange }: Props) {
       className={`flex-row items-start rounded-lg border p-3 ${
         disabled
           ? "border-[#2A3546] bg-[#121B28] opacity-50"
-          : "border-[#2A3546] bg-[#1A2432]"
+          : selected
+            ? "border-primary/40 bg-primary/10"
+            : "border-[#2A3546] bg-[#1A2432]"
       }`}
       onPress={disabled ? undefined : onPress}
     >
@@ -95,13 +97,18 @@ export default function EventCheckInPolicyControls({ value, onChange }: Props) {
   );
 
   return (
-    <View className="rounded-lg border border-[#2A3546] bg-[#101824] p-4">
+    <View className="rounded-lg border border-[#2A3546] bg-[#0B1422] p-4">
       <View className="mb-4 flex-row items-start">
         <View className="mr-3 rounded-lg bg-primary/15 p-3">
           <ShieldCheck size={20} color="#9EDD45" />
         </View>
         <View className="flex-1">
-          <Text className="font-bold text-white">Check-in policy</Text>
+          <View className="flex-row items-center justify-between">
+            <Text className="font-bold text-white">Check-in policy</Text>
+            <Text className="rounded-full bg-[#182233] px-3 py-1 text-xs font-bold text-gray-300">
+              Scanner rules
+            </Text>
+          </View>
           <Text className="mt-1 text-sm leading-5 text-gray-400">
             Set when QR scanning opens, what staff must verify, and how duplicate
             scans are audited.
@@ -109,17 +116,18 @@ export default function EventCheckInPolicyControls({ value, onChange }: Props) {
         </View>
       </View>
 
-      <Text className="mb-2 text-xs font-bold uppercase tracking-[2px] text-gray-500">
-        Check-in opens
-      </Text>
-      <View className="mb-3 flex-row flex-wrap">
+      <View className="mb-3 rounded-lg border border-[#243246] bg-[#111B2A] p-3">
+        <Text className="mb-2 text-xs font-bold uppercase tracking-[2px] text-gray-500">
+          Check-in opens
+        </Text>
+        <View className="flex-row flex-wrap">
         {OPEN_OPTIONS.map((option) => {
           const active = openPreset === option.value;
           return (
             <TouchableOpacity
               key={option.label}
-              className={`mb-2 mr-2 rounded-full px-3 py-2 ${
-                active ? "bg-primary" : "bg-[#1A2432]"
+              className={`mb-2 mr-2 rounded-lg border px-3 py-2.5 ${
+                active ? "border-primary bg-primary" : "border-[#2A3546] bg-[#1A2432]"
               }`}
               onPress={() => {
                 update({
@@ -138,6 +146,7 @@ export default function EventCheckInPolicyControls({ value, onChange }: Props) {
             </TouchableOpacity>
           );
         })}
+        </View>
       </View>
       {openPreset === "custom" && (
         <TextInput
@@ -154,17 +163,18 @@ export default function EventCheckInPolicyControls({ value, onChange }: Props) {
         />
       )}
 
-      <Text className="mb-2 text-xs font-bold uppercase tracking-[2px] text-gray-500">
-        Check-in closes
-      </Text>
-      <View className="mb-3 flex-row flex-wrap">
+      <View className="mb-3 rounded-lg border border-[#243246] bg-[#111B2A] p-3">
+        <Text className="mb-2 text-xs font-bold uppercase tracking-[2px] text-gray-500">
+          Check-in closes
+        </Text>
+        <View className="flex-row flex-wrap">
         {CLOSE_OPTIONS.map((option) => {
           const active = closePreset === option.value;
           return (
             <TouchableOpacity
               key={option.label}
-              className={`mb-2 mr-2 rounded-full px-3 py-2 ${
-                active ? "bg-primary" : "bg-[#1A2432]"
+              className={`mb-2 mr-2 rounded-lg border px-3 py-2.5 ${
+                active ? "border-primary bg-primary" : "border-[#2A3546] bg-[#1A2432]"
               }`}
               onPress={() => {
                 update({
@@ -183,6 +193,7 @@ export default function EventCheckInPolicyControls({ value, onChange }: Props) {
             </TouchableOpacity>
           );
         })}
+        </View>
       </View>
       {closePreset === "custom" && (
         <TextInput

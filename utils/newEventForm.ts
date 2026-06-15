@@ -44,6 +44,57 @@ export const RECURRING_FREQUENCIES: RecurringFrequency[] = [
 ];
 
 export const DEFAULT_TIMEZONE = "Africa/Lagos";
+export const TIMEZONE_GROUPS: Array<{
+  label: string;
+  options: Array<{ value: string; label: string }>;
+}> = [
+  {
+    label: "Americas",
+    options: [
+      { value: "America/New_York", label: "Eastern Time - New York" },
+      { value: "America/Chicago", label: "Central Time - Chicago" },
+      { value: "America/Denver", label: "Mountain Time - Denver" },
+      { value: "America/Los_Angeles", label: "Pacific Time - Los Angeles" },
+      { value: "America/Toronto", label: "Toronto" },
+      { value: "America/Mexico_City", label: "Mexico City" },
+      { value: "America/Sao_Paulo", label: "Sao Paulo" },
+    ],
+  },
+  {
+    label: "Africa",
+    options: [
+      { value: "Africa/Lagos", label: "Lagos / West Africa Time" },
+      { value: "Africa/Accra", label: "Accra / GMT" },
+      { value: "Africa/Nairobi", label: "Nairobi / East Africa Time" },
+      { value: "Africa/Johannesburg", label: "Johannesburg" },
+      { value: "Africa/Cairo", label: "Cairo" },
+    ],
+  },
+  {
+    label: "Europe",
+    options: [
+      { value: "Europe/London", label: "London" },
+      { value: "Europe/Paris", label: "Paris" },
+      { value: "Europe/Berlin", label: "Berlin" },
+      { value: "Europe/Madrid", label: "Madrid" },
+      { value: "Europe/Rome", label: "Rome" },
+      { value: "Europe/Amsterdam", label: "Amsterdam" },
+    ],
+  },
+  {
+    label: "Middle East & Asia Pacific",
+    options: [
+      { value: "Asia/Dubai", label: "Dubai" },
+      { value: "Asia/Kolkata", label: "India Standard Time" },
+      { value: "Asia/Singapore", label: "Singapore" },
+      { value: "Asia/Tokyo", label: "Tokyo" },
+      { value: "Asia/Shanghai", label: "Shanghai" },
+      { value: "Australia/Sydney", label: "Sydney" },
+      { value: "Pacific/Auckland", label: "Auckland" },
+      { value: "UTC", label: "UTC" },
+    ],
+  },
+];
 export const AI_EVENT_DRAFT_STORAGE_KEY = "gatherplus.aiEventDraft.v1";
 export const AI_EVENT_IMPORT_STORAGE_KEY = "gatherplus.aiEventImport.v1";
 

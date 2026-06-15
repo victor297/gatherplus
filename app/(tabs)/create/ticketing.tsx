@@ -536,13 +536,13 @@ export default function TicketingScreen() {
                 {/* Ticket Quantity */}
                 <View>
                   <Text className="text-white mb-2">
-                    Quantity <Text className="text-red-500">*</Text>
+                    Tickets for sale <Text className="text-red-500">*</Text>
                   </Text>
                   <TextInput
                     className={`bg-[#1A2432] rounded-lg px-4 py-3 text-white border ${
                       !ticket.quantity ? "border-red-500" : "border-transparent"
                     }`}
-                    placeholder="Enter quantity*"
+                    placeholder="How many ticket passes can be sold?*"
                     placeholderTextColor="#6B7280"
                     keyboardType="numeric"
                     value={ticket.quantity.toString()}
@@ -550,6 +550,9 @@ export default function TicketingScreen() {
                       updateTicket(index, "quantity", parseInt(text) || 0)
                     }
                   />
+                  <Text className="mt-2 text-xs leading-5 text-gray-400">
+                    This is the number of separate ticket passes buyers can reserve or purchase.
+                  </Text>
                 </View>
 
                 {/* Seat Type */}
@@ -619,12 +622,26 @@ export default function TicketingScreen() {
                   </Modal>
                 </View>
 
-                {/* No. of Persons per Seat Type */}
-                <View>
-                  <Text className="text-white mb-2">Persons per Seat Type</Text>
+                {/* Group admission */}
+                <View className="rounded-lg border border-[#2A3546] bg-[#111823] p-3">
+                  <View className="mb-3 flex-row items-start justify-between">
+                    <View className="flex-1 pr-3">
+                      <Text className="font-bold text-white">
+                        Group admission settings
+                      </Text>
+                      <Text className="mt-1 text-xs leading-5 text-gray-400">
+                        Keep this at 1 unless one purchased ticket admits a couple,
+                        family, table, or group.
+                      </Text>
+                    </View>
+                    <Text className="rounded-full bg-[#1A2432] px-3 py-1 text-xs font-bold text-gray-300">
+                      Optional
+                    </Text>
+                  </View>
+                  <Text className="text-white mb-2">Guests admitted per ticket</Text>
                   <TextInput
                     className="bg-[#1A2432] rounded-lg px-4 py-3 text-white"
-                    placeholder="Number per seat type"
+                    placeholder="Usually 1"
                     placeholderTextColor="#6B7280"
                     keyboardType="numeric"
                     value={ticket.no_per_seat_type.toString()}
