@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -27,6 +27,7 @@ import { useSelector } from "react-redux";
 import type { AiEventBuilderRequest } from "@/types/aiEventBuilder";
 import { getApiErrorMessage } from "@/utils/api";
 import {
+  AI_EVENT_BRIEF_STORAGE_KEY,
   AI_EVENT_DRAFT_STORAGE_KEY,
   ATTENDANCE_MODES,
   DEFAULT_TIMEZONE,
@@ -81,11 +82,17 @@ const initialBrief = {
 };
 
 type BriefState = typeof initialBrief;
+type SavedBriefState = {
+  brief?: Partial<BriefState>;
+  categoryName?: string;
+  categoryId?: string;
+};
 
 export default function AiCreateScreen() {
   const router = useRouter();
   const { userInfo } = useSelector((state: any) => state.auth);
   const [brief, setBrief] = useState<BriefState>(initialBrief);
+  const [hasRestoredBrief, setHasRestoredBrief] = useState(false);
   const [pickerMode, setPickerMode] = useState<"date" | "start" | "end" | null>(null);
   const [modal, setModal] = useState<"category" | "country" | "state" | "tone" | "age" | "ticket" | null>(null);
   const [categoryName, setCategoryName] = useState("");
@@ -104,6 +111,57 @@ export default function AiCreateScreen() {
     brief.attendanceMode === "ONLINE" || brief.attendanceMode === "HYBRID";
   const needsVenue =
     brief.attendanceMode === "VENUE" || brief.attendanceMode === "HYBRID";
+
+  useEffect(() => {
+    let active = true;
+
+    const restoreBrief = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(AI_EVENT_BRIEF_STORAGE_KEY);
+        if (!raw || !active) return;
+
+        const saved = JSON.parse(raw) as SavedBriefState;
+        if (saved.brief) {
+          setBrief((current) => ({ ...current, ...saved.brief }));
+        }
+        if (saved.categoryName) {
+          setCategoryName(saved.categoryName);
+        }
+        if (saved.categoryId) {
+          setCategoryId(saved.categoryId);
+        }
+      } catch {
+        // Ignore stale local drafts; the manual inputs remain usable.
+      } finally {
+        if (active) {
+          setHasRestoredBrief(true);
+        }
+      }
+    };
+
+    restoreBrief();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasRestoredBrief) return;
+
+    const saveBrief = async () => {
+      try {
+        await AsyncStorage.setItem(
+          AI_EVENT_BRIEF_STORAGE_KEY,
+          JSON.stringify({ brief, categoryName, categoryId }),
+        );
+      } catch {
+        // Local persistence failure should not block event creation.
+      }
+    };
+
+    saveBrief();
+  }, [brief, categoryId, categoryName, hasRestoredBrief]);
 
   const selectedCountryName = useMemo(() => {
     const match = countries.find((country: any) => country.code2 === brief.country);
@@ -603,16 +661,53 @@ export default function AiCreateScreen() {
           disabled={isGenerating || !status?.ready}
           onPress={handleGenerate}
         >
-          {isGenerating ? (
-            <ActivityIndicator color="#020617" />
-          ) : (
-            <Wand2 color="#020617" size={18} />
-          )}
+          <Wand2 color="#020617" size={18} />
           <Text className="text-background font-bold ml-2">
-            {isGenerating ? "Generating draft..." : "Generate full event"}
+            Generate full event
           </Text>
         </TouchableOpacity>
       </View>
+
+      <Modal visible={isGenerating} transparent animationType="fade">
+        <View className="flex-1 bg-[#020E1E]/95 px-6 justify-center">
+          <View className="rounded-3xl border border-[#243044] bg-[#111823] p-6">
+            <View className="mx-auto h-16 w-16 rounded-2xl bg-primary/15 items-center justify-center">
+              <ActivityIndicator size="large" color="#9EDD45" />
+            </View>
+
+            <Text className="mt-5 text-center text-2xl font-black text-white">
+              AI is generating your event
+            </Text>
+            <Text className="mt-3 text-center text-sm leading-6 text-gray-400">
+              Keep this screen open. GatherPlux is preparing the event details,
+              tickets, schedule, FAQs, and attendee-ready copy.
+            </Text>
+
+            <View className="mt-6 gap-3">
+              {[
+                "Reading your event brief",
+                "Structuring sessions and ticket logic",
+                "Preparing the review screen",
+              ].map((item) => (
+                <View
+                  key={item}
+                  className="flex-row items-center rounded-xl border border-[#2E3A4D] bg-[#1A2432] px-4 py-3"
+                >
+                  <View className="mr-3 h-2.5 w-2.5 rounded-full bg-primary" />
+                  <Text className="flex-1 text-sm font-semibold text-white">
+                    {item}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <Text className="mt-5 text-center text-xs leading-5 text-gray-500">
+              Your brief is saved on this device, so if the request fails you can
+              retry without retyping everything.
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
       <DateTimePickerModal
         isVisible={Boolean(pickerMode)}

@@ -97,6 +97,7 @@ export const TIMEZONE_GROUPS: Array<{
 ];
 export const AI_EVENT_DRAFT_STORAGE_KEY = "gatherplus.aiEventDraft.v1";
 export const AI_EVENT_IMPORT_STORAGE_KEY = "gatherplus.aiEventImport.v1";
+export const AI_EVENT_BRIEF_STORAGE_KEY = "gatherplus.aiEventBrief.v1";
 
 const trim = (value: unknown) => String(value || "").trim();
 
